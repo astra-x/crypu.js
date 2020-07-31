@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "lib": [
+      "es2017",
+      "dom"
+    ],
+    "preserveWatchOutput": true,
+    "pretty": false
+  },
+  "references": [
+    {
+      "path": "./packages/transactions"
+    },
+    {
+      "path": "./packages/abstract-provider"
+    },
+    {
+      "path": "./packages/abstract-signer"
+    },
+    {
+      "path": "./packages/providers"
+    },
+    {
+      "path": "./packages/wallet"
+    }
+  ],
+  "files": []
+}

@@ -1,0 +1,12 @@
+{
+  "name": "crypu.js",
+  "private": true,
+  "scripts": {
+    "bootstrap": "lerna bootstrap --hoist"
+  },
+  "devDependencies": {
+    "lerna": "^3.22.1",
+    "@types/node": "^14.0.27",
+    "typescript": "^3.9.7"
+  }
+}

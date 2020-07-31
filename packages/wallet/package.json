@@ -1,0 +1,51 @@
+{
+  "name": "@crypujs/wallet",
+  "version": "1.0.0",
+  "description": "> TODO: description",
+  "keywords": [
+    "ethereum",
+    "crypujs",
+    "ethers",
+    "fisco",
+    "typescript",
+    "javascript"
+  ],
+  "author": "Youtao Xing <youtao.xing@icloud.com>",
+  "homepage": "https://github.com/astra-x/crypu.js#readme",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "directories": {
+    "lib": "lib"
+  },
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/astra-x/crypu.js.git"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: run tests from root\" && exit 1"
+  },
+  "bugs": {
+    "url": "https://github.com/astra-x/crypu.js/issues"
+  },
+  "dependencies": {
+    "@crypujs/abstract-provider": "^1.0.0",
+    "@crypujs/abstract-signer": "^1.0.0",
+    "@crypujs/transactions": "^1.0.0",
+    "@ethersproject/address": "^5.0.2",
+    "@ethersproject/bytes": "^5.0.3",
+    "@ethersproject/hash": "^5.0.2",
+    "@ethersproject/hdnode": "^5.0.2",
+    "@ethersproject/json-wallets": "^5.0.3",
+    "@ethersproject/keccak256": "^5.0.2",
+    "@ethersproject/logger": "^5.0.4",
+    "@ethersproject/properties": "^5.0.2",
+    "@ethersproject/random": "^5.0.2",
+    "@ethersproject/signing-key": "^5.0.3",
+    "@ethersproject/wordlists": "^5.0.2"
+  }
+}
