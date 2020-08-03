@@ -1,0 +1,39 @@
+{
+  "name": "@crypujs/abi",
+  "version": "1.0.0",
+  "description": "> TODO: description",
+  "keywords": [
+    "ethereum",
+    "crypujs",
+    "ethers",
+    "fisco",
+    "typescript",
+    "javascript"
+  ],
+  "author": "Youtao Xing <youtao.xing@icloud.com>",
+  "homepage": "https://github.com/astra-x/crypu.js#readme",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "directories": {
+    "lib": "lib"
+  },
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/astra-x/crypu.js.git"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: run tests from root\" && exit 1"
+  },
+  "bugs": {
+    "url": "https://github.com/astra-x/crypu.js/issues"
+  },
+  "dependencies": {
+    "@ethersproject/abi": "^5.0.2",
+    "@ethersproject/logger": "^5.0.4"
+  }
+}
