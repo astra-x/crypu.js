@@ -41,18 +41,18 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parse = exports.serialize = exports.recoverAddress = exports.computeAddress = void 0;
-const logger_1 = require("@ethersproject/logger");
-const bytes_1 = require("@ethersproject/bytes");
-const keccak256_1 = require("@ethersproject/keccak256");
-const properties_1 = require("@ethersproject/properties");
-const bignumber_1 = require("@ethersproject/bignumber");
-const constants_1 = require("@ethersproject/constants");
-const RLP = __importStar(require("@ethersproject/rlp"));
-const address_1 = require("@ethersproject/address");
-const signing_key_1 = require("@ethersproject/signing-key");
+var logger_1 = require("@ethersproject/logger");
+var bytes_1 = require("@ethersproject/bytes");
+var keccak256_1 = require("@ethersproject/keccak256");
+var properties_1 = require("@ethersproject/properties");
+var bignumber_1 = require("@ethersproject/bignumber");
+var constants_1 = require("@ethersproject/constants");
+var RLP = __importStar(require("@ethersproject/rlp"));
+var address_1 = require("@ethersproject/address");
+var signing_key_1 = require("@ethersproject/signing-key");
 ///////////////////////////////
-const logger = new logger_1.Logger('transactions');
-const transactionFields = [
+var logger = new logger_1.Logger('transactions');
+var transactionFields = [
     { name: 'nonce', maxLength: 16, numeric: true },
     { name: 'gasPrice', maxLength: 32, numeric: true },
     { name: 'gasLimit', maxLength: 32, numeric: true },
@@ -64,7 +64,7 @@ const transactionFields = [
     { name: 'groupId', maxLength: 32 },
     { name: 'extraData' },
 ];
-const allowedTransactionKeys = {
+var allowedTransactionKeys = {
     nonce: true,
     gasPrice: true,
     gasLimit: true,
@@ -91,7 +91,7 @@ function handleNumber(value) {
 }
 ///////////////////////////////
 function computeAddress(key) {
-    const publicKey = signing_key_1.computePublicKey(key);
+    var publicKey = signing_key_1.computePublicKey(key);
     return address_1.getAddress(bytes_1.hexDataSlice(keccak256_1.keccak256(bytes_1.hexDataSlice(publicKey, 1)), 12));
 }
 exports.computeAddress = computeAddress;
@@ -101,10 +101,10 @@ function recoverAddress(digest, signature) {
 exports.recoverAddress = recoverAddress;
 function serialize(transaction, signature) {
     properties_1.checkProperties(transaction, allowedTransactionKeys);
-    const raw = [];
+    var raw = [];
     transactionFields.forEach(function (fieldInfo) {
-        let value = transaction[fieldInfo.name] || ([]);
-        const options = {};
+        var value = transaction[fieldInfo.name] || ([]);
+        var options = {};
         if (fieldInfo.numeric) {
             options.hexPad = 'left';
         }
@@ -128,9 +128,9 @@ function serialize(transaction, signature) {
     }
     // The splitSignature will ensure the transaction has a recoveryParam in the
     // case that the signTransaction function only adds a v.
-    const sig = bytes_1.splitSignature(signature);
+    var sig = bytes_1.splitSignature(signature);
     // We pushed a chainId and null r, s on for hashing only; remove those
-    const v = 27 + sig.recoveryParam;
+    var v = 27 + sig.recoveryParam;
     raw.push(bytes_1.hexlify(v));
     raw.push(bytes_1.stripZeros(bytes_1.arrayify(sig.r)));
     raw.push(bytes_1.stripZeros(bytes_1.arrayify(sig.s)));
@@ -138,11 +138,11 @@ function serialize(transaction, signature) {
 }
 exports.serialize = serialize;
 function parse(rawTransaction) {
-    const transaction = RLP.decode(rawTransaction);
+    var transaction = RLP.decode(rawTransaction);
     if (transaction.length !== 13 && transaction.length !== 10) {
         logger.throwArgumentError('invalid raw transaction', 'rawTransaction', rawTransaction);
     }
-    const tx = {
+    var tx = {
         nonce: handleNumber(transaction[0]),
         gasPrice: handleNumber(transaction[1]),
         gasLimit: handleNumber(transaction[2]),
@@ -168,9 +168,9 @@ function parse(rawTransaction) {
     tx.r = bytes_1.hexZeroPad(transaction[11], 32);
     tx.s = bytes_1.hexZeroPad(transaction[12], 32);
     // Signed Tranasaction
-    let recoveryParam = tx.v - 27;
-    const raw = transaction.slice(0, 10);
-    const digest = keccak256_1.keccak256(RLP.encode(raw));
+    var recoveryParam = tx.v - 27;
+    var raw = transaction.slice(0, 10);
+    var digest = keccak256_1.keccak256(RLP.encode(raw));
     try {
         tx.from = recoverAddress(digest, { r: bytes_1.hexlify(tx.r), s: bytes_1.hexlify(tx.s), recoveryParam: recoveryParam });
     }

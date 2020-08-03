@@ -20,28 +20,45 @@
  * @date 2020
  */
 'use strict';
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Interface = exports.EventFragment = exports.FunctionFragment = exports.Fragment = void 0;
-const logger_1 = require("@ethersproject/logger");
-const bignumber_1 = require("@ethersproject/bignumber");
-const abi_1 = require("@ethersproject/abi");
+var logger_1 = require("@ethersproject/logger");
+var bignumber_1 = require("@ethersproject/bignumber");
+var abi_1 = require("@ethersproject/abi");
 Object.defineProperty(exports, "Fragment", { enumerable: true, get: function () { return abi_1.Fragment; } });
 Object.defineProperty(exports, "FunctionFragment", { enumerable: true, get: function () { return abi_1.FunctionFragment; } });
 Object.defineProperty(exports, "EventFragment", { enumerable: true, get: function () { return abi_1.EventFragment; } });
-const logger = new logger_1.Logger('abi');
-class Interface extends abi_1.Interface {
-    constructor(fragments) {
-        logger.checkNew(new.target, Interface);
-        super(fragments);
+var logger = new logger_1.Logger('abi');
+var Interface = /** @class */ (function (_super) {
+    __extends(Interface, _super);
+    function Interface(fragments) {
+        var _newTarget = this.constructor;
+        var _this = this;
+        logger.checkNew(_newTarget, Interface);
+        _this = _super.call(this, fragments) || this;
+        return _this;
     }
-    _formatParams(data, result) {
-        return (param, index) => {
-            const isAddress = param.type.indexOf('address') === 0;
-            const isInt = param.type.indexOf('int') === 0;
-            const isUint = param.type.indexOf('uint') === 0;
+    Interface.prototype._formatParams = function (data, result) {
+        return function (param, index) {
+            var isAddress = param.type.indexOf('address') === 0;
+            var isInt = param.type.indexOf('int') === 0;
+            var isUint = param.type.indexOf('uint') === 0;
             if (isAddress) {
                 if (Array.isArray(data[index])) {
-                    result[index] = data[index].map(address => address.toLowerCase());
+                    result[index] = data[index].map(function (address) { return address.toLowerCase(); });
                 }
                 else {
                     result[index] = data[index].toLowerCase();
@@ -49,7 +66,7 @@ class Interface extends abi_1.Interface {
             }
             else if (isUint || isInt) {
                 if (Array.isArray(data[index])) {
-                    result[index] = data[index].map((number) => bignumber_1.BigNumber.from(number).toString());
+                    result[index] = data[index].map(function (number) { return bignumber_1.BigNumber.from(number).toString(); });
                 }
                 else {
                     result[index] = bignumber_1.BigNumber.from(data[index]).toString();
@@ -59,48 +76,49 @@ class Interface extends abi_1.Interface {
                 result[index] = data[index];
             }
             if (param.name && result[param.name] == null) {
-                const value = result[index];
-                if (value instanceof Error) {
+                var value_1 = result[index];
+                if (value_1 instanceof Error) {
                     Object.defineProperty(result, param.name, {
-                        get: () => { throw new Error(`property ${JSON.stringify(param.name)}: ${value}`); }
+                        get: function () { throw new Error("property " + JSON.stringify(param.name) + ": " + value_1); }
                     });
                 }
                 else {
-                    result[param.name] = value;
+                    result[param.name] = value_1;
                 }
             }
         };
-    }
-    decodeFunctionData(functionFragment, data) {
+    };
+    Interface.prototype.decodeFunctionData = function (functionFragment, data) {
         if (typeof (functionFragment) === 'string') {
             functionFragment = this.getFunction(functionFragment);
         }
-        const functionData = super.decodeFunctionData(functionFragment, data);
-        const inputs = functionFragment.inputs;
+        var functionData = _super.prototype.decodeFunctionData.call(this, functionFragment, data);
+        var inputs = functionFragment.inputs;
         if (inputs.length !== functionData.length) {
             logger.throwError("inputs/values length mismatch", logger_1.Logger.errors.INVALID_ARGUMENT, {
                 count: { types: inputs.length, values: functionData.length },
                 value: { types: inputs, values: functionData }
             });
         }
-        let result = [];
+        var result = [];
         inputs.forEach(this._formatParams(functionData, result));
         return result;
-    }
-    decodeEventLog(eventFragment, data, topics) {
+    };
+    Interface.prototype.decodeEventLog = function (eventFragment, data, topics) {
         if (typeof (eventFragment) === 'string') {
             eventFragment = this.getEvent(eventFragment);
         }
-        const eventLog = super.decodeEventLog(eventFragment, data, topics);
+        var eventLog = _super.prototype.decodeEventLog.call(this, eventFragment, data, topics);
         if (eventFragment.inputs.length !== eventLog.length) {
             logger.throwError("inputs/values length mismatch", logger_1.Logger.errors.INVALID_ARGUMENT, {
                 count: { types: eventFragment.inputs.length, values: eventLog.length },
                 value: { types: eventFragment.inputs, values: eventLog }
             });
         }
-        let result = [];
+        var result = [];
         eventFragment.inputs.forEach(this._formatParams(eventLog, result));
         return result;
-    }
-}
+    };
+    return Interface;
+}(abi_1.Interface));
 exports.Interface = Interface;

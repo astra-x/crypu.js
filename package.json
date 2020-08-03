@@ -1,12 +1,22 @@
 {
   "name": "crypu.js",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/astra-x/crypu.js.git"
+  },
   "scripts": {
-    "bootstrap": "lerna bootstrap --hoist"
+    "bootstrap": "node ./admin/cmds/reset-build.js && node ./admin/cmds/update-depgraph && lerna bootstrap --hoist",
+    "build": "tsc --build ./tsconfig.project.json",
+    "_build-cjs": "node ./admin/cmds/set-option cjs && npm run build",
+    "_build-esm": "node ./admin/cmds/set-option esm && npm run build",
+    "clean": "node ./admin/cmds/reset-build.js && tsc --build --clean ./tsconfig.project.json"
   },
   "devDependencies": {
-    "lerna": "^3.22.1",
+    "@ethersproject/keccak256": "^5.0.0",
     "@types/node": "^14.0.27",
+    "lerna": "^3.22.1",
+    "npm-packlist": "^2.1.2",
     "typescript": "^3.9.7"
   }
 }

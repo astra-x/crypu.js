@@ -1,34 +1,5 @@
 {
-  "name": "@crypujs/providers",
-  "version": "1.0.0",
-  "description": "> TODO: description",
-  "keywords": [
-    "ethereum",
-    "crypujs",
-    "ethers",
-    "fisco",
-    "typescript",
-    "javascript"
-  ],
   "author": "Youtao Xing <youtao.xing@icloud.com>",
-  "homepage": "https://github.com/astra-x/crypu.js#readme",
-  "license": "MIT",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
-  "directories": {
-    "lib": "lib"
-  },
-  "files": [
-    "lib"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/astra-x/crypu.js.git"
-  },
-  "scripts": {
-    "build": "tsc",
-    "test": "echo \"Error: run tests from root\" && exit 1"
-  },
   "bugs": {
     "url": "https://github.com/astra-x/crypu.js/issues"
   },
@@ -45,5 +16,35 @@
     "@ethersproject/properties": "^5.0.2",
     "@ethersproject/strings": "^5.0.2",
     "@ethersproject/web": "^5.0.2"
-  }
+  },
+  "description": "> TODO: description",
+  "directories": {
+    "lib": "lib"
+  },
+  "files": [
+    "lib"
+  ],
+  "homepage": "https://github.com/astra-x/crypu.js#readme",
+  "keywords": [
+    "ethereum",
+    "crypujs",
+    "ethers",
+    "fisco",
+    "typescript",
+    "javascript"
+  ],
+  "license": "MIT",
+  "main": "./lib/index.js",
+  "module": "./lib.esm/index.js",
+  "name": "@crypujs/providers",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/astra-x/crypu.js.git"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: run tests from root\" && exit 1"
+  },
+  "types": "lib/index.d.ts",
+  "version": "1.0.0"
 }

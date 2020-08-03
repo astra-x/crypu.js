@@ -20,86 +20,118 @@
  * @date 2020
  */
 'use strict';
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Provider = exports.TransactionOrderForkEvent = exports.TransactionForkEvent = exports.BlockForkEvent = exports.ForkEvent = void 0;
-const logger_1 = require("@ethersproject/logger");
-const bytes_1 = require("@ethersproject/bytes");
-const properties_1 = require("@ethersproject/properties");
-const logger = new logger_1.Logger('abstract-provider');
+var logger_1 = require("@ethersproject/logger");
+var bytes_1 = require("@ethersproject/bytes");
+var properties_1 = require("@ethersproject/properties");
+var logger = new logger_1.Logger('abstract-provider');
 ;
 ;
 //export type CallTransactionable = {
 //    call(transaction: TransactionRequest): Promise<TransactionResponse>;
 //};
-class ForkEvent extends properties_1.Description {
-    static isForkEvent(value) {
-        return !!(value && value._isForkEvent);
+var ForkEvent = /** @class */ (function (_super) {
+    __extends(ForkEvent, _super);
+    function ForkEvent() {
+        return _super !== null && _super.apply(this, arguments) || this;
     }
-}
+    ForkEvent.isForkEvent = function (value) {
+        return !!(value && value._isForkEvent);
+    };
+    return ForkEvent;
+}(properties_1.Description));
 exports.ForkEvent = ForkEvent;
-class BlockForkEvent extends ForkEvent {
-    constructor(blockHash, expiry) {
+var BlockForkEvent = /** @class */ (function (_super) {
+    __extends(BlockForkEvent, _super);
+    function BlockForkEvent(blockHash, expiry) {
+        var _this = this;
         if (!bytes_1.isHexString(blockHash, 32)) {
             logger.throwArgumentError('invalid blockHash', 'blockHash', blockHash);
         }
-        super({
+        _this = _super.call(this, {
             _isForkEvent: true,
             _isBlockForkEvent: true,
             expiry: (expiry || 0),
             blockHash: blockHash
-        });
+        }) || this;
+        return _this;
     }
-}
+    return BlockForkEvent;
+}(ForkEvent));
 exports.BlockForkEvent = BlockForkEvent;
-class TransactionForkEvent extends ForkEvent {
-    constructor(hash, expiry) {
+var TransactionForkEvent = /** @class */ (function (_super) {
+    __extends(TransactionForkEvent, _super);
+    function TransactionForkEvent(hash, expiry) {
+        var _this = this;
         if (!bytes_1.isHexString(hash, 32)) {
             logger.throwArgumentError('invalid transaction hash', 'hash', hash);
         }
-        super({
+        _this = _super.call(this, {
             _isForkEvent: true,
             _isTransactionForkEvent: true,
             expiry: (expiry || 0),
             hash: hash
-        });
+        }) || this;
+        return _this;
     }
-}
+    return TransactionForkEvent;
+}(ForkEvent));
 exports.TransactionForkEvent = TransactionForkEvent;
-class TransactionOrderForkEvent extends ForkEvent {
-    constructor(beforeHash, afterHash, expiry) {
+var TransactionOrderForkEvent = /** @class */ (function (_super) {
+    __extends(TransactionOrderForkEvent, _super);
+    function TransactionOrderForkEvent(beforeHash, afterHash, expiry) {
+        var _this = this;
         if (!bytes_1.isHexString(beforeHash, 32)) {
             logger.throwArgumentError('invalid transaction hash', 'beforeHash', beforeHash);
         }
         if (!bytes_1.isHexString(afterHash, 32)) {
             logger.throwArgumentError('invalid transaction hash', 'afterHash', afterHash);
         }
-        super({
+        _this = _super.call(this, {
             _isForkEvent: true,
             _isTransactionOrderForkEvent: true,
             expiry: (expiry || 0),
             beforeHash: beforeHash,
             afterHash: afterHash
-        });
+        }) || this;
+        return _this;
     }
-}
+    return TransactionOrderForkEvent;
+}(ForkEvent));
 exports.TransactionOrderForkEvent = TransactionOrderForkEvent;
 ///////////////////////////////
 // Exported Abstracts
-class Provider {
-    constructor() {
-        logger.checkAbstract(new.target, Provider);
+var Provider = /** @class */ (function () {
+    function Provider() {
+        var _newTarget = this.constructor;
+        logger.checkAbstract(_newTarget, Provider);
         properties_1.defineReadOnly(this, '_isProvider', true);
     }
     // Alias for 'on'
-    addListener(eventName, listener) {
+    Provider.prototype.addListener = function (eventName, listener) {
         return this.on(eventName, listener);
-    }
+    };
     // Alias for 'off'
-    removeListener(eventName, listener) {
+    Provider.prototype.removeListener = function (eventName, listener) {
         return this.off(eventName, listener);
-    }
-    static isProvider(value) {
+    };
+    Provider.isProvider = function (value) {
         return !!(value && value._isProvider);
-    }
-}
+    };
+    return Provider;
+}());
 exports.Provider = Provider;
