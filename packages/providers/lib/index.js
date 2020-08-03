@@ -1,4 +1,3 @@
-"use strict";
 /*
  This file is part of crypu.js.
 
@@ -20,6 +19,7 @@
  * @author Youtao Xing <youtao.xing@icloud.com>
  * @date 2020
  */
+'use strict';
 Object.defineProperty(exports, "__esModule", { value: true });
 var json_rpc_provider_1 = require("./json-rpc-provider");
 Object.defineProperty(exports, "JsonRpcProvider", { enumerable: true, get: function () { return json_rpc_provider_1.JsonRpcProvider; } });

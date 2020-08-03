@@ -59,6 +59,7 @@ export interface TransactionResponse extends Transaction {
     hash: string;
     blockNumber?: number;
     blockHash?: string | null;
+    transactionIndex?: number;
     timestamp?: number;
     confirmations: number;
     from: string;

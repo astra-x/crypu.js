@@ -108,6 +108,8 @@ export interface TransactionResponse extends Transaction {
   // Only if a transaction has been mined
   blockNumber?: number,
   blockHash?: string | null,
+  transactionIndex?: number,
+
   timestamp?: number,
 
   confirmations: number,
