@@ -1,4 +1,3 @@
-"use strict";
 /*
  This file is part of crypu.js.
 
@@ -20,6 +19,7 @@
  * @author Youtao Xing <youtao.xing@icloud.com>
  * @date 2020
  */
+'use strict';
 var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (receiver, privateMap, value) {
     if (!privateMap.has(receiver)) {
         throw new TypeError("attempted to set private field on non-instance");

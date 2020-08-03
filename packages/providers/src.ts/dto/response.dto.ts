@@ -20,6 +20,8 @@
  * @date 2020
  */
 
+'use strict';
+
 export interface Response<T> {
   id: number;
   jsonrpc: '2.0';

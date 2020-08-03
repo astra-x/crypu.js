@@ -20,6 +20,8 @@
  * @date 2020
  */
 
+'use strict';
+
 import { Logger } from '@ethersproject/logger';
 import {
   Bytes,

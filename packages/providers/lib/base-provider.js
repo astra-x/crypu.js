@@ -1,4 +1,3 @@
-"use strict";
 /*
  This file is part of crypu.js.
 
@@ -20,6 +19,7 @@
  * @author Youtao Xing <youtao.xing@icloud.com>
  * @date 2020
  */
+'use strict';
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BaseProvider = exports.Event = void 0;
 const logger_1 = require("@ethersproject/logger");

@@ -20,4 +20,6 @@
  * @date 2020
  */
 
+'use strict';
+
 export { JsonRpcProvider } from './json-rpc-provider';
