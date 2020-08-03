@@ -53,7 +53,7 @@
 // async estimateGas(_?: Deferrable<TransactionRequest>): Promise<BigNumber>
 
 // class Wallet
-// constructor(privateKey: BytesLike | ExternallyOwnedAccount | SigningKey, provider?: Provider)
+// constructor(privateKey: BytesLike | ExternallyOwnedAccount, provider?: Provider)
 // connect(provider: Provider): Wallet
 // get mnemonic()
 // get privateKey()
@@ -77,10 +77,6 @@ export {
 export {
   Network,
 } from '@ethersproject/networks';
-
-export {
-  SigningKey,
-} from '@ethersproject/signing-key';
 
 export {
   JsonFragment,

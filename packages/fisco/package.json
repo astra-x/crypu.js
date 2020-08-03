@@ -11,8 +11,7 @@
     "@crypujs/wallet": "^1.0.0",
     "@ethersproject/bytes": "^5.0.3",
     "@ethersproject/networks": "^5.0.2",
-    "@ethersproject/properties": "^5.0.2",
-    "@ethersproject/signing-key": "^5.0.3"
+    "@ethersproject/properties": "^5.0.2"
   },
   "description": "> TODO: description",
   "directories": {

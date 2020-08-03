@@ -61,20 +61,6 @@ async function updatePackage(dirname, values) {
             info[key] = values[key];
         }
     }
-    /*
-    ["dependencies", "devDependencies"].forEach((key) => {
-        let deps = info[key] || [];
-        for (let name in deps) {
-            if (name.substring(0, "@crypujs".length) === "@crypujs" || name === "ethers") {
-                deps[name] = ">5.0.0-beta.0";
-            }
-        }
-    });
-    */
-
-    //if (dirname !== "ethers") {
-    //    delete info.publishConfig.tag;
-    //}
 
     // Create a normalized version sans tarballHash to compute the tarballHash
     delete info.tarballHash;

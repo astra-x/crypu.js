@@ -5,6 +5,8 @@
   },
   "dependencies": {
     "@ethersproject/abi": "^5.0.2",
+    "@ethersproject/bignumber": "^5.0.5",
+    "@ethersproject/bytes": "^5.0.3",
     "@ethersproject/logger": "^5.0.4"
   },
   "description": "> TODO: description",

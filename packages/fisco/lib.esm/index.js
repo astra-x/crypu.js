@@ -20,7 +20,6 @@
  * @date 2020
  */
 'use strict';
-export { SigningKey, } from '@ethersproject/signing-key';
 export { Fragment, FunctionFragment, EventFragment, Interface, } from '@crypujs/abi';
 export { Provider, } from '@crypujs/abstract-provider';
 export { JsonRpcProvider, } from '@crypujs/providers';

@@ -21,8 +21,6 @@
  */
 'use strict';
 Object.defineProperty(exports, "__esModule", { value: true });
-var signing_key_1 = require("@ethersproject/signing-key");
-Object.defineProperty(exports, "SigningKey", { enumerable: true, get: function () { return signing_key_1.SigningKey; } });
 var abi_1 = require("@crypujs/abi");
 Object.defineProperty(exports, "Fragment", { enumerable: true, get: function () { return abi_1.Fragment; } });
 Object.defineProperty(exports, "FunctionFragment", { enumerable: true, get: function () { return abi_1.FunctionFragment; } });

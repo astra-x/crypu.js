@@ -62,7 +62,7 @@ function setupConfig(outDir, moduleType, targetType) {
     dirnames.forEach((dirname) => {
         let info = loadPackage(dirname);
 
-        if (info._ethers_nobuild) { return; }
+        if (info._nobuild) { return; }
 
         if (targetType === "es2015") {
             if (info["browser.esm"]) {
