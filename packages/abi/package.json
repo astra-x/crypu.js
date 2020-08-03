@@ -1,7 +1,20 @@
 {
-  "name": "@crypujs/abi",
-  "version": "1.0.0",
+  "author": "Youtao Xing <youtao.xing@icloud.com>",
+  "bugs": {
+    "url": "https://github.com/astra-x/crypu.js/issues"
+  },
+  "dependencies": {
+    "@ethersproject/abi": "^5.0.2",
+    "@ethersproject/logger": "^5.0.4"
+  },
   "description": "> TODO: description",
+  "directories": {
+    "lib": "lib"
+  },
+  "files": [
+    "lib"
+  ],
+  "homepage": "https://github.com/astra-x/crypu.js#readme",
   "keywords": [
     "ethereum",
     "crypujs",
@@ -10,17 +23,10 @@
     "typescript",
     "javascript"
   ],
-  "author": "Youtao Xing <youtao.xing@icloud.com>",
-  "homepage": "https://github.com/astra-x/crypu.js#readme",
   "license": "MIT",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
-  "directories": {
-    "lib": "lib"
-  },
-  "files": [
-    "lib"
-  ],
+  "main": "./lib/index.js",
+  "module": "./lib.esm/index.js",
+  "name": "@crypujs/abi",
   "repository": {
     "type": "git",
     "url": "git://github.com/astra-x/crypu.js.git"
@@ -29,11 +35,6 @@
     "build": "tsc",
     "test": "echo \"Error: run tests from root\" && exit 1"
   },
-  "bugs": {
-    "url": "https://github.com/astra-x/crypu.js/issues"
-  },
-  "dependencies": {
-    "@ethersproject/abi": "^5.0.2",
-    "@ethersproject/logger": "^5.0.4"
-  }
+  "types": "lib/index.d.ts",
+  "version": "1.0.0"
 }

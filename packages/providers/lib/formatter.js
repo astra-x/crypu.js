@@ -22,29 +22,31 @@
 'use strict';
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Formatter = void 0;
-const logger_1 = require("@ethersproject/logger");
-const bytes_1 = require("@ethersproject/bytes");
-const properties_1 = require("@ethersproject/properties");
-const bignumber_1 = require("@ethersproject/bignumber");
-const constants_1 = require("@ethersproject/constants");
-const address_1 = require("@ethersproject/address");
-const transactions_1 = require("@crypujs/transactions");
-const logger = new logger_1.Logger('providers');
-class Formatter {
-    constructor() {
-        logger.checkNew(new.target, Formatter);
+var logger_1 = require("@ethersproject/logger");
+var bytes_1 = require("@ethersproject/bytes");
+var properties_1 = require("@ethersproject/properties");
+var bignumber_1 = require("@ethersproject/bignumber");
+var constants_1 = require("@ethersproject/constants");
+var address_1 = require("@ethersproject/address");
+var transactions_1 = require("@crypujs/transactions");
+var logger = new logger_1.Logger('providers');
+var Formatter = /** @class */ (function () {
+    function Formatter() {
+        var _newTarget = this.constructor;
+        logger.checkNew(_newTarget, Formatter);
         this.formats = this.getDefaultFormats();
     }
-    getDefaultFormats() {
-        const address = this.address.bind(this);
-        const bigNumber = this.bigNumber.bind(this);
-        const blockTag = this.blockTag.bind(this);
-        const data = this.data.bind(this);
-        const hash = this.hash.bind(this);
-        const hex = this.hex.bind(this);
-        const number = this.number.bind(this);
-        const strictData = (v) => { return this.data(v, true); };
-        const formats = {};
+    Formatter.prototype.getDefaultFormats = function () {
+        var _this = this;
+        var address = this.address.bind(this);
+        var bigNumber = this.bigNumber.bind(this);
+        var blockTag = this.blockTag.bind(this);
+        var data = this.data.bind(this);
+        var hash = this.hash.bind(this);
+        var hex = this.hex.bind(this);
+        var number = this.number.bind(this);
+        var strictData = function (v) { return _this.data(v, true); };
+        var formats = {};
         formats.transaction = {
             hash: hash,
             blockHash: Formatter.allowNull(hash, null),
@@ -131,18 +133,18 @@ class Formatter {
             logIndex: number,
         };
         return formats;
-    }
+    };
     // Requires a BigNumberish that is within the IEEE754 safe integer range; returns a number
     // Strict! Used on input.
-    number(number) {
+    Formatter.prototype.number = function (number) {
         return bignumber_1.BigNumber.from(number).toNumber();
-    }
+    };
     // Strict! Used on input.
-    bigNumber(value) {
+    Formatter.prototype.bigNumber = function (value) {
         return bignumber_1.BigNumber.from(value);
-    }
+    };
     // Requires a boolean, 'true' or  'false'; returns a boolean
-    boolean(value) {
+    Formatter.prototype.boolean = function (value) {
         if (typeof (value) === 'boolean') {
             return value;
         }
@@ -156,8 +158,8 @@ class Formatter {
             }
         }
         throw new Error('invalid boolean - ' + value);
-    }
-    hex(value, strict) {
+    };
+    Formatter.prototype.hex = function (value, strict) {
         if (typeof (value) === 'string') {
             if (!strict && value.substring(0, 2) !== '0x') {
                 value = '0x' + value;
@@ -167,30 +169,30 @@ class Formatter {
             }
         }
         return logger.throwArgumentError('invalid hash', 'value', value);
-    }
-    data(value, strict) {
-        const result = this.hex(value, strict);
+    };
+    Formatter.prototype.data = function (value, strict) {
+        var result = this.hex(value, strict);
         if ((result.length % 2) !== 0) {
             throw new Error('invalid data; odd-length - ' + value);
         }
         return result;
-    }
+    };
     // Requires an address
     // Strict! Used on input.
-    address(value) {
+    Formatter.prototype.address = function (value) {
         return address_1.getAddress(value);
-    }
-    callAddress(value) {
+    };
+    Formatter.prototype.callAddress = function (value) {
         if (!bytes_1.isHexString(value, 32)) {
             return constants_1.AddressZero;
         }
         return address_1.getAddress(bytes_1.hexDataSlice(value, 12));
-    }
-    contractAddress(value) {
+    };
+    Formatter.prototype.contractAddress = function (value) {
         return address_1.getContractAddress(value);
-    }
+    };
     // Strict! Used on input.
-    blockTag(blockTag) {
+    Formatter.prototype.blockTag = function (blockTag) {
         if (blockTag == null) {
             return 'latest';
         }
@@ -204,38 +206,38 @@ class Formatter {
             return bytes_1.hexValue(blockTag);
         }
         throw new Error('invalid blockTag');
-    }
+    };
     // Requires a hash, optionally requires 0x prefix; returns prefixed lowercase hash.
-    hash(value, strict) {
-        const result = this.hex(value, strict);
+    Formatter.prototype.hash = function (value, strict) {
+        var result = this.hex(value, strict);
         if (bytes_1.hexDataLength(result) !== 32) {
             return logger.throwArgumentError('invalid hash', 'value', value);
         }
         return result;
-    }
-    uint256(value) {
+    };
+    Formatter.prototype.uint256 = function (value) {
         if (!bytes_1.isHexString(value)) {
             throw new Error('invalid uint256');
         }
         return bytes_1.hexZeroPad(value, 32);
-    }
-    _block(value, format) {
+    };
+    Formatter.prototype._block = function (value, format) {
         if (value.author != null && value.miner == null) {
             value.miner = value.author;
         }
         return Formatter.check(format, value);
-    }
-    block(value) {
+    };
+    Formatter.prototype.block = function (value) {
         return this._block(value, this.formats.block);
-    }
-    blockWithTransactions(value) {
+    };
+    Formatter.prototype.blockWithTransactions = function (value) {
         return this._block(value, this.formats.blockWithTransactions);
-    }
+    };
     // Strict! Used on input.
-    transactionRequest(value) {
+    Formatter.prototype.transactionRequest = function (value) {
         return Formatter.check(this.formats.transactionRequest, value);
-    }
-    transactionResponse(transaction) {
+    };
+    Formatter.prototype.transactionResponse = function (transaction) {
         // Rename gas to gasLimit
         if (transaction.gas != null && transaction.gasLimit == null) {
             transaction.gasLimit = transaction.gas;
@@ -275,16 +277,16 @@ class Formatter {
              }
          }
          */
-        const result = Formatter.check(this.formats.transaction, transaction);
+        var result = Formatter.check(this.formats.transaction, transaction);
         if (transaction.chainId != null) {
-            let chainId = transaction.chainId;
+            var chainId = transaction.chainId;
             if (bytes_1.isHexString(chainId)) {
                 chainId = bignumber_1.BigNumber.from(chainId).toNumber();
             }
             result.chainId = chainId;
         }
         else {
-            let chainId = transaction.networkId;
+            var chainId = transaction.networkId;
             // geth-etc returns chainId
             if (chainId == null && result.v == null) {
                 chainId = transaction.chainId;
@@ -309,36 +311,37 @@ class Formatter {
             result.blockHash = null;
         }
         return result;
-    }
-    transaction(value) {
+    };
+    Formatter.prototype.transaction = function (value) {
         return transactions_1.parse(value);
-    }
-    receiptLog(value) {
+    };
+    Formatter.prototype.receiptLog = function (value) {
         return Formatter.check(this.formats.receiptLog, value);
-    }
-    receipt(value) {
+    };
+    Formatter.prototype.receipt = function (value) {
         return Formatter.check(this.formats.receipt, value);
-    }
-    topics(value) {
+    };
+    Formatter.prototype.topics = function (value) {
+        var _this = this;
         if (Array.isArray(value)) {
-            return value.map((v) => this.topics(v));
+            return value.map(function (v) { return _this.topics(v); });
         }
         else if (value != null) {
             return this.hash(value, true);
         }
         return null;
-    }
-    filter(value) {
+    };
+    Formatter.prototype.filter = function (value) {
         return Formatter.check(this.formats.filter, value);
-    }
-    filterLog(value) {
+    };
+    Formatter.prototype.filterLog = function (value) {
         return Formatter.check(this.formats.filterLog, value);
-    }
-    static check(format, object) {
-        const result = {};
-        for (const key in format) {
+    };
+    Formatter.check = function (format, object) {
+        var result = {};
+        for (var key in format) {
             try {
-                const value = format[key](object[key]);
+                var value = format[key](object[key]);
                 if (value !== undefined) {
                     result[key] = value;
                 }
@@ -350,37 +353,38 @@ class Formatter {
             }
         }
         return result;
-    }
+    };
     // if value is null-ish, nullValue is returned
-    static allowNull(format, nullValue) {
+    Formatter.allowNull = function (format, nullValue) {
         return (function (value) {
             if (value == null) {
                 return nullValue;
             }
             return format(value);
         });
-    }
+    };
     // If value is false-ish, replaceValue is returned
-    static allowFalsish(format, replaceValue) {
+    Formatter.allowFalsish = function (format, replaceValue) {
         return (function (value) {
             if (!value) {
                 return replaceValue;
             }
             return format(value);
         });
-    }
+    };
     // Requires an Array satisfying check
-    static arrayOf(format) {
+    Formatter.arrayOf = function (format) {
         return (function (array) {
             if (!Array.isArray(array)) {
                 throw new Error('not an array');
             }
-            const result = [];
+            var result = [];
             array.forEach(function (value) {
                 result.push(format(value));
             });
             return result;
         });
-    }
-}
+    };
+    return Formatter;
+}());
 exports.Formatter = Formatter;

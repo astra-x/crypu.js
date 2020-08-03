@@ -55,7 +55,7 @@ interface Connection {
 }
 
 export class JsonRpcProvider extends BaseProvider {
-  #nextId: number;
+  _nextId: number;
   readonly connection: Connection;
 
   constructor(url?: string, network?: Network | Promise<Network>, groupId?: number) {
@@ -68,7 +68,7 @@ export class JsonRpcProvider extends BaseProvider {
     }
     this.connection = { url: url };
 
-    this.#nextId = 42;
+    this._nextId = 42;
   }
 
   static defaultUrl(): string {
@@ -157,7 +157,7 @@ export class JsonRpcProvider extends BaseProvider {
 
   async send(method: string, params: Array<any>): Promise<any> {
     const request = {
-      id: (this.#nextId++),
+      id: (this._nextId++),
       jsonrpc: '2.0',
       method: method,
       params: params,

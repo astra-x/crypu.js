@@ -20,19 +20,68 @@
  * @date 2020
  */
 'use strict';
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (_) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BaseProvider = exports.Event = void 0;
-const logger_1 = require("@ethersproject/logger");
-const bytes_1 = require("@ethersproject/bytes");
-const networks_1 = require("@ethersproject/networks");
-const properties_1 = require("@ethersproject/properties");
-const bignumber_1 = require("@ethersproject/bignumber");
-const strings_1 = require("@ethersproject/strings");
-const hash_1 = require("@ethersproject/hash");
-const web_1 = require("@ethersproject/web");
-const abstract_provider_1 = require("@crypujs/abstract-provider");
-const formatter_1 = require("./formatter");
-const logger = new logger_1.Logger('providers');
+var logger_1 = require("@ethersproject/logger");
+var bytes_1 = require("@ethersproject/bytes");
+var networks_1 = require("@ethersproject/networks");
+var properties_1 = require("@ethersproject/properties");
+var bignumber_1 = require("@ethersproject/bignumber");
+var strings_1 = require("@ethersproject/strings");
+var hash_1 = require("@ethersproject/hash");
+var web_1 = require("@ethersproject/web");
+var abstract_provider_1 = require("@crypujs/abstract-provider");
+var formatter_1 = require("./formatter");
+var logger = new logger_1.Logger('providers');
 //////////////////////////////
 // Event Serializeing
 function checkTopic(topic) {
@@ -50,15 +99,15 @@ function serializeTopics(topics) {
     while (topics.length > 0 && topics[topics.length - 1] == null) {
         topics.pop();
     }
-    return topics.map((topic) => {
+    return topics.map(function (topic) {
         if (Array.isArray(topic)) {
             // Only track unique OR-topics
-            const unique = {};
-            topic.forEach((topic) => {
-                unique[checkTopic(topic)] = true;
+            var unique_1 = {};
+            topic.forEach(function (topic) {
+                unique_1[checkTopic(topic)] = true;
             });
             // The order of OR-topics does not matter
-            const sorted = Object.keys(unique);
+            var sorted = Object.keys(unique_1);
             sorted.sort();
             return sorted.join('|');
         }
@@ -71,11 +120,11 @@ function deserializeTopics(data) {
     if (data === '') {
         return [];
     }
-    return data.split(/&/g).map((topic) => {
+    return data.split(/&/g).map(function (topic) {
         if (topic === '') {
             return [];
         }
-        const comps = topic.split('|').map((topic) => {
+        var comps = topic.split('|').map(function (topic) {
             return ((topic === 'null') ? null : topic);
         });
         return ((comps.length === 1) ? comps[0] : comps);
@@ -109,7 +158,7 @@ function getTime() {
     return (new Date()).getTime();
 }
 function stall(duration) {
-    return new Promise((resolve) => {
+    return new Promise(function (resolve) {
         setTimeout(resolve, duration);
     });
 }
@@ -127,56 +176,74 @@ function stall(duration) {
  *   - topics array
  *   - transaction hash
  */
-const PollableEvents = ['block', 'network', 'pending', 'poll'];
-class Event {
-    constructor(tag, listener, once) {
+var PollableEvents = ['block', 'network', 'pending', 'poll'];
+var Event = /** @class */ (function () {
+    function Event(tag, listener, once) {
         properties_1.defineReadOnly(this, 'tag', tag);
         properties_1.defineReadOnly(this, 'listener', listener);
         properties_1.defineReadOnly(this, 'once', once);
     }
-    get event() {
-        switch (this.type) {
-            case 'tx':
-                return this.hash;
-            case 'filter':
-                return this.filter;
-        }
-        return this.tag;
-    }
-    get type() {
-        return this.tag.split(':')[0];
-    }
-    get hash() {
-        const comps = this.tag.split(':');
-        if (comps[0] !== 'tx') {
-            return null;
-        }
-        return comps[1];
-    }
-    get filter() {
-        const comps = this.tag.split(':');
-        if (comps[0] !== 'filter') {
-            return null;
-        }
-        const address = comps[1];
-        const topics = deserializeTopics(comps[2]);
-        const filter = {};
-        if (topics.length > 0) {
-            filter.topics = topics;
-        }
-        if (address && address !== '*') {
-            filter.address = address;
-        }
-        return filter;
-    }
-    pollable() {
+    Object.defineProperty(Event.prototype, "event", {
+        get: function () {
+            switch (this.type) {
+                case 'tx':
+                    return this.hash;
+                case 'filter':
+                    return this.filter;
+            }
+            return this.tag;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Event.prototype, "type", {
+        get: function () {
+            return this.tag.split(':')[0];
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Event.prototype, "hash", {
+        get: function () {
+            var comps = this.tag.split(':');
+            if (comps[0] !== 'tx') {
+                return null;
+            }
+            return comps[1];
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Event.prototype, "filter", {
+        get: function () {
+            var comps = this.tag.split(':');
+            if (comps[0] !== 'filter') {
+                return null;
+            }
+            var address = comps[1];
+            var topics = deserializeTopics(comps[2]);
+            var filter = {};
+            if (topics.length > 0) {
+                filter.topics = topics;
+            }
+            if (address && address !== '*') {
+                filter.address = address;
+            }
+            return filter;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Event.prototype.pollable = function () {
         return (this.tag.indexOf(':') >= 0 || PollableEvents.indexOf(this.tag) >= 0);
-    }
-}
+    };
+    return Event;
+}());
 exports.Event = Event;
-let defaultFormatter = null;
-let nextPollId = 1;
-class BaseProvider extends abstract_provider_1.Provider {
+var defaultFormatter = null;
+var nextPollId = 1;
+var BaseProvider = /** @class */ (function (_super) {
+    __extends(BaseProvider, _super);
     /**
      *  ready
      *
@@ -186,358 +253,446 @@ class BaseProvider extends abstract_provider_1.Provider {
      *  MUST set this. Standard named networks have a known chainId.
      *
      */
-    constructor(network, groupId) {
-        logger.checkNew(new.target, abstract_provider_1.Provider);
-        super();
+    function BaseProvider(network, groupId) {
+        var _newTarget = this.constructor;
+        var _this = this;
+        logger.checkNew(_newTarget, abstract_provider_1.Provider);
+        _this = _super.call(this) || this;
         // Events being listened to
-        this._events = [];
-        this._emitted = { block: -2 };
-        this.formatter = new.target.getFormatter();
+        _this._events = [];
+        _this._emitted = { block: -2 };
+        _this.formatter = _newTarget.getFormatter();
         // If network is any, this Provider allows the underlying
         // network to change dynamically, and we auto-detect the
         // current network
-        properties_1.defineReadOnly(this, 'anyNetwork', (network === 'any'));
-        if (this.anyNetwork) {
-            network = this.detectNetwork();
+        properties_1.defineReadOnly(_this, 'anyNetwork', (network === 'any'));
+        if (_this.anyNetwork) {
+            network = _this.detectNetwork();
         }
         if (network instanceof Promise) {
-            this._networkPromise = network;
+            _this._networkPromise = network;
             // Squash any 'unhandled promise' errors; that do not need to be handled
-            network.catch((_) => { });
+            network.catch(function (_) { });
             // Trigger initial network setting (async)
-            this._ready().catch((_) => { });
+            _this._ready().catch(function (_) { });
         }
         else {
-            const knownNetwork = properties_1.getStatic((new.target), 'getNetwork')(network);
+            var knownNetwork = properties_1.getStatic((_newTarget), 'getNetwork')(network);
             if (knownNetwork) {
-                properties_1.defineReadOnly(this, '_network', knownNetwork);
-                this.emit('network', knownNetwork, null);
+                properties_1.defineReadOnly(_this, '_network', knownNetwork);
+                _this.emit('network', knownNetwork, null);
             }
             else {
                 logger.throwArgumentError('invalid network', 'network', network);
             }
         }
-        this._groupId = groupId;
-        this._maxInternalBlockNumber = -1024;
-        this._lastBlockNumber = -2;
-        this._pollingInterval = 4000;
-        this._fastQueryDate = 0;
+        _this._groupId = groupId;
+        _this._maxInternalBlockNumber = -1024;
+        _this._lastBlockNumber = -2;
+        _this._pollingInterval = 4000;
+        _this._fastQueryDate = 0;
+        return _this;
     }
-    async _ready() {
-        if (this._network == null) {
-            let network = null;
-            if (this._networkPromise) {
-                try {
-                    network = await this._networkPromise;
+    BaseProvider.prototype._ready = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var network, error_1;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (!(this._network == null)) return [3 /*break*/, 7];
+                        network = null;
+                        if (!this._networkPromise) return [3 /*break*/, 4];
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 3, , 4]);
+                        return [4 /*yield*/, this._networkPromise];
+                    case 2:
+                        network = _a.sent();
+                        return [3 /*break*/, 4];
+                    case 3:
+                        error_1 = _a.sent();
+                        return [3 /*break*/, 4];
+                    case 4:
+                        if (!(network == null)) return [3 /*break*/, 6];
+                        return [4 /*yield*/, this.detectNetwork()];
+                    case 5:
+                        network = _a.sent();
+                        _a.label = 6;
+                    case 6:
+                        // This should never happen; every Provider sub-class should have
+                        // suggested a network by here (or have thrown).
+                        if (!network) {
+                            logger.throwError('no network detected', logger_1.Logger.errors.UNKNOWN_ERROR, {});
+                        }
+                        // Possible this call stacked so do not call defineReadOnly again
+                        if (this._network == null) {
+                            if (this.anyNetwork) {
+                                this._network = network;
+                            }
+                            else {
+                                properties_1.defineReadOnly(this, '_network', network);
+                            }
+                            this.emit('network', network, null);
+                        }
+                        _a.label = 7;
+                    case 7: return [2 /*return*/, this._network];
                 }
-                catch (error) { }
-            }
-            // Try the Provider's network detection (this MUST throw if it cannot)
-            if (network == null) {
-                network = await this.detectNetwork();
-            }
-            // This should never happen; every Provider sub-class should have
-            // suggested a network by here (or have thrown).
-            if (!network) {
-                logger.throwError('no network detected', logger_1.Logger.errors.UNKNOWN_ERROR, {});
-            }
-            // Possible this call stacked so do not call defineReadOnly again
-            if (this._network == null) {
-                if (this.anyNetwork) {
-                    this._network = network;
-                }
-                else {
-                    properties_1.defineReadOnly(this, '_network', network);
-                }
-                this.emit('network', network, null);
-            }
-        }
-        return this._network;
-    }
-    // This will always return the most recently established network.
-    // For 'any', this can change (a 'network' event is emitted before
-    // any change is refelcted); otherwise this cannot change
-    get ready() {
-        return web_1.poll(() => {
-            return this._ready().then((network) => {
-                return network;
-            }, (error) => {
-                // If the network isn't running yet, we will wait
-                if (error.code === logger_1.Logger.errors.NETWORK_ERROR && error.event === 'noNetwork') {
-                    return undefined;
-                }
-                throw error;
             });
         });
-    }
+    };
+    Object.defineProperty(BaseProvider.prototype, "ready", {
+        // This will always return the most recently established network.
+        // For 'any', this can change (a 'network' event is emitted before
+        // any change is refelcted); otherwise this cannot change
+        get: function () {
+            var _this = this;
+            return web_1.poll(function () {
+                return _this._ready().then(function (network) {
+                    return network;
+                }, function (error) {
+                    // If the network isn't running yet, we will wait
+                    if (error.code === logger_1.Logger.errors.NETWORK_ERROR && error.event === 'noNetwork') {
+                        return undefined;
+                    }
+                    throw error;
+                });
+            });
+        },
+        enumerable: false,
+        configurable: true
+    });
     // @TODO: Remove this and just create a singleton formatter
-    static getFormatter() {
+    BaseProvider.getFormatter = function () {
         if (defaultFormatter == null) {
             defaultFormatter = new formatter_1.Formatter();
         }
         return defaultFormatter;
-    }
+    };
     // @TODO: Remove this and just use getNetwork
-    static getNetwork(network) {
+    BaseProvider.getNetwork = function (network) {
         return networks_1.getNetwork((network == null) ? 'homestead' : network);
-    }
+    };
     // Fetches the blockNumber, but will reuse any result that is less
     // than maxAge old or has been requested since the last request
-    async _getInternalBlockNumber(maxAge) {
-        await this._ready();
-        const internalBlockNumber = this._internalBlockNumber;
-        if (maxAge > 0 && this._internalBlockNumber) {
-            const result = await internalBlockNumber;
-            if ((getTime() - result.respTime) <= maxAge) {
-                return result.blockNumber;
-            }
-        }
-        const reqTime = getTime();
-        const checkInternalBlockNumber = properties_1.resolveProperties({
-            blockNumber: this.perform('getBlockNumber', {}),
-            networkError: this.getNetwork().then((_) => (null), (error) => (error))
-        }).then(({ blockNumber, networkError }) => {
-            if (networkError) {
-                // Unremember this bad internal block number
-                if (this._internalBlockNumber === checkInternalBlockNumber) {
-                    this._internalBlockNumber = null;
-                }
-                throw networkError;
-            }
-            const respTime = getTime();
-            blockNumber = bignumber_1.BigNumber.from(blockNumber).toNumber();
-            if (blockNumber < this._maxInternalBlockNumber) {
-                blockNumber = this._maxInternalBlockNumber;
-            }
-            this._maxInternalBlockNumber = blockNumber;
-            this._setFastBlockNumber(blockNumber); // @TODO: Still need this?
-            return { blockNumber, reqTime, respTime };
-        });
-        this._internalBlockNumber = checkInternalBlockNumber;
-        return (await checkInternalBlockNumber).blockNumber;
-    }
-    async poll() {
-        const pollId = nextPollId++;
-        // Track all running promises, so we can trigger a post-poll once they are complete
-        const runners = [];
-        const blockNumber = await this._getInternalBlockNumber(100 + this.pollingInterval / 2);
-        this._setFastBlockNumber(blockNumber);
-        // Emit a poll event after we have the latest (fast) block number
-        this.emit('poll', pollId, blockNumber);
-        // If the block has not changed, meh.
-        if (blockNumber === this._lastBlockNumber) {
-            this.emit('didPoll', pollId);
-            return;
-        }
-        // First polling cycle, trigger a 'block' events
-        if (this._emitted.block === -2) {
-            this._emitted.block = blockNumber - 1;
-        }
-        if (Math.abs((this._emitted.block) - blockNumber) > 1000) {
-            logger.warn('network block skew detected; skipping block events');
-            this.emit('error', logger.makeError('network block skew detected', logger_1.Logger.errors.NETWORK_ERROR, {
-                blockNumber: blockNumber,
-                event: 'blockSkew',
-                previousBlockNumber: this._emitted.block
-            }));
-            this.emit('block', blockNumber);
-        }
-        else {
-            // Notify all listener for each block that has passed
-            for (let i = this._emitted.block + 1; i <= blockNumber; i++) {
-                this.emit('block', i);
-            }
-        }
-        // The emitted block was updated, check for obsolete events
-        if (this._emitted.block !== blockNumber) {
-            this._emitted.block = blockNumber;
-            Object.keys(this._emitted).forEach((key) => {
-                // The block event does not expire
-                if (key === 'block') {
-                    return;
-                }
-                // The block we were at when we emitted this event
-                const eventBlockNumber = this._emitted[key];
-                // We cannot garbage collect pending transactions or blocks here
-                // They should be garbage collected by the Provider when setting
-                // 'pending' events
-                if (eventBlockNumber === 'pending') {
-                    return;
-                }
-                // Evict any transaction hashes or block hashes over 12 blocks
-                // old, since they should not return null anyways
-                if (blockNumber - eventBlockNumber > 12) {
-                    delete this._emitted[key];
+    BaseProvider.prototype._getInternalBlockNumber = function (maxAge) {
+        return __awaiter(this, void 0, void 0, function () {
+            var internalBlockNumber, result, reqTime, checkInternalBlockNumber;
+            var _this = this;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this._ready()];
+                    case 1:
+                        _a.sent();
+                        internalBlockNumber = this._internalBlockNumber;
+                        if (!(maxAge > 0 && this._internalBlockNumber)) return [3 /*break*/, 3];
+                        return [4 /*yield*/, internalBlockNumber];
+                    case 2:
+                        result = _a.sent();
+                        if ((getTime() - result.respTime) <= maxAge) {
+                            return [2 /*return*/, result.blockNumber];
+                        }
+                        _a.label = 3;
+                    case 3:
+                        reqTime = getTime();
+                        checkInternalBlockNumber = properties_1.resolveProperties({
+                            blockNumber: this.perform('getBlockNumber', {}),
+                            networkError: this.getNetwork().then(function (_) { return (null); }, function (error) { return (error); })
+                        }).then(function (_a) {
+                            var blockNumber = _a.blockNumber, networkError = _a.networkError;
+                            if (networkError) {
+                                // Unremember this bad internal block number
+                                if (_this._internalBlockNumber === checkInternalBlockNumber) {
+                                    _this._internalBlockNumber = null;
+                                }
+                                throw networkError;
+                            }
+                            var respTime = getTime();
+                            blockNumber = bignumber_1.BigNumber.from(blockNumber).toNumber();
+                            if (blockNumber < _this._maxInternalBlockNumber) {
+                                blockNumber = _this._maxInternalBlockNumber;
+                            }
+                            _this._maxInternalBlockNumber = blockNumber;
+                            _this._setFastBlockNumber(blockNumber); // @TODO: Still need this?
+                            return { blockNumber: blockNumber, reqTime: reqTime, respTime: respTime };
+                        });
+                        this._internalBlockNumber = checkInternalBlockNumber;
+                        return [4 /*yield*/, checkInternalBlockNumber];
+                    case 4: return [2 /*return*/, (_a.sent()).blockNumber];
                 }
             });
-        }
-        // First polling cycle
-        if (this._lastBlockNumber === -2) {
-            this._lastBlockNumber = blockNumber - 1;
-        }
-        // Find all transaction hashes we are waiting on
-        this._events.forEach((event) => {
-            switch (event.type) {
-                case 'tx': {
-                    const hash = event.hash;
-                    let runner = this.getTransactionReceipt(hash).then((receipt) => {
-                        if (!receipt || receipt.blockNumber == null) {
-                            return null;
+        });
+    };
+    BaseProvider.prototype.poll = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var pollId, runners, blockNumber, i;
+            var _this = this;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        pollId = nextPollId++;
+                        runners = [];
+                        return [4 /*yield*/, this._getInternalBlockNumber(100 + this.pollingInterval / 2)];
+                    case 1:
+                        blockNumber = _a.sent();
+                        this._setFastBlockNumber(blockNumber);
+                        // Emit a poll event after we have the latest (fast) block number
+                        this.emit('poll', pollId, blockNumber);
+                        // If the block has not changed, meh.
+                        if (blockNumber === this._lastBlockNumber) {
+                            this.emit('didPoll', pollId);
+                            return [2 /*return*/];
                         }
-                        this._emitted['t:' + hash] = receipt.blockNumber;
-                        this.emit(hash, receipt);
-                        return null;
-                    }).catch((error) => { this.emit('error', error); });
-                    runners.push(runner);
-                    break;
-                }
-                case 'filter': {
-                    const filter = event.filter;
-                    filter.fromBlock = this._lastBlockNumber + 1;
-                    filter.toBlock = blockNumber;
-                    const runner = this.getLogs(filter).then((logs) => {
-                        if (logs.length === 0) {
-                            return;
+                        // First polling cycle, trigger a 'block' events
+                        if (this._emitted.block === -2) {
+                            this._emitted.block = blockNumber - 1;
                         }
-                        logs.forEach((log) => {
-                            this._emitted['b:' + log.blockHash] = log.blockNumber;
-                            this._emitted['t:' + log.transactionHash] = log.blockNumber;
-                            this.emit(filter, log);
+                        if (Math.abs((this._emitted.block) - blockNumber) > 1000) {
+                            logger.warn('network block skew detected; skipping block events');
+                            this.emit('error', logger.makeError('network block skew detected', logger_1.Logger.errors.NETWORK_ERROR, {
+                                blockNumber: blockNumber,
+                                event: 'blockSkew',
+                                previousBlockNumber: this._emitted.block
+                            }));
+                            this.emit('block', blockNumber);
+                        }
+                        else {
+                            // Notify all listener for each block that has passed
+                            for (i = this._emitted.block + 1; i <= blockNumber; i++) {
+                                this.emit('block', i);
+                            }
+                        }
+                        // The emitted block was updated, check for obsolete events
+                        if (this._emitted.block !== blockNumber) {
+                            this._emitted.block = blockNumber;
+                            Object.keys(this._emitted).forEach(function (key) {
+                                // The block event does not expire
+                                if (key === 'block') {
+                                    return;
+                                }
+                                // The block we were at when we emitted this event
+                                var eventBlockNumber = _this._emitted[key];
+                                // We cannot garbage collect pending transactions or blocks here
+                                // They should be garbage collected by the Provider when setting
+                                // 'pending' events
+                                if (eventBlockNumber === 'pending') {
+                                    return;
+                                }
+                                // Evict any transaction hashes or block hashes over 12 blocks
+                                // old, since they should not return null anyways
+                                if (blockNumber - eventBlockNumber > 12) {
+                                    delete _this._emitted[key];
+                                }
+                            });
+                        }
+                        // First polling cycle
+                        if (this._lastBlockNumber === -2) {
+                            this._lastBlockNumber = blockNumber - 1;
+                        }
+                        // Find all transaction hashes we are waiting on
+                        this._events.forEach(function (event) {
+                            switch (event.type) {
+                                case 'tx': {
+                                    var hash_2 = event.hash;
+                                    var runner = _this.getTransactionReceipt(hash_2).then(function (receipt) {
+                                        if (!receipt || receipt.blockNumber == null) {
+                                            return null;
+                                        }
+                                        _this._emitted['t:' + hash_2] = receipt.blockNumber;
+                                        _this.emit(hash_2, receipt);
+                                        return null;
+                                    }).catch(function (error) { _this.emit('error', error); });
+                                    runners.push(runner);
+                                    break;
+                                }
+                                case 'filter': {
+                                    var filter_1 = event.filter;
+                                    filter_1.fromBlock = _this._lastBlockNumber + 1;
+                                    filter_1.toBlock = blockNumber;
+                                    var runner = _this.getLogs(filter_1).then(function (logs) {
+                                        if (logs.length === 0) {
+                                            return;
+                                        }
+                                        logs.forEach(function (log) {
+                                            _this._emitted['b:' + log.blockHash] = log.blockNumber;
+                                            _this._emitted['t:' + log.transactionHash] = log.blockNumber;
+                                            _this.emit(filter_1, log);
+                                        });
+                                    }).catch(function (error) { _this.emit('error', error); });
+                                    runners.push(runner);
+                                    break;
+                                }
+                            }
                         });
-                    }).catch((error) => { this.emit('error', error); });
-                    runners.push(runner);
-                    break;
+                        this._lastBlockNumber = blockNumber;
+                        // Once all events for this loop have been processed, emit 'didPoll'
+                        Promise.all(runners).then(function () {
+                            _this.emit('didPoll', pollId);
+                        });
+                        return [2 /*return*/, null];
                 }
-            }
+            });
         });
-        this._lastBlockNumber = blockNumber;
-        // Once all events for this loop have been processed, emit 'didPoll'
-        Promise.all(runners).then(() => {
-            this.emit('didPoll', pollId);
-        });
-        return null;
-    }
+    };
     // Deprecated; do not use this
-    resetEventsBlock(blockNumber) {
+    BaseProvider.prototype.resetEventsBlock = function (blockNumber) {
         this._lastBlockNumber = blockNumber - 1;
         if (this.polling) {
             this.poll();
         }
-    }
-    get network() {
-        return this._network;
-    }
-    get groupId() {
-        return this._groupId;
-    }
+    };
+    Object.defineProperty(BaseProvider.prototype, "network", {
+        get: function () {
+            return this._network;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(BaseProvider.prototype, "groupId", {
+        get: function () {
+            return this._groupId;
+        },
+        enumerable: false,
+        configurable: true
+    });
     // This method should query the network if the underlying network
     // can change, such as when connected to a JSON-RPC backend
-    async detectNetwork() {
-        return logger.throwError('provider does not support network detection', logger_1.Logger.errors.UNSUPPORTED_OPERATION, {
-            operation: 'provider.detectNetwork'
-        });
-    }
-    async getNetwork() {
-        const network = await this._ready();
-        // Make sure we are still connected to the same network; this is
-        // only an external call for backends which can have the underlying
-        // network change spontaneously
-        const currentNetwork = await this.detectNetwork();
-        if (network.chainId !== currentNetwork.chainId) {
-            // We are allowing network changes, things can get complex fast;
-            // make sure you know what you are doing if you use 'any'
-            if (this.anyNetwork) {
-                this._network = currentNetwork;
-                // Reset all internal block number guards and caches
-                this._lastBlockNumber = -2;
-                this._fastBlockNumber = null;
-                this._fastBlockNumberPromise = null;
-                this._fastQueryDate = 0;
-                this._emitted.block = -2;
-                this._maxInternalBlockNumber = -1024;
-                this._internalBlockNumber = null;
-                // The 'network' event MUST happen before this method resolves
-                // so any events have a chance to unregister, so we stall an
-                // additional event loop before returning from /this/ call
-                this.emit('network', currentNetwork, network);
-                await stall(0);
-                return this._network;
-            }
-            const error = logger.makeError('underlying network changed', logger_1.Logger.errors.NETWORK_ERROR, {
-                event: 'changed',
-                network: network,
-                detectedNetwork: currentNetwork
+    BaseProvider.prototype.detectNetwork = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, logger.throwError('provider does not support network detection', logger_1.Logger.errors.UNSUPPORTED_OPERATION, {
+                        operation: 'provider.detectNetwork'
+                    })];
             });
-            this.emit('error', error);
-            throw error;
-        }
-        return network;
-    }
-    async getGroupId() {
-        return this.groupId;
-    }
-    get blockNumber() {
-        this._getInternalBlockNumber(100 + this.pollingInterval / 2).then((blockNumber) => {
-            this._setFastBlockNumber(blockNumber);
         });
-        return (this._fastBlockNumber != null) ? this._fastBlockNumber : -1;
-    }
-    get polling() {
-        return (this._poller != null);
-    }
-    set polling(value) {
-        if (value && !this._poller) {
-            this._poller = setInterval(this.poll.bind(this), this.pollingInterval);
-            if (!this._bootstrapPoll) {
-                this._bootstrapPoll = setTimeout(() => {
-                    this.poll();
-                    // We block additional polls until the polling interval
-                    // is done, to prevent overwhelming the poll function
-                    this._bootstrapPoll = setTimeout(() => {
-                        // If polling was disabled, something may require a poke
-                        // since starting the bootstrap poll and it was disabled
-                        if (!this._poller) {
-                            this.poll();
-                        }
-                        // Clear out the bootstrap so we can do another
-                        this._bootstrapPoll = null;
-                    }, this.pollingInterval);
-                }, 0);
+    };
+    BaseProvider.prototype.getNetwork = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var network, currentNetwork, error;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this._ready()];
+                    case 1:
+                        network = _a.sent();
+                        return [4 /*yield*/, this.detectNetwork()];
+                    case 2:
+                        currentNetwork = _a.sent();
+                        if (!(network.chainId !== currentNetwork.chainId)) return [3 /*break*/, 5];
+                        if (!this.anyNetwork) return [3 /*break*/, 4];
+                        this._network = currentNetwork;
+                        // Reset all internal block number guards and caches
+                        this._lastBlockNumber = -2;
+                        this._fastBlockNumber = null;
+                        this._fastBlockNumberPromise = null;
+                        this._fastQueryDate = 0;
+                        this._emitted.block = -2;
+                        this._maxInternalBlockNumber = -1024;
+                        this._internalBlockNumber = null;
+                        // The 'network' event MUST happen before this method resolves
+                        // so any events have a chance to unregister, so we stall an
+                        // additional event loop before returning from /this/ call
+                        this.emit('network', currentNetwork, network);
+                        return [4 /*yield*/, stall(0)];
+                    case 3:
+                        _a.sent();
+                        return [2 /*return*/, this._network];
+                    case 4:
+                        error = logger.makeError('underlying network changed', logger_1.Logger.errors.NETWORK_ERROR, {
+                            event: 'changed',
+                            network: network,
+                            detectedNetwork: currentNetwork
+                        });
+                        this.emit('error', error);
+                        throw error;
+                    case 5: return [2 /*return*/, network];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.getGroupId = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, this.groupId];
+            });
+        });
+    };
+    Object.defineProperty(BaseProvider.prototype, "blockNumber", {
+        get: function () {
+            var _this = this;
+            this._getInternalBlockNumber(100 + this.pollingInterval / 2).then(function (blockNumber) {
+                _this._setFastBlockNumber(blockNumber);
+            });
+            return (this._fastBlockNumber != null) ? this._fastBlockNumber : -1;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(BaseProvider.prototype, "polling", {
+        get: function () {
+            return (this._poller != null);
+        },
+        set: function (value) {
+            var _this = this;
+            if (value && !this._poller) {
+                this._poller = setInterval(this.poll.bind(this), this.pollingInterval);
+                if (!this._bootstrapPoll) {
+                    this._bootstrapPoll = setTimeout(function () {
+                        _this.poll();
+                        // We block additional polls until the polling interval
+                        // is done, to prevent overwhelming the poll function
+                        _this._bootstrapPoll = setTimeout(function () {
+                            // If polling was disabled, something may require a poke
+                            // since starting the bootstrap poll and it was disabled
+                            if (!_this._poller) {
+                                _this.poll();
+                            }
+                            // Clear out the bootstrap so we can do another
+                            _this._bootstrapPoll = null;
+                        }, _this.pollingInterval);
+                    }, 0);
+                }
             }
-        }
-        else if (!value && this._poller) {
-            clearInterval(this._poller);
-            this._poller = null;
-        }
-    }
-    get pollingInterval() {
-        return this._pollingInterval;
-    }
-    set pollingInterval(value) {
-        if (typeof (value) !== 'number' || value <= 0 || parseInt(String(value)) != value) {
-            throw new Error('invalid polling interval');
-        }
-        this._pollingInterval = value;
-        if (this._poller) {
-            clearInterval(this._poller);
-            this._poller = setInterval(() => { this.poll(); }, this._pollingInterval);
-        }
-    }
-    _getFastBlockNumber() {
-        const now = getTime();
+            else if (!value && this._poller) {
+                clearInterval(this._poller);
+                this._poller = null;
+            }
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(BaseProvider.prototype, "pollingInterval", {
+        get: function () {
+            return this._pollingInterval;
+        },
+        set: function (value) {
+            var _this = this;
+            if (typeof (value) !== 'number' || value <= 0 || parseInt(String(value)) != value) {
+                throw new Error('invalid polling interval');
+            }
+            this._pollingInterval = value;
+            if (this._poller) {
+                clearInterval(this._poller);
+                this._poller = setInterval(function () { _this.poll(); }, this._pollingInterval);
+            }
+        },
+        enumerable: false,
+        configurable: true
+    });
+    BaseProvider.prototype._getFastBlockNumber = function () {
+        var _this = this;
+        var now = getTime();
         // Stale block number, request a newer value
         if ((now - this._fastQueryDate) > 2 * this._pollingInterval) {
             this._fastQueryDate = now;
-            this._fastBlockNumberPromise = this.getBlockNumber().then((blockNumber) => {
-                if (this._fastBlockNumber == null || blockNumber > this._fastBlockNumber) {
-                    this._fastBlockNumber = blockNumber;
+            this._fastBlockNumberPromise = this.getBlockNumber().then(function (blockNumber) {
+                if (_this._fastBlockNumber == null || blockNumber > _this._fastBlockNumber) {
+                    _this._fastBlockNumber = blockNumber;
                 }
-                return this._fastBlockNumber;
+                return _this._fastBlockNumber;
             });
         }
         return this._fastBlockNumberPromise;
-    }
-    _setFastBlockNumber(blockNumber) {
+    };
+    BaseProvider.prototype._setFastBlockNumber = function (blockNumber) {
         // Older block, maybe a stale request
         if (this._fastBlockNumber != null && blockNumber < this._fastBlockNumber) {
             return;
@@ -549,483 +704,812 @@ class BaseProvider extends abstract_provider_1.Provider {
             this._fastBlockNumber = blockNumber;
             this._fastBlockNumberPromise = Promise.resolve(blockNumber);
         }
-    }
-    async waitForTransaction(transactionHash, confirmations, timeout) {
-        if (confirmations == null) {
-            confirmations = 1;
-        }
-        const receipt = await this.getTransactionReceipt(transactionHash);
-        // Receipt is already good
-        if ((receipt ? receipt.confirmations : 0) >= confirmations) {
-            return receipt;
-        }
-        // Poll until the receipt is good...
-        return new Promise((resolve, reject) => {
-            let timer = null;
-            let done = false;
-            const handler = (receipt) => {
-                if (receipt.confirmations < confirmations) {
-                    return;
+    };
+    BaseProvider.prototype.waitForTransaction = function (transactionHash, confirmations, timeout) {
+        return __awaiter(this, void 0, void 0, function () {
+            var receipt;
+            var _this = this;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (confirmations == null) {
+                            confirmations = 1;
+                        }
+                        return [4 /*yield*/, this.getTransactionReceipt(transactionHash)];
+                    case 1:
+                        receipt = _a.sent();
+                        // Receipt is already good
+                        if ((receipt ? receipt.confirmations : 0) >= confirmations) {
+                            return [2 /*return*/, receipt];
+                        }
+                        // Poll until the receipt is good...
+                        return [2 /*return*/, new Promise(function (resolve, reject) {
+                                var timer = null;
+                                var done = false;
+                                var handler = function (receipt) {
+                                    if (receipt.confirmations < confirmations) {
+                                        return;
+                                    }
+                                    if (timer) {
+                                        clearTimeout(timer);
+                                    }
+                                    if (done) {
+                                        return;
+                                    }
+                                    done = true;
+                                    _this.removeListener(transactionHash, handler);
+                                    resolve(receipt);
+                                };
+                                _this.on(transactionHash, handler);
+                                if (typeof (timeout) === 'number' && timeout > 0) {
+                                    timer = setTimeout(function () {
+                                        if (done) {
+                                            return;
+                                        }
+                                        timer = null;
+                                        done = true;
+                                        _this.removeListener(transactionHash, handler);
+                                        reject(logger.makeError('timeout exceeded', logger_1.Logger.errors.TIMEOUT, { timeout: timeout }));
+                                    }, timeout);
+                                    if (timer.unref) {
+                                        timer.unref();
+                                    }
+                                }
+                            })];
                 }
-                if (timer) {
-                    clearTimeout(timer);
-                }
-                if (done) {
-                    return;
-                }
-                done = true;
-                this.removeListener(transactionHash, handler);
-                resolve(receipt);
-            };
-            this.on(transactionHash, handler);
-            if (typeof (timeout) === 'number' && timeout > 0) {
-                timer = setTimeout(() => {
-                    if (done) {
-                        return;
-                    }
-                    timer = null;
-                    done = true;
-                    this.removeListener(transactionHash, handler);
-                    reject(logger.makeError('timeout exceeded', logger_1.Logger.errors.TIMEOUT, { timeout: timeout }));
-                }, timeout);
-                if (timer.unref) {
-                    timer.unref();
-                }
-            }
+            });
         });
-    }
-    async getBlockNumber() {
-        return this._getInternalBlockNumber(0);
-    }
-    async getGasPrice() {
-        return bignumber_1.BigNumber.from(300000000);
-    }
-    async getClientVersion() {
-        await this.getNetwork();
-        return this.perform('getClientVersion', []);
-    }
-    async getPbftView() {
-        await this.getNetwork();
-        return this.perform('getPbftView', []);
-    }
-    async getSealerList() {
-        await this.getNetwork();
-        return this.perform('getSealerList', []);
-    }
-    async getObserverList() {
-        await this.getNetwork();
-        return this.perform('getObserverList', []);
-    }
-    async getSyncStatus() {
-        await this.getNetwork();
-        return this.perform('getSyncStatus', []);
-    }
-    async getPeers() {
-        await this.getNetwork();
-        return this.perform('getPeers', []);
-    }
-    async getNodeIdList() {
-        await this.getNetwork();
-        return this.perform('getNodeIdList', []);
-    }
-    async getGroupList() {
-        await this.getNetwork();
-        return this.perform('getGroupList', []);
-    }
-    async getTransactionCount(addressOrName, blockTag) {
-        await this.getNetwork();
-        const params = await properties_1.resolveProperties({
-            address: this._getAddress(addressOrName),
-            blockTag: this._getBlockTag(blockTag)
+    };
+    BaseProvider.prototype.getBlockNumber = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, this._getInternalBlockNumber(0)];
+            });
         });
-        return bignumber_1.BigNumber.from(await this.perform('getTransactionCount', params)).toNumber();
-    }
-    async getCode(addressOrName, blockTag) {
-        await this.getNetwork();
-        const params = await properties_1.resolveProperties({
-            address: this._getAddress(addressOrName),
-            blockTag: this._getBlockTag(blockTag)
+    };
+    BaseProvider.prototype.getGasPrice = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, bignumber_1.BigNumber.from(300000000)];
+            });
         });
-        return bytes_1.hexlify(await this.perform('getCode', params));
-    }
+    };
+    BaseProvider.prototype.getClientVersion = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/, this.perform('getClientVersion', [])];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.getPbftView = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/, this.perform('getPbftView', [])];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.getSealerList = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/, this.perform('getSealerList', [])];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.getObserverList = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/, this.perform('getObserverList', [])];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.getSyncStatus = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/, this.perform('getSyncStatus', [])];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.getPeers = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/, this.perform('getPeers', [])];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.getNodeIdList = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/, this.perform('getNodeIdList', [])];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.getGroupList = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/, this.perform('getGroupList', [])];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.getTransactionCount = function (addressOrName, blockTag) {
+        return __awaiter(this, void 0, void 0, function () {
+            var params, _a, _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _c.sent();
+                        return [4 /*yield*/, properties_1.resolveProperties({
+                                address: this._getAddress(addressOrName),
+                                blockTag: this._getBlockTag(blockTag)
+                            })];
+                    case 2:
+                        params = _c.sent();
+                        _b = (_a = bignumber_1.BigNumber).from;
+                        return [4 /*yield*/, this.perform('getTransactionCount', params)];
+                    case 3: return [2 /*return*/, _b.apply(_a, [_c.sent()]).toNumber()];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.getCode = function (addressOrName, blockTag) {
+        return __awaiter(this, void 0, void 0, function () {
+            var params, _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _b.sent();
+                        return [4 /*yield*/, properties_1.resolveProperties({
+                                address: this._getAddress(addressOrName),
+                                blockTag: this._getBlockTag(blockTag)
+                            })];
+                    case 2:
+                        params = _b.sent();
+                        _a = bytes_1.hexlify;
+                        return [4 /*yield*/, this.perform('getCode', params)];
+                    case 3: return [2 /*return*/, _a.apply(void 0, [_b.sent()])];
+                }
+            });
+        });
+    };
     // This should be called by any subclass wrapping a TransactionResponse
-    _wrapTransaction(tx, hash) {
+    BaseProvider.prototype._wrapTransaction = function (tx, hash) {
+        var _this = this;
         if (hash != null && bytes_1.hexDataLength(hash) !== 32) {
             throw new Error('invalid response - sendTransaction');
         }
-        const result = tx;
+        var result = tx;
         // Check the hash we expect is the same as the hash the server reported
         if (hash != null && tx.hash !== hash) {
             logger.throwError('Transaction hash mismatch from Provider.sendTransaction.', logger_1.Logger.errors.UNKNOWN_ERROR, { expectedHash: tx.hash, returnedHash: hash });
         }
         // @TODO: (confirmations? number, timeout? number)
-        result.wait = async (confirmations) => {
-            // We know this transaction *must* exist (whether it gets mined is
-            // another story), so setting an emitted value forces us to
-            // wait even if the node returns null for the receipt
-            if (confirmations !== 0) {
-                this._emitted['t:' + tx.hash] = 'pending';
-            }
-            const receipt = await this.waitForTransaction(tx.hash, confirmations);
-            if (receipt == null && confirmations === 0) {
-                return null;
-            }
-            // No longer pending, allow the polling loop to garbage collect this
-            this._emitted['t:' + tx.hash] = receipt.blockNumber;
-            return receipt;
-        };
-        return result;
-    }
-    async sendTransaction(signedTransaction) {
-        await this.getNetwork();
-        const hexTx = await Promise.resolve(signedTransaction).then(t => bytes_1.hexlify(t));
-        const tx = this.formatter.transaction(signedTransaction);
-        try {
-            const hash = await this.perform('sendTransaction', { signedTransaction: hexTx });
-            return this._wrapTransaction(tx, hash);
-        }
-        catch (error) {
-            error.transaction = tx;
-            error.transactionHash = tx.hash;
-            throw error;
-        }
-    }
-    async _getTransactionRequest(transaction) {
-        const values = transaction;
-        const tx = {};
-        ['from', 'to'].forEach((key) => {
-            if (values[key] == null) {
-                return;
-            }
-            tx[key] = Promise.resolve(values[key]).then((v) => (v ? this._getAddress(v) : null));
-        });
-        ['gasLimit', 'gasPrice', 'value'].forEach((key) => {
-            if (values[key] == null) {
-                return;
-            }
-            tx[key] = Promise.resolve(values[key]).then((v) => (v ? bignumber_1.BigNumber.from(v) : null));
-        });
-        ['data'].forEach((key) => {
-            if (values[key] == null) {
-                return;
-            }
-            tx[key] = Promise.resolve(values[key]).then((v) => (v ? bytes_1.hexlify(v) : null));
-        });
-        return this.formatter.transactionRequest(await properties_1.resolveProperties(tx));
-    }
-    async _getFilter(filter) {
-        filter = await filter;
-        const result = {};
-        if (filter.address != null) {
-            result.address = this._getAddress(filter.address);
-        }
-        ['blockHash', 'topics'].forEach((key) => {
-            if (filter[key] == null) {
-                return;
-            }
-            result[key] = filter[key];
-        });
-        ['fromBlock', 'toBlock'].forEach((key) => {
-            if (filter[key] == null) {
-                return;
-            }
-            result[key] = this._getBlockTag(filter[key]);
-        });
-        return this.formatter.filter(await properties_1.resolveProperties(result));
-    }
-    async call(transaction, blockTag) {
-        await this.getNetwork();
-        const params = await properties_1.resolveProperties({
-            transaction: this._getTransactionRequest(transaction),
-            blockTag: this._getBlockTag(blockTag)
-        });
-        return bytes_1.hexlify(await this.perform('call', params));
-    }
-    async estimateGas(_) {
-        return bignumber_1.BigNumber.from(1000000);
-    }
-    async _getAddress(addressOrName) {
-        const address = await this.resolveName(addressOrName);
-        if (address == null) {
-            logger.throwError('ENS name not configured', logger_1.Logger.errors.UNSUPPORTED_OPERATION, {
-                operation: `resolveName(${JSON.stringify(addressOrName)})`
+        result.wait = function (confirmations) { return __awaiter(_this, void 0, void 0, function () {
+            var receipt;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        // We know this transaction *must* exist (whether it gets mined is
+                        // another story), so setting an emitted value forces us to
+                        // wait even if the node returns null for the receipt
+                        if (confirmations !== 0) {
+                            this._emitted['t:' + tx.hash] = 'pending';
+                        }
+                        return [4 /*yield*/, this.waitForTransaction(tx.hash, confirmations)];
+                    case 1:
+                        receipt = _a.sent();
+                        if (receipt == null && confirmations === 0) {
+                            return [2 /*return*/, null];
+                        }
+                        // No longer pending, allow the polling loop to garbage collect this
+                        this._emitted['t:' + tx.hash] = receipt.blockNumber;
+                        return [2 /*return*/, receipt];
+                }
             });
-        }
-        return address;
-    }
-    async _getBlock(blockHashOrBlockTag, includeTransactions) {
-        await this.getNetwork();
-        blockHashOrBlockTag = await blockHashOrBlockTag;
-        // If blockTag is a number (not 'latest', etc), this is the block number
-        let blockNumber = -128;
-        const params = {
-            includeTransactions: !!includeTransactions
-        };
-        if (bytes_1.isHexString(blockHashOrBlockTag, 32)) {
-            params.blockHash = blockHashOrBlockTag;
-        }
-        else {
-            try {
-                params.blockTag = this.formatter.blockTag(await this._getBlockTag(blockHashOrBlockTag));
-                if (bytes_1.isHexString(params.blockTag)) {
-                    blockNumber = parseInt(params.blockTag.substring(2), 16);
+        }); };
+        return result;
+    };
+    BaseProvider.prototype.sendTransaction = function (signedTransaction) {
+        return __awaiter(this, void 0, void 0, function () {
+            var hexTx, tx, hash, error_2;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _a.sent();
+                        return [4 /*yield*/, Promise.resolve(signedTransaction).then(function (t) { return bytes_1.hexlify(t); })];
+                    case 2:
+                        hexTx = _a.sent();
+                        tx = this.formatter.transaction(signedTransaction);
+                        _a.label = 3;
+                    case 3:
+                        _a.trys.push([3, 5, , 6]);
+                        return [4 /*yield*/, this.perform('sendTransaction', { signedTransaction: hexTx })];
+                    case 4:
+                        hash = _a.sent();
+                        return [2 /*return*/, this._wrapTransaction(tx, hash)];
+                    case 5:
+                        error_2 = _a.sent();
+                        error_2.transaction = tx;
+                        error_2.transactionHash = tx.hash;
+                        throw error_2;
+                    case 6: return [2 /*return*/];
                 }
-            }
-            catch (error) {
-                logger.throwArgumentError('invalid block hash or block tag', 'blockHashOrBlockTag', blockHashOrBlockTag);
-            }
-        }
-        return web_1.poll(async () => {
-            const block = await this.perform('getBlock', params);
-            // Block was not found
-            if (block == null) {
-                // For blockhashes, if we didn't say it existed, that blockhash may
-                // not exist. If we did see it though, perhaps from a log, we know
-                // it exists, and this node is just not caught up yet.
-                if (params.blockHash != null) {
-                    if (this._emitted['b:' + params.blockHash] == null) {
-                        return null;
-                    }
-                }
-                // For block tags, if we are asking for a future block, we return null
-                if (params.blockTag != null) {
-                    if (blockNumber > this._emitted.block) {
-                        return null;
-                    }
-                }
-                // Retry on the next block
-                return undefined;
-            }
-            // Add transactions
-            if (includeTransactions) {
-                let blockNumber = null;
-                for (let i = 0; i < block.transactions.length; i++) {
-                    const tx = block.transactions[i];
-                    if (tx.blockNumber == null) {
-                        tx.confirmations = 0;
-                    }
-                    else if (tx.confirmations == null) {
-                        if (blockNumber == null) {
-                            blockNumber = await this._getInternalBlockNumber(100 + 2 * this.pollingInterval);
-                        }
-                        // Add the confirmations using the fast block number (pessimistic)
-                        let confirmations = (blockNumber - tx.blockNumber) + 1;
-                        if (confirmations <= 0) {
-                            confirmations = 1;
-                        }
-                        tx.confirmations = confirmations;
-                    }
-                }
-                return this.formatter.blockWithTransactions(block);
-            }
-            return this.formatter.block(block);
-        }, { oncePoll: this });
-    }
-    async getBlock(blockHashOrBlockTag) {
-        return (this._getBlock(blockHashOrBlockTag, false));
-    }
-    async getBlockWithTransactions(blockHashOrBlockTag) {
-        return (this._getBlock(blockHashOrBlockTag, true));
-    }
-    async getTransaction(transactionHash) {
-        await this.getNetwork();
-        transactionHash = await transactionHash;
-        const params = { transactionHash: this.formatter.hash(transactionHash, true) };
-        return web_1.poll(async () => {
-            const result = await this.perform('getTransaction', params);
-            if (result == null) {
-                if (this._emitted['t:' + transactionHash] == null) {
-                    return null;
-                }
-                return undefined;
-            }
-            const tx = this.formatter.transactionResponse(result);
-            if (tx.blockNumber == null) {
-                tx.confirmations = 0;
-            }
-            else if (tx.confirmations == null) {
-                const blockNumber = await this._getInternalBlockNumber(100 + 2 * this.pollingInterval);
-                // Add the confirmations using the fast block number (pessimistic)
-                let confirmations = (blockNumber - tx.blockNumber) + 1;
-                if (confirmations <= 0) {
-                    confirmations = 1;
-                }
-                tx.confirmations = confirmations;
-            }
-            return this._wrapTransaction(tx);
-        }, { oncePoll: this });
-    }
-    async getTransactionReceipt(transactionHash) {
-        await this.getNetwork();
-        transactionHash = await transactionHash;
-        const params = { transactionHash: this.formatter.hash(transactionHash, true) };
-        return web_1.poll(async () => {
-            const result = await this.perform('getTransactionReceipt', params);
-            if (result == null) {
-                if (this._emitted['t:' + transactionHash] == null) {
-                    return null;
-                }
-                return undefined;
-            }
-            // 'geth-etc' returns receipts before they are ready
-            if (result.blockHash == null) {
-                return undefined;
-            }
-            const receipt = this.formatter.receipt(result);
-            if (receipt.blockNumber == null) {
-                receipt.confirmations = 0;
-            }
-            else if (receipt.confirmations == null) {
-                const blockNumber = await this._getInternalBlockNumber(100 + 2 * this.pollingInterval);
-                // Add the confirmations using the fast block number (pessimistic)
-                let confirmations = (blockNumber - receipt.blockNumber) + 1;
-                if (confirmations <= 0) {
-                    confirmations = 1;
-                }
-                receipt.confirmations = confirmations;
-            }
-            return receipt;
-        }, { oncePoll: this });
-    }
-    async getLogs(filter) {
-        await this.getNetwork();
-        const params = await properties_1.resolveProperties({ filter: this._getFilter(filter) });
-        const logs = await this.perform('getLogs', params);
-        logs.forEach((log) => {
-            if (log.removed == null) {
-                log.removed = false;
-            }
+            });
         });
-        return formatter_1.Formatter.arrayOf(this.formatter.filterLog.bind(this.formatter))(logs);
-    }
-    async getEtherPrice() {
-        await this.getNetwork();
-        return this.perform('getEtherPrice', {});
-    }
-    async _getBlockTag(blockTag) {
-        blockTag = await blockTag;
-        if (typeof (blockTag) === 'number' && blockTag < 0) {
-            if (blockTag % 1) {
-                logger.throwArgumentError('invalid BlockTag', 'blockTag', blockTag);
-            }
-            let blockNumber = await this._getInternalBlockNumber(100 + 2 * this.pollingInterval);
-            blockNumber += blockTag;
-            if (blockNumber < 0) {
-                blockNumber = 0;
-            }
-            return this.formatter.blockTag(blockNumber);
-        }
-        return this.formatter.blockTag(blockTag);
-    }
-    async _getResolver(name) {
-        // Get the resolver from the blockchain
-        const network = await this.getNetwork();
-        // No ENS...
-        if (!network.ensAddress) {
-            logger.throwError('network does not support ENS', logger_1.Logger.errors.UNSUPPORTED_OPERATION, { operation: 'ENS', network: network.name });
-        }
-        // keccak256('resolver(bytes32)')
-        const transaction = {
-            to: network.ensAddress,
-            data: ('0x0178b8bf' + hash_1.namehash(name).substring(2))
-        };
-        return this.formatter.callAddress(await this.call(transaction));
-    }
-    async resolveName(name) {
-        name = await name;
-        // If it is already an address, nothing to resolve
-        try {
-            return Promise.resolve(this.formatter.address(name));
-        }
-        catch (error) {
-            // If is is a hexstring, the address is bad (See #694)
-            if (bytes_1.isHexString(name)) {
-                throw error;
-            }
-        }
-        if (typeof (name) !== 'string') {
-            logger.throwArgumentError('invalid ENS name', 'name', name);
-        }
-        // Get the addr from the resovler
-        const resolverAddress = await this._getResolver(name);
-        if (!resolverAddress) {
-            return null;
-        }
-        // keccak256('addr(bytes32)')
-        const transaction = {
-            to: resolverAddress,
-            data: ('0x3b3b57de' + hash_1.namehash(name).substring(2))
-        };
-        return this.formatter.callAddress(await this.call(transaction));
-    }
-    async lookupAddress(address) {
-        address = await address;
-        address = this.formatter.address(address);
-        const reverseName = address.substring(2).toLowerCase() + '.addr.reverse';
-        const resolverAddress = await this._getResolver(reverseName);
-        if (!resolverAddress) {
-            return null;
-        }
-        // keccak('name(bytes32)')
-        let bytes = bytes_1.arrayify(await this.call({
-            to: resolverAddress,
-            data: ('0x691f3431' + hash_1.namehash(reverseName).substring(2))
-        }));
-        // Strip off the dynamic string pointer (0x20)
-        if (bytes.length < 32 || !bignumber_1.BigNumber.from(bytes.slice(0, 32)).eq(32)) {
-            return null;
-        }
-        bytes = bytes.slice(32);
-        // Not a length-prefixed string
-        if (bytes.length < 32) {
-            return null;
-        }
-        // Get the length of the string (from the length-prefix)
-        const length = bignumber_1.BigNumber.from(bytes.slice(0, 32)).toNumber();
-        bytes = bytes.slice(32);
-        // Length longer than available data
-        if (length > bytes.length) {
-            return null;
-        }
-        const name = strings_1.toUtf8String(bytes.slice(0, length));
-        // Make sure the reverse record matches the foward record
-        const addr = await this.resolveName(name);
-        if (addr != address) {
-            return null;
-        }
-        return name;
-    }
-    perform(method, params) {
+    };
+    BaseProvider.prototype._getTransactionRequest = function (transaction) {
+        return __awaiter(this, void 0, void 0, function () {
+            var values, tx, _a, _b;
+            var _this = this;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        values = transaction;
+                        tx = {};
+                        ['from', 'to'].forEach(function (key) {
+                            if (values[key] == null) {
+                                return;
+                            }
+                            tx[key] = Promise.resolve(values[key]).then(function (v) { return (v ? _this._getAddress(v) : null); });
+                        });
+                        ['gasLimit', 'gasPrice', 'value'].forEach(function (key) {
+                            if (values[key] == null) {
+                                return;
+                            }
+                            tx[key] = Promise.resolve(values[key]).then(function (v) { return (v ? bignumber_1.BigNumber.from(v) : null); });
+                        });
+                        ['data'].forEach(function (key) {
+                            if (values[key] == null) {
+                                return;
+                            }
+                            tx[key] = Promise.resolve(values[key]).then(function (v) { return (v ? bytes_1.hexlify(v) : null); });
+                        });
+                        _b = (_a = this.formatter).transactionRequest;
+                        return [4 /*yield*/, properties_1.resolveProperties(tx)];
+                    case 1: return [2 /*return*/, _b.apply(_a, [_c.sent()])];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype._getFilter = function (filter) {
+        return __awaiter(this, void 0, void 0, function () {
+            var result, _a, _b;
+            var _this = this;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0: return [4 /*yield*/, filter];
+                    case 1:
+                        filter = _c.sent();
+                        result = {};
+                        if (filter.address != null) {
+                            result.address = this._getAddress(filter.address);
+                        }
+                        ['blockHash', 'topics'].forEach(function (key) {
+                            if (filter[key] == null) {
+                                return;
+                            }
+                            result[key] = filter[key];
+                        });
+                        ['fromBlock', 'toBlock'].forEach(function (key) {
+                            if (filter[key] == null) {
+                                return;
+                            }
+                            result[key] = _this._getBlockTag(filter[key]);
+                        });
+                        _b = (_a = this.formatter).filter;
+                        return [4 /*yield*/, properties_1.resolveProperties(result)];
+                    case 2: return [2 /*return*/, _b.apply(_a, [_c.sent()])];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.call = function (transaction, blockTag) {
+        return __awaiter(this, void 0, void 0, function () {
+            var params, _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _b.sent();
+                        return [4 /*yield*/, properties_1.resolveProperties({
+                                transaction: this._getTransactionRequest(transaction),
+                                blockTag: this._getBlockTag(blockTag)
+                            })];
+                    case 2:
+                        params = _b.sent();
+                        _a = bytes_1.hexlify;
+                        return [4 /*yield*/, this.perform('call', params)];
+                    case 3: return [2 /*return*/, _a.apply(void 0, [_b.sent()])];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.estimateGas = function (_) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, bignumber_1.BigNumber.from(1000000)];
+            });
+        });
+    };
+    BaseProvider.prototype._getAddress = function (addressOrName) {
+        return __awaiter(this, void 0, void 0, function () {
+            var address;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.resolveName(addressOrName)];
+                    case 1:
+                        address = _a.sent();
+                        if (address == null) {
+                            logger.throwError('ENS name not configured', logger_1.Logger.errors.UNSUPPORTED_OPERATION, {
+                                operation: "resolveName(" + JSON.stringify(addressOrName) + ")"
+                            });
+                        }
+                        return [2 /*return*/, address];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype._getBlock = function (blockHashOrBlockTag, includeTransactions) {
+        return __awaiter(this, void 0, void 0, function () {
+            var blockNumber, params, _a, _b, _c, error_3;
+            var _this = this;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _d.sent();
+                        return [4 /*yield*/, blockHashOrBlockTag];
+                    case 2:
+                        blockHashOrBlockTag = _d.sent();
+                        blockNumber = -128;
+                        params = {
+                            includeTransactions: !!includeTransactions
+                        };
+                        if (!bytes_1.isHexString(blockHashOrBlockTag, 32)) return [3 /*break*/, 3];
+                        params.blockHash = blockHashOrBlockTag;
+                        return [3 /*break*/, 6];
+                    case 3:
+                        _d.trys.push([3, 5, , 6]);
+                        _a = params;
+                        _c = (_b = this.formatter).blockTag;
+                        return [4 /*yield*/, this._getBlockTag(blockHashOrBlockTag)];
+                    case 4:
+                        _a.blockTag = _c.apply(_b, [_d.sent()]);
+                        if (bytes_1.isHexString(params.blockTag)) {
+                            blockNumber = parseInt(params.blockTag.substring(2), 16);
+                        }
+                        return [3 /*break*/, 6];
+                    case 5:
+                        error_3 = _d.sent();
+                        logger.throwArgumentError('invalid block hash or block tag', 'blockHashOrBlockTag', blockHashOrBlockTag);
+                        return [3 /*break*/, 6];
+                    case 6: return [2 /*return*/, web_1.poll(function () { return __awaiter(_this, void 0, void 0, function () {
+                            var block, blockNumber_1, i, tx, confirmations;
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0: return [4 /*yield*/, this.perform('getBlock', params)];
+                                    case 1:
+                                        block = _a.sent();
+                                        // Block was not found
+                                        if (block == null) {
+                                            // For blockhashes, if we didn't say it existed, that blockhash may
+                                            // not exist. If we did see it though, perhaps from a log, we know
+                                            // it exists, and this node is just not caught up yet.
+                                            if (params.blockHash != null) {
+                                                if (this._emitted['b:' + params.blockHash] == null) {
+                                                    return [2 /*return*/, null];
+                                                }
+                                            }
+                                            // For block tags, if we are asking for a future block, we return null
+                                            if (params.blockTag != null) {
+                                                if (blockNumber > this._emitted.block) {
+                                                    return [2 /*return*/, null];
+                                                }
+                                            }
+                                            // Retry on the next block
+                                            return [2 /*return*/, undefined];
+                                        }
+                                        if (!includeTransactions) return [3 /*break*/, 8];
+                                        blockNumber_1 = null;
+                                        i = 0;
+                                        _a.label = 2;
+                                    case 2:
+                                        if (!(i < block.transactions.length)) return [3 /*break*/, 7];
+                                        tx = block.transactions[i];
+                                        if (!(tx.blockNumber == null)) return [3 /*break*/, 3];
+                                        tx.confirmations = 0;
+                                        return [3 /*break*/, 6];
+                                    case 3:
+                                        if (!(tx.confirmations == null)) return [3 /*break*/, 6];
+                                        if (!(blockNumber_1 == null)) return [3 /*break*/, 5];
+                                        return [4 /*yield*/, this._getInternalBlockNumber(100 + 2 * this.pollingInterval)];
+                                    case 4:
+                                        blockNumber_1 = _a.sent();
+                                        _a.label = 5;
+                                    case 5:
+                                        confirmations = (blockNumber_1 - tx.blockNumber) + 1;
+                                        if (confirmations <= 0) {
+                                            confirmations = 1;
+                                        }
+                                        tx.confirmations = confirmations;
+                                        _a.label = 6;
+                                    case 6:
+                                        i++;
+                                        return [3 /*break*/, 2];
+                                    case 7: return [2 /*return*/, this.formatter.blockWithTransactions(block)];
+                                    case 8: return [2 /*return*/, this.formatter.block(block)];
+                                }
+                            });
+                        }); }, { oncePoll: this })];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.getBlock = function (blockHashOrBlockTag) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, (this._getBlock(blockHashOrBlockTag, false))];
+            });
+        });
+    };
+    BaseProvider.prototype.getBlockWithTransactions = function (blockHashOrBlockTag) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, (this._getBlock(blockHashOrBlockTag, true))];
+            });
+        });
+    };
+    BaseProvider.prototype.getTransaction = function (transactionHash) {
+        return __awaiter(this, void 0, void 0, function () {
+            var params;
+            var _this = this;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _a.sent();
+                        return [4 /*yield*/, transactionHash];
+                    case 2:
+                        transactionHash = _a.sent();
+                        params = { transactionHash: this.formatter.hash(transactionHash, true) };
+                        return [2 /*return*/, web_1.poll(function () { return __awaiter(_this, void 0, void 0, function () {
+                                var result, tx, blockNumber, confirmations;
+                                return __generator(this, function (_a) {
+                                    switch (_a.label) {
+                                        case 0: return [4 /*yield*/, this.perform('getTransaction', params)];
+                                        case 1:
+                                            result = _a.sent();
+                                            if (result == null) {
+                                                if (this._emitted['t:' + transactionHash] == null) {
+                                                    return [2 /*return*/, null];
+                                                }
+                                                return [2 /*return*/, undefined];
+                                            }
+                                            tx = this.formatter.transactionResponse(result);
+                                            if (!(tx.blockNumber == null)) return [3 /*break*/, 2];
+                                            tx.confirmations = 0;
+                                            return [3 /*break*/, 4];
+                                        case 2:
+                                            if (!(tx.confirmations == null)) return [3 /*break*/, 4];
+                                            return [4 /*yield*/, this._getInternalBlockNumber(100 + 2 * this.pollingInterval)];
+                                        case 3:
+                                            blockNumber = _a.sent();
+                                            confirmations = (blockNumber - tx.blockNumber) + 1;
+                                            if (confirmations <= 0) {
+                                                confirmations = 1;
+                                            }
+                                            tx.confirmations = confirmations;
+                                            _a.label = 4;
+                                        case 4: return [2 /*return*/, this._wrapTransaction(tx)];
+                                    }
+                                });
+                            }); }, { oncePoll: this })];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.getTransactionReceipt = function (transactionHash) {
+        return __awaiter(this, void 0, void 0, function () {
+            var params;
+            var _this = this;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _a.sent();
+                        return [4 /*yield*/, transactionHash];
+                    case 2:
+                        transactionHash = _a.sent();
+                        params = { transactionHash: this.formatter.hash(transactionHash, true) };
+                        return [2 /*return*/, web_1.poll(function () { return __awaiter(_this, void 0, void 0, function () {
+                                var result, receipt, blockNumber, confirmations;
+                                return __generator(this, function (_a) {
+                                    switch (_a.label) {
+                                        case 0: return [4 /*yield*/, this.perform('getTransactionReceipt', params)];
+                                        case 1:
+                                            result = _a.sent();
+                                            if (result == null) {
+                                                if (this._emitted['t:' + transactionHash] == null) {
+                                                    return [2 /*return*/, null];
+                                                }
+                                                return [2 /*return*/, undefined];
+                                            }
+                                            // 'geth-etc' returns receipts before they are ready
+                                            if (result.blockHash == null) {
+                                                return [2 /*return*/, undefined];
+                                            }
+                                            receipt = this.formatter.receipt(result);
+                                            if (!(receipt.blockNumber == null)) return [3 /*break*/, 2];
+                                            receipt.confirmations = 0;
+                                            return [3 /*break*/, 4];
+                                        case 2:
+                                            if (!(receipt.confirmations == null)) return [3 /*break*/, 4];
+                                            return [4 /*yield*/, this._getInternalBlockNumber(100 + 2 * this.pollingInterval)];
+                                        case 3:
+                                            blockNumber = _a.sent();
+                                            confirmations = (blockNumber - receipt.blockNumber) + 1;
+                                            if (confirmations <= 0) {
+                                                confirmations = 1;
+                                            }
+                                            receipt.confirmations = confirmations;
+                                            _a.label = 4;
+                                        case 4: return [2 /*return*/, receipt];
+                                    }
+                                });
+                            }); }, { oncePoll: this })];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.getLogs = function (filter) {
+        return __awaiter(this, void 0, void 0, function () {
+            var params, logs;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _a.sent();
+                        return [4 /*yield*/, properties_1.resolveProperties({ filter: this._getFilter(filter) })];
+                    case 2:
+                        params = _a.sent();
+                        return [4 /*yield*/, this.perform('getLogs', params)];
+                    case 3:
+                        logs = _a.sent();
+                        logs.forEach(function (log) {
+                            if (log.removed == null) {
+                                log.removed = false;
+                            }
+                        });
+                        return [2 /*return*/, formatter_1.Formatter.arrayOf(this.formatter.filterLog.bind(this.formatter))(logs)];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.getEtherPrice = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/, this.perform('getEtherPrice', {})];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype._getBlockTag = function (blockTag) {
+        return __awaiter(this, void 0, void 0, function () {
+            var blockNumber;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, blockTag];
+                    case 1:
+                        blockTag = _a.sent();
+                        if (!(typeof (blockTag) === 'number' && blockTag < 0)) return [3 /*break*/, 3];
+                        if (blockTag % 1) {
+                            logger.throwArgumentError('invalid BlockTag', 'blockTag', blockTag);
+                        }
+                        return [4 /*yield*/, this._getInternalBlockNumber(100 + 2 * this.pollingInterval)];
+                    case 2:
+                        blockNumber = _a.sent();
+                        blockNumber += blockTag;
+                        if (blockNumber < 0) {
+                            blockNumber = 0;
+                        }
+                        return [2 /*return*/, this.formatter.blockTag(blockNumber)];
+                    case 3: return [2 /*return*/, this.formatter.blockTag(blockTag)];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype._getResolver = function (name) {
+        return __awaiter(this, void 0, void 0, function () {
+            var network, transaction, _a, _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        network = _c.sent();
+                        // No ENS...
+                        if (!network.ensAddress) {
+                            logger.throwError('network does not support ENS', logger_1.Logger.errors.UNSUPPORTED_OPERATION, { operation: 'ENS', network: network.name });
+                        }
+                        transaction = {
+                            to: network.ensAddress,
+                            data: ('0x0178b8bf' + hash_1.namehash(name).substring(2))
+                        };
+                        _b = (_a = this.formatter).callAddress;
+                        return [4 /*yield*/, this.call(transaction)];
+                    case 2: return [2 /*return*/, _b.apply(_a, [_c.sent()])];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.resolveName = function (name) {
+        return __awaiter(this, void 0, void 0, function () {
+            var resolverAddress, transaction, _a, _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0: return [4 /*yield*/, name];
+                    case 1:
+                        name = _c.sent();
+                        // If it is already an address, nothing to resolve
+                        try {
+                            return [2 /*return*/, Promise.resolve(this.formatter.address(name))];
+                        }
+                        catch (error) {
+                            // If is is a hexstring, the address is bad (See #694)
+                            if (bytes_1.isHexString(name)) {
+                                throw error;
+                            }
+                        }
+                        if (typeof (name) !== 'string') {
+                            logger.throwArgumentError('invalid ENS name', 'name', name);
+                        }
+                        return [4 /*yield*/, this._getResolver(name)];
+                    case 2:
+                        resolverAddress = _c.sent();
+                        if (!resolverAddress) {
+                            return [2 /*return*/, null];
+                        }
+                        transaction = {
+                            to: resolverAddress,
+                            data: ('0x3b3b57de' + hash_1.namehash(name).substring(2))
+                        };
+                        _b = (_a = this.formatter).callAddress;
+                        return [4 /*yield*/, this.call(transaction)];
+                    case 3: return [2 /*return*/, _b.apply(_a, [_c.sent()])];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.lookupAddress = function (address) {
+        return __awaiter(this, void 0, void 0, function () {
+            var reverseName, resolverAddress, bytes, _a, length, name, addr;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4 /*yield*/, address];
+                    case 1:
+                        address = _b.sent();
+                        address = this.formatter.address(address);
+                        reverseName = address.substring(2).toLowerCase() + '.addr.reverse';
+                        return [4 /*yield*/, this._getResolver(reverseName)];
+                    case 2:
+                        resolverAddress = _b.sent();
+                        if (!resolverAddress) {
+                            return [2 /*return*/, null];
+                        }
+                        _a = bytes_1.arrayify;
+                        return [4 /*yield*/, this.call({
+                                to: resolverAddress,
+                                data: ('0x691f3431' + hash_1.namehash(reverseName).substring(2))
+                            })];
+                    case 3:
+                        bytes = _a.apply(void 0, [_b.sent()]);
+                        // Strip off the dynamic string pointer (0x20)
+                        if (bytes.length < 32 || !bignumber_1.BigNumber.from(bytes.slice(0, 32)).eq(32)) {
+                            return [2 /*return*/, null];
+                        }
+                        bytes = bytes.slice(32);
+                        // Not a length-prefixed string
+                        if (bytes.length < 32) {
+                            return [2 /*return*/, null];
+                        }
+                        length = bignumber_1.BigNumber.from(bytes.slice(0, 32)).toNumber();
+                        bytes = bytes.slice(32);
+                        // Length longer than available data
+                        if (length > bytes.length) {
+                            return [2 /*return*/, null];
+                        }
+                        name = strings_1.toUtf8String(bytes.slice(0, length));
+                        return [4 /*yield*/, this.resolveName(name)];
+                    case 4:
+                        addr = _b.sent();
+                        if (addr != address) {
+                            return [2 /*return*/, null];
+                        }
+                        return [2 /*return*/, name];
+                }
+            });
+        });
+    };
+    BaseProvider.prototype.perform = function (method, params) {
         return logger.throwError(method + ' not implemented', logger_1.Logger.errors.NOT_IMPLEMENTED, { operation: method });
-    }
-    _startEvent(event) {
-        this.polling = (this._events.filter((e) => e.pollable()).length > 0);
-    }
-    _stopEvent(event) {
-        this.polling = (this._events.filter((e) => e.pollable()).length > 0);
-    }
-    _addEventListener(eventName, listener, once) {
-        const event = new Event(getEventTag(eventName), listener, once);
+    };
+    BaseProvider.prototype._startEvent = function (event) {
+        this.polling = (this._events.filter(function (e) { return e.pollable(); }).length > 0);
+    };
+    BaseProvider.prototype._stopEvent = function (event) {
+        this.polling = (this._events.filter(function (e) { return e.pollable(); }).length > 0);
+    };
+    BaseProvider.prototype._addEventListener = function (eventName, listener, once) {
+        var event = new Event(getEventTag(eventName), listener, once);
         this._events.push(event);
         this._startEvent(event);
         return this;
-    }
-    on(eventName, listener) {
+    };
+    BaseProvider.prototype.on = function (eventName, listener) {
         return this._addEventListener(eventName, listener, false);
-    }
-    once(eventName, listener) {
+    };
+    BaseProvider.prototype.once = function (eventName, listener) {
         return this._addEventListener(eventName, listener, true);
-    }
-    emit(eventName, ...args) {
-        let result = false;
-        let stopped = [];
-        let eventTag = getEventTag(eventName);
-        this._events = this._events.filter((event) => {
+    };
+    BaseProvider.prototype.emit = function (eventName) {
+        var _this = this;
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
+        var result = false;
+        var stopped = [];
+        var eventTag = getEventTag(eventName);
+        this._events = this._events.filter(function (event) {
             if (event.tag !== eventTag) {
                 return true;
             }
-            setTimeout(() => {
-                event.listener.apply(this, args);
+            setTimeout(function () {
+                event.listener.apply(_this, args);
             }, 0);
             result = true;
             if (event.once) {
@@ -1034,35 +1518,36 @@ class BaseProvider extends abstract_provider_1.Provider {
             }
             return true;
         });
-        stopped.forEach((event) => { this._stopEvent(event); });
+        stopped.forEach(function (event) { _this._stopEvent(event); });
         return result;
-    }
-    listenerCount(eventName) {
+    };
+    BaseProvider.prototype.listenerCount = function (eventName) {
         if (!eventName) {
             return this._events.length;
         }
-        let eventTag = getEventTag(eventName);
-        return this._events.filter((event) => {
+        var eventTag = getEventTag(eventName);
+        return this._events.filter(function (event) {
             return (event.tag === eventTag);
         }).length;
-    }
-    listeners(eventName) {
+    };
+    BaseProvider.prototype.listeners = function (eventName) {
         if (eventName == null) {
-            return this._events.map((event) => event.listener);
+            return this._events.map(function (event) { return event.listener; });
         }
-        let eventTag = getEventTag(eventName);
+        var eventTag = getEventTag(eventName);
         return this._events
-            .filter((event) => (event.tag === eventTag))
-            .map((event) => event.listener);
-    }
-    off(eventName, listener) {
+            .filter(function (event) { return (event.tag === eventTag); })
+            .map(function (event) { return event.listener; });
+    };
+    BaseProvider.prototype.off = function (eventName, listener) {
+        var _this = this;
         if (listener == null) {
             return this.removeAllListeners(eventName);
         }
-        const stopped = [];
-        let found = false;
-        let eventTag = getEventTag(eventName);
-        this._events = this._events.filter((event) => {
+        var stopped = [];
+        var found = false;
+        var eventTag = getEventTag(eventName);
+        this._events = this._events.filter(function (event) {
             if (event.tag !== eventTag || event.listener != listener) {
                 return true;
             }
@@ -1073,27 +1558,29 @@ class BaseProvider extends abstract_provider_1.Provider {
             stopped.push(event);
             return false;
         });
-        stopped.forEach((event) => { this._stopEvent(event); });
+        stopped.forEach(function (event) { _this._stopEvent(event); });
         return this;
-    }
-    removeAllListeners(eventName) {
-        let stopped = [];
+    };
+    BaseProvider.prototype.removeAllListeners = function (eventName) {
+        var _this = this;
+        var stopped = [];
         if (eventName == null) {
             stopped = this._events;
             this._events = [];
         }
         else {
-            const eventTag = getEventTag(eventName);
-            this._events = this._events.filter((event) => {
-                if (event.tag !== eventTag) {
+            var eventTag_1 = getEventTag(eventName);
+            this._events = this._events.filter(function (event) {
+                if (event.tag !== eventTag_1) {
                     return true;
                 }
                 stopped.push(event);
                 return false;
             });
         }
-        stopped.forEach((event) => { this._stopEvent(event); });
+        stopped.forEach(function (event) { _this._stopEvent(event); });
         return this;
-    }
-}
+    };
+    return BaseProvider;
+}(abstract_provider_1.Provider));
 exports.BaseProvider = BaseProvider;
