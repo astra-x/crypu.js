@@ -18,13 +18,6 @@ export interface ClientVersion {
     'Git Commit Hash'?: string;
     'Supported Version'?: string;
 }
-export interface Peer {
-    Agency: string;
-    IPAndPort: string;
-    Node: string;
-    NodeID: string;
-    Topic: Array<any>;
-}
 export interface SyncStatus {
     blockNumber: number;
     genesisHash: string;
@@ -41,6 +34,13 @@ export interface SyncStatus {
         latestHash: string;
         nodeId: string;
     }>;
+}
+export interface Peer {
+    Agency: string;
+    IPAndPort: string;
+    Node: string;
+    NodeID: string;
+    Topic: Array<any>;
 }
 export declare type TransactionRequest = {
     nonce?: BigNumberish;

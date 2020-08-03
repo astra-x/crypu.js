@@ -56,14 +56,6 @@ export interface ClientVersion {
   'Supported Version'?: string;
 }
 
-export interface Peer {
-  Agency: string;
-  IPAndPort: string;
-  Node: string;
-  NodeID: string;
-  Topic: Array<any>;
-}
-
 export interface SyncStatus {
   blockNumber: number;
   genesisHash: string;
@@ -80,6 +72,14 @@ export interface SyncStatus {
     latestHash: string;
     nodeId: string;
   }>;
+}
+
+export interface Peer {
+  Agency: string;
+  IPAndPort: string;
+  Node: string;
+  NodeID: string;
+  Topic: Array<any>;
 }
 
 export type TransactionRequest = {
