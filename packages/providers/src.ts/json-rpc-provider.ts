@@ -32,8 +32,8 @@ import {
   deepCopy,
   getStatic,
 } from '@ethersproject/properties'
-import { fetchJson } from '@ethersproject/web';
 
+import { fetchJson } from '@crypujs/web';
 import { ClientVersion } from '@crypujs/abstract-provider';
 
 import { Response } from './dto/response.dto';

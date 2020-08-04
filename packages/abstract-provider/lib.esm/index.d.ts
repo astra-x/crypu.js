@@ -7,8 +7,8 @@ import { BytesLike } from '@ethersproject/bytes';
 import { Network } from '@ethersproject/networks';
 import { Deferrable, Description } from '@ethersproject/properties';
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
-import { OnceBlockable } from '@ethersproject/web';
 import { Transaction } from '@crypujs/transactions';
+import { OnceBlockable } from '@crypujs/web';
 export interface ClientVersion {
     'Build Time'?: string;
     'Build Type'?: string;

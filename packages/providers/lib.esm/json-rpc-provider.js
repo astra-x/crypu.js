@@ -32,7 +32,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import { Logger } from '@ethersproject/logger';
 import { getNetwork, } from '@ethersproject/networks';
 import { deepCopy, getStatic, } from '@ethersproject/properties';
-import { fetchJson } from '@ethersproject/web';
+import { fetchJson } from '@crypujs/web';
 import { Formatter } from './formatter';
 import { BaseProvider, } from './base-provider';
 const logger = new Logger('provider');
