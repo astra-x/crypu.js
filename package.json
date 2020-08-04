@@ -10,13 +10,25 @@
     "build": "tsc --build ./tsconfig.project.json",
     "_build-cjs": "node ./admin/cmds/set-option cjs && npm run build",
     "_build-esm": "node ./admin/cmds/set-option esm && npm run build",
+    "_dist-umd": "node ./admin/cmds/set-option cjs && rollup -c && mv ./packages/fisco/dist/fisco.umd.min.js ./packages/fisco/dist/fisco-all.umd.min.js && node ./admin/cmds/set-option cjs && rollup -c",
+    "_dist-esm": "node ./admin/cmds/set-option esm && rollup -c --configModule && mv ./packages/fisco/dist/fisco.esm.min.js ./packages/fisco/dist/fisco-all.esm.min.js && node ./admin/cmds/set-option esm && rollup -c --configModule",
+    "_dist": "npm run _dist-esm && npm run _dist-umd",
     "clean": "node ./admin/cmds/reset-build.js && tsc --build --clean ./tsconfig.project.json"
   },
   "devDependencies": {
-    "@ethersproject/keccak256": "^5.0.0",
     "@types/node": "^14.0.27",
     "lerna": "^3.22.1",
     "npm-packlist": "^2.1.2",
+    "rollup": "1.20.1",
+    "rollup-plugin-commonjs": "10.0.2",
+    "rollup-plugin-json": "4.0.0",
+    "rollup-plugin-node-globals": "1.4.0",
+    "rollup-plugin-node-resolve": "5.2.0",
+    "rollup-plugin-terser": "^5.2.0",
+    "rollup-plugin-uglify": "^6.0.4",
+    "rollup-pluginutils": "2.8.1",
+    "tar": "^6.0.2",
     "typescript": "^3.9.7"
-  }
+  },
+  "dependencies": {}
 }
