@@ -43,9 +43,9 @@ import {
 import { BigNumber } from '@ethersproject/bignumber';
 import { toUtf8String } from '@ethersproject/strings';
 import { namehash } from '@ethersproject/hash';
-import { poll } from '@ethersproject/web';
 
 import { Transaction } from '@crypujs/transactions';
+import { poll } from '@crypujs/web';
 import {
   ClientVersion,
   SyncStatus,

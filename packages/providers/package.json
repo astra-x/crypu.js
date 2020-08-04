@@ -6,6 +6,7 @@
   "dependencies": {
     "@crypujs/abstract-provider": "^1.0.0",
     "@crypujs/transactions": "^1.0.0",
+    "@crypujs/web": "^1.0.0",
     "@ethersproject/address": "^5.0.2",
     "@ethersproject/bignumber": "^5.0.5",
     "@ethersproject/bytes": "^5.0.3",
@@ -14,8 +15,7 @@
     "@ethersproject/logger": "^5.0.4",
     "@ethersproject/networks": "^5.0.2",
     "@ethersproject/properties": "^5.0.2",
-    "@ethersproject/strings": "^5.0.2",
-    "@ethersproject/web": "^5.0.2"
+    "@ethersproject/strings": "^5.0.2"
   },
   "description": "> TODO: description",
   "directories": {

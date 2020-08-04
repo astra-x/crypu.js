@@ -16,6 +16,9 @@
       "path": "./packages/transactions"
     },
     {
+      "path": "./packages/web"
+    },
+    {
       "path": "./packages/abstract-provider"
     },
     {

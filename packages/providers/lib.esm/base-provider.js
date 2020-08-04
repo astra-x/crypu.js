@@ -36,7 +36,7 @@ import { defineReadOnly, getStatic, resolveProperties, } from '@ethersproject/pr
 import { BigNumber } from '@ethersproject/bignumber';
 import { toUtf8String } from '@ethersproject/strings';
 import { namehash } from '@ethersproject/hash';
-import { poll } from '@ethersproject/web';
+import { poll } from '@crypujs/web';
 import { ForkEvent, Provider, } from '@crypujs/abstract-provider';
 import { Formatter } from './formatter';
 const logger = new Logger('providers');

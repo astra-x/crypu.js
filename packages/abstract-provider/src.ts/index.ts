@@ -37,9 +37,9 @@ import {
   BigNumber,
   BigNumberish,
 } from '@ethersproject/bignumber';
-import { OnceBlockable } from '@ethersproject/web';
 
 import { Transaction } from '@crypujs/transactions';
+import { OnceBlockable } from '@crypujs/web';
 
 const logger = new Logger('abstract-provider');
 

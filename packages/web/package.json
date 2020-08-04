@@ -1,16 +1,22 @@
 {
   "author": "Youtao Xing <youtao.xing@icloud.com>",
+  "browser": {
+    "./lib/geturl": "./lib/browser-geturl.js"
+  },
+  "browser.esm": {
+    "./lib.esm/geturl": "./lib.esm/browser-geturl.js"
+  },
+  "browser.umd": {
+    "./lib/geturl": "./lib/browser-geturl.js"
+  },
   "bugs": {
     "url": "https://github.com/astra-x/crypu.js/issues"
   },
   "dependencies": {
-    "@crypujs/transactions": "^1.0.0",
-    "@crypujs/web": "^1.0.0",
-    "@ethersproject/bignumber": "^5.0.5",
-    "@ethersproject/bytes": "^5.0.3",
+    "@ethersproject/base64": "^5.0.2",
     "@ethersproject/logger": "^5.0.4",
-    "@ethersproject/networks": "^5.0.2",
-    "@ethersproject/properties": "^5.0.2"
+    "@ethersproject/properties": "^5.0.2",
+    "@ethersproject/strings": "^5.0.2"
   },
   "description": "> TODO: description",
   "directories": {
@@ -31,7 +37,7 @@
   "license": "MIT",
   "main": "./lib/index.js",
   "module": "./lib.esm/index.js",
-  "name": "@crypujs/abstract-provider",
+  "name": "@crypujs/web",
   "repository": {
     "type": "git",
     "url": "git://github.com/astra-x/crypu.js.git"
