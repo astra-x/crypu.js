@@ -1,23 +1,23 @@
-"use strict";
+'use strict';
 
-const packlist = require("npm-packlist");
-const tar = require("tar");
+const packlist = require('npm-packlist');
+const tar = require('tar');
 
 const keccak256 = (function() {
     try {
-        return require("@ethersproject/keccak256").keccak256;
+        return require('@ethersproject/keccak256').keccak256;
     } catch (error) {
-        console.log("Cannot load Keccak256 (maybe not built yet? Not really a problem for most things)");
+        console.log('Cannot load Keccak256 (maybe not built yet? Not really a problem for most things)');
         return null;
     }
 })();
 
-const { dirnames, loadPackage, ROOT } = require("./depgraph");
-const { resolve, saveJson } = require("./utils");
+const { dirnames, loadPackage, ROOT } = require('./depgraph');
+const { resolve, saveJson } = require('./utils');
 
 function sorted(obj) {
     if (Array.isArray(obj)) { return obj.map(sorted); }
-    if (obj == null || typeof(obj) !== "object") { return obj; }
+    if (obj == null || typeof(obj) !== 'object') { return obj; }
 
     const keys = Object.keys(obj);
     keys.sort();
@@ -28,7 +28,7 @@ function sorted(obj) {
 }
 
 function savePackage(dirname, info) {
-    return saveJson(resolve(ROOT, dirname, "package.json"), sorted(info));
+    return saveJson(resolve(ROOT, dirname, 'package.json'), sorted(info));
 }
 
 async function createTarball(dirname) {
@@ -36,7 +36,7 @@ async function createTarball(dirname) {
 
     // From NPM publish, create the packed version
     let files = await packlist({ path: base });
-    files = files.map((f) => ("./" + f));
+    files = files.map((f) => ('./' + f));
 
     let options = {
         cwd: base,

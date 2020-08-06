@@ -9,6 +9,9 @@
   "browser.umd": {
     "./lib/geturl": "./lib/browser-geturl.js"
   },
+  "browser.wechat": {
+    "./lib/geturl": "./lib/wechat-geturl.js"
+  },
   "bugs": {
     "url": "https://github.com/astra-x/crypu.js/issues"
   },

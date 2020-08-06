@@ -1,13 +1,13 @@
-"use strict";
+'use strict';
 
-const fs = require("fs");
-const { resolve } = require("path");
-const zlib = require("zlib");
+const fs = require('fs');
+const { resolve } = require('path');
+const zlib = require('zlib');
 
-const { id } = require("../packages/hash");
-const { fetchJson } = require("../packages/web");
+const { id } = require('../packages/hash');
+const { fetchJson } = require('../packages/web');
 
-const CacheDir = resolve(__dirname, "../github-cache/");
+const CacheDir = resolve(__dirname, '../github-cache/');
 
 function addResponse(result, response) {
     return { result, response };
@@ -40,18 +40,18 @@ async function _fetchGitHub(user, password, fetchJson, url) {
         const filename = resolve(CacheDir, id(url).substring(2, 14));
 
         const headers = {
-            "User-Agent": "astra-x",
+            'User-Agent': 'astra-x',
         };
 
         let items = null;
         let link = null;
         try {
             const data = loadFile(filename);
-            headers["if-none-match"] = data.etag;
+            headers['if-none-match'] = data.etag;
             items = data.items;
             link = data.link;
         } catch (error) {
-            if (error.code !== "ENOENT") { throw error; }
+            if (error.code !== 'ENOENT') { throw error; }
         }
 
         const fetch = await fetchJson({
@@ -82,8 +82,8 @@ async function _fetchGitHub(user, password, fetchJson, url) {
         items.forEach((item) => { result.push(item)});
 
         url = null;
-        (link || "").split(",").forEach((item) => {
-            if (item.indexOf('rel="next"') >= 0) {
+        (link || '').split(',').forEach((item) => {
+            if (item.indexOf('rel='next'') >= 0) {
                 const match = item.match(/<([^>]*)>/);
                 if (match) { url = match[1]; }
             }
@@ -96,7 +96,7 @@ async function _fetchGitHub(user, password, fetchJson, url) {
 
 async function fetchGitHub(user, password, url, cacheOnly) {
     if (cacheOnly) {
-        return await _fetchGitHub("none", "none", mockFetchJson, url);
+        return await _fetchGitHub('none', 'none', mockFetchJson, url);
     }
 
     const results = await _fetchGitHub(user, password, fetchJson, url);
@@ -107,7 +107,7 @@ async function fetchGitHub(user, password, url, cacheOnly) {
 async function _getIssues(user, password) {
     const cacheOnly = (user == null);
 
-    let issues = await fetchGitHub(user, password, "https:/\/api.github.com/repos/astra-x/crypu.js/issues?state=all&per_page=100", cacheOnly)
+    let issues = await fetchGitHub(user, password, 'https:/\/api.github.com/repos/astra-x/crypu.js/issues?state=all&per_page=100', cacheOnly)
     if (!cacheOnly) { console.log(`Found ${ issues.length } issues`); }
     const result = [ ];
     for (let i = 0; i < issues.length; i++) {
@@ -131,7 +131,7 @@ function syncIssues(user, password) {
 async function createRelease(user, password, tagName, title, body, prerelease, commit) {
     const payload = {
         tag_name: tagName,
-        target_commitish: (commit || "master"),
+        target_commitish: (commit || 'master'),
         name: title,
         body: body,
         //draft: true,
@@ -140,11 +140,11 @@ async function createRelease(user, password, tagName, title, body, prerelease, c
     };
 
     const headers = {
-        "User-Agent": "astra-x",
+        'User-Agent': 'astra-x',
     };
 
     const result = await fetchJson({
-        url: "https://api.github.com/repos/astra-x/crypu.js/releases",
+        url: 'https://api.github.com/repos/astra-x/crypu.js/releases',
         user: user,
         password: password,
         headers: headers

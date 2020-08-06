@@ -1,14 +1,14 @@
-"use strict";
+'use strict';
 
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const AWS = require('aws-sdk');
 
-const config = require("../config");
+const config = require('../config');
 
 
-const Bucket = "docs.ethers.io";
+const Bucket = 'docs.ethers.io';
 
 
 function _getKeys(s3, result, nextToken, callback) {
@@ -24,7 +24,7 @@ function _getKeys(s3, result, nextToken, callback) {
             return;
         }
         data.Contents.forEach(function(item) {
-            result[item.Key] = item.ETag.replace(/"/g,'');
+            result[item.Key] = item.ETag.replace(/'/g,'');
         });
         callback(null, data.IsTruncated ? data.NextContinuationToken: null);
     });
@@ -85,10 +85,10 @@ function putObject(s3, name, content) {
             if (error) {
                 reject(error);
             } else {
-                console.log("  Done.")
+                console.log('  Done.')
                 resolve({
                     name: name,
-                    hash: data.ETag.replace(/"/g, '')
+                    hash: data.ETag.replace(/'/g, '')
                 });
             }
         });
@@ -119,7 +119,7 @@ function _getFiles(result, root) {
 
 function getFiles(basedir) {
     // Make sure we have a trailing slash
-    if (!basedir.match(/\/$/)) { basedir += "/"; }
+    if (!basedir.match(/\/$/)) { basedir += '/'; }
 
     // Fetch all the file hashes
     const hashes = { };
@@ -132,8 +132,8 @@ function getFiles(basedir) {
 }
 
 (async function() {
-    const awsAccessId = await config.get("aws-upload-docs-accesskey");
-    const awsSecretKey = await config.get("aws-upload-docs-secretkey");
+    const awsAccessId = await config.get('aws-upload-docs-accesskey');
+    const awsSecretKey = await config.get('aws-upload-docs-secretkey');
 
     const s3 = new AWS.S3({
         apiVersion: '2006-03-01',
@@ -143,7 +143,7 @@ function getFiles(basedir) {
 
     const added = [], removed = [], changed = [], upload = [];
 
-    const basedir = path.resolve(__dirname, "../../docs");
+    const basedir = path.resolve(__dirname, '../../docs');
 
     const local = await getFiles(basedir);
     const remote = await getKeys(s3);

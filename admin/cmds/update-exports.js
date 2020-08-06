@@ -1,16 +1,16 @@
-"use strict";
+'use strict';
 
-const fs = require("fs");
-const { resolve } = require("path");
+const fs = require('fs');
+const { resolve } = require('path');
 
-const sourceEthers = fs.readFileSync(resolve(__dirname, "../../packages/ethers/src.ts/ethers.ts")).toString();
+const sourceEthers = fs.readFileSync(resolve(__dirname, '../../packages/ethers/src.ts/ethers.ts')).toString();
 const targets = sourceEthers.match(/export\s*{\s*((.|\s)*)}/)[1].trim();
 
-const output = `"use strict";
+const output = `'use strict';
 
 // To modify this file, you must update ./admin/cmds/update-exports.js
 
-import * as ethers from "./ethers";
+import * as ethers from './ethers';
 
 try {
     const anyGlobal = (window as any);
@@ -24,7 +24,7 @@ export { ethers };
 
 export {
     ${ targets }
-} from "./ethers";
+} from './ethers';
 `;
 
-fs.writeFileSync(resolve(__dirname, "../../packages/ethers/src.ts/index.ts"), output);
+fs.writeFileSync(resolve(__dirname, '../../packages/ethers/src.ts/index.ts'), output);
