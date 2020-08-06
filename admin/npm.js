@@ -1,18 +1,18 @@
-"use strict";
+'use strict';
 
-const resolve = require("path").resolve;
+const resolve = require('path').resolve;
 
-const npmpub = require("libnpmpublish");
-const semver = require("semver");
+const npmpub = require('libnpmpublish');
+const semver = require('semver');
 
-const local = require("./local");
+const local = require('./local');
 
-const keccak256 = require("../packages/keccak256").keccak256;
-const fetchJson = require("../packages/web").fetchJson;
-const { prompt } = require("../packages/cli");
+const keccak256 = require('../packages/keccak256').keccak256;
+const fetchJson = require('../packages/web').fetchJson;
+const { prompt } = require('../packages/cli');
 
-const colorify = require("./log").colorify;
-const git = require("./git");
+const colorify = require('./log').colorify;
+const git = require('./git');
 
 
 let cache = { };
@@ -20,7 +20,7 @@ let cache = { };
 async function getPackage(name) {
     if (cache[name]) { return cache[name]; }
 
-    return fetchJson("http:/" + "/registry.npmjs.org/" + name).then((result) => {
+    return fetchJson('http:/' + '/registry.npmjs.org/' + name).then((result) => {
         cache[name] = result;
         return result;
     }, (error) => {
@@ -65,14 +65,14 @@ async function _publish(info, tarball, options) {
     } catch (error) {
 
         // We need an OTP
-        if (error.code === "EOTP") {
+        if (error.code === 'EOTP') {
             try {
-                let otp = await prompt.getMessage(colorify("Enter OTP: ", "bold"));
-                options.otp = otp.replace(" ", "");
+                let otp = await prompt.getMessage(colorify('Enter OTP: ', 'bold'));
+                options.otp = otp.replace(' ', '');
             } catch (error) {
 
                 // CTRL-C
-                if (error.message === "cancelled") {
+                if (error.message === 'cancelled') {
                     return false;
                 }
 
@@ -89,8 +89,8 @@ async function _publish(info, tarball, options) {
 
 async function publish(dirname, options) {
     let info = local.loadPackage(dirname);
-    info.gitHead = await git.getGitTag(resolve(__dirname, "../packages/", dirname));
-    if (info.gitHead == null) { throw new Error("no git tag found - " + dirname); }
+    info.gitHead = await git.getGitTag(resolve(__dirname, '../packages/', dirname));
+    if (info.gitHead == null) { throw new Error('no git tag found - ' + dirname); }
     let tarball = await local.createTarball(dirname);
     return _publish(info, tarball, options);
 }

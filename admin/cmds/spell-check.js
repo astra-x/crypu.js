@@ -1,9 +1,9 @@
-"use strict";
+'use strict';
 
-const { resolve } = require("path");
-const fs = require("fs");
+const { resolve } = require('path');
+const fs = require('fs');
 
-const Words = fs.readFileSync("/usr/share/dict/words").toString().split("\n").reduce((accum, word) => {
+const Words = fs.readFileSync('/usr/share/dict/words').toString().split('\n').reduce((accum, word) => {
     accum[word.toLowerCase()] = true;
     return accum;
 }, { });
@@ -73,16 +73,16 @@ ALCat BiDi LCat nameprep
 cn cz en es fr it ja tw zh zh_cn zh_tw
 OYAa IJBEJqXZJ
 
-`.split("\n").filter((l) => (l.substring(0, 2) != "/\/")).join("\n").split(/\s+/g,).forEach((word) => {
+`.split('\n').filter((l) => (l.substring(0, 2) != '/\/')).join('\n').split(/\s+/g,).forEach((word) => {
     word = word.trim();
-    if (word === "") { return; }
+    if (word === '') { return; }
     Words[word.toLowerCase()] = true;
 });
 
-const ts = require("typescript");
+const ts = require('typescript');
 
 function getStrings(source) {
-    const sourceFile = ts.createSourceFile("filename.ts", source);
+    const sourceFile = ts.createSourceFile('filename.ts', source);
 
     const result = [ ];
 
@@ -115,8 +115,8 @@ function getStrings(source) {
     return result;
 }
 
-const Include = new RegExp("packages/.*/src.ts/.*\.ts$");
-const Exclude = new RegExp("/node_modules/|src.ts/.*browser.*");
+const Include = new RegExp('packages/.*/src.ts/.*\.ts$');
+const Exclude = new RegExp('/node_modules/|src.ts/.*browser.*');
 
 function getAllStrings(path) {
     const Root = resolve(__dirname, path);
@@ -164,9 +164,9 @@ function starts(text, prefix) {
 
 (async function() {
     let count = 0;
-    getAllStrings(resolve(__dirname, "../../packages")).forEach((file) => {
-        if (starts(file.filename, "/testcases/src.ts/generation-scripts")) { return; }
-        if (starts(file.filename, "/asm/src.ts/opcodes.ts")) { return; }
+    getAllStrings(resolve(__dirname, '../../packages')).forEach((file) => {
+        if (starts(file.filename, '/testcases/src.ts/generation-scripts')) { return; }
+        if (starts(file.filename, '/asm/src.ts/opcodes.ts')) { return; }
 
         file.values.forEach((entry) => {
             function problem(word) {
@@ -182,23 +182,23 @@ function starts(text, prefix) {
             const value = entry.value.trim();
 
             // Emptry space
-            if (value === "") { return; }
+            if (value === '') { return; }
 
             // Prolly a require
             if (value.match(/^@crypujs\/[a-z0-9-]+$/)) { return; }
-            if (value.substring(0, 2) === "./") { return; }
+            if (value.substring(0, 2) === './') { return; }
 
             // Prolly encoded binary data
-            if (value.indexOf(" ") === -1 && value.length > 20) { return; }
+            if (value.indexOf(' ') === -1 && value.length > 20) { return; }
 
             if (checkWord(value)) { return; }
 
             value.replace(/([a-z+])([A-Z])/g, (all, first, secondLetter) => {
-                return first + " " + secondLetter;
+                return first + ' ' + secondLetter;
             }).replace(/((?:0x)?[A-Za-z]+)/gi, (all, word) => {
                 if (checkWord(word)) { return; }
                 problem(word);
-                return "";
+                return '';
             });;
         });
     });
@@ -208,4 +208,3 @@ function starts(text, prefix) {
     }
     process.exit(0)
 })();
-

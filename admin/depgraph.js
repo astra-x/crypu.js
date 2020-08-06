@@ -1,15 +1,15 @@
-"use strict";
+'use strict';
 
-const fs = require("fs");
+const fs = require('fs');
 
-const { loadJson, resolve } = require("./utils");
+const { loadJson, resolve } = require('./utils');
 
-const ROOT = resolve("packages");
+const ROOT = resolve('packages');
 
 const dirnames = fs.readdirSync(ROOT);
 
 function loadPackage(dirname) {
-    return loadJson(resolve("packages", dirname, "package.json"));
+    return loadJson(resolve('packages', dirname, 'package.json'));
 }
 
 function getOrdered(skipNobuild) {
@@ -66,7 +66,7 @@ function getOrdered(skipNobuild) {
         }
 
         if (bail) {
-            throw new Error("Nothing processed; circular dependencies...");
+            throw new Error('Nothing processed; circular dependencies...');
         }
     }
 
@@ -79,7 +79,7 @@ function sort(dirnames) {
         let ai = ordered.indexOf(local.loadPackage(a).name);
         let bi = ordered.indexOf(local.loadPackage(b).name);
         if (ai === -1 || bi === -1) {
-            throw new Error("unknown dirname - " + [a, b].join(", "));
+            throw new Error('unknown dirname - ' + [a, b].join(', '));
         }
         return ai - bi;
     });

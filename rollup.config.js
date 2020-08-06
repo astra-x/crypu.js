@@ -1,27 +1,27 @@
-"use strict";
+'use strict';
 
-import path from "path";
+import path from 'path';
 
 import resolve from 'rollup-plugin-node-resolve';
 import commonjs from 'rollup-plugin-commonjs';
 import json from 'rollup-plugin-json';
 
-import { terser } from "rollup-plugin-terser";
+import { terser } from 'rollup-plugin-terser';
 
 import { createFilter } from 'rollup-pluginutils';
 
 function Replacer(basePath, options = {}) {
     const filter = createFilter(options.include, options.exclude);
     const suffixes = Object.keys(options.replace);
-    const pathUp = path.resolve(basePath, "..");
+    const pathUp = path.resolve(basePath, '..');
     return {
-        name: "file-replacer",
+        name: 'file-replacer',
         transform(code, id) {
             /*
-            console.log("------");
-            console.log("NAME", id, id.match("node-resolve:empty.js$"));
+            console.log('------');
+            console.log('NAME', id, id.match('node-resolve:empty.js$'));
             console.log(code);
-            console.log("------");
+            console.log('------');
             */
 
             if (!filter(id)) { return null; }
@@ -48,48 +48,52 @@ function Replacer(basePath, options = {}) {
     };
 }
 
-const undef = "module.exports = undefined;";
-const empty = "module.exports = {};";
-const brorand = "module.exports = function(length) { var result = new Uint8Array(length); (global.crypto || global.msCrypto).getRandomValues(result); return result; }";
+const undef = 'module.exports = undefined;';
+const empty = 'module.exports = {};';
+const brorand = 'module.exports = function(length) { var result = new Uint8Array(length); (global.crypto || global.msCrypto).getRandomValues(result); return result; }';
 
 const ellipticPackage = (function() {
     const ellipticPackage = require('./node_modules/elliptic/package.json');
     return JSON.stringify({ version: ellipticPackage.version });
 })();
 
-function getConfig(minify, buildModule, testing) {
-    let input = "packages/fisco/lib/index.js"
-    let output = [ "umd" ];
-    let format = "umd";
-    let mainFields = [ "browser", "main" ];
+function getConfig(minify, buildModule, buildWechat, testing) {
+    let input = 'packages/fisco/lib/index.js'
+    let output = [ 'umd' ];
+    let format = 'umd';
+    let mainFields = [ 'browser', 'main' ];
 
     if (buildModule) {
-        input = "packages/fisco/lib.esm/index.js";
-        output = [ "esm" ];
-        format = "esm";
-        mainFields = [ "browser", "module", "main" ];
+        input = 'packages/fisco/lib.esm/index.js';
+        output = [ 'esm' ];
+        format = 'esm';
+        mainFields = [ 'browser', 'module', 'main' ];
     }
 
-    const replacer = Replacer(path.resolve("packages"), {
+    if (buildWechat) {
+        output = [ 'wechat' ];
+    }
+
+    const replacer = Replacer(path.resolve('packages'), {
         replace: {
             // Remove the precomputed secp256k1 points
-            "elliptic/lib/elliptic/precomputed/secp256k1.js$": undef,
+            'elliptic/lib/elliptic/precomputed/secp256k1.js$': undef,
 
             // Remove curves we don't care about
-            "elliptic/curve/edwards.js$": empty,
-            "elliptic/curve/mont.js$": empty,
-            "elliptic/lib/elliptic/eddsa/.*$": empty,
+            'elliptic/curve/edwards.js$': empty,
+            'elliptic/curve/mont.js$': empty,
+            'elliptic/lib/elliptic/eddsa/.*$': empty,
 
             // We only use the version from this JSON package
-            "elliptic/package.json$" : ellipticPackage,
+            'elliptic/package.json$' : ellipticPackage,
 
             // Remove unneeded hashing algorithms
-            "hash.js/lib/hash/sha/1.js$": empty,
-            "hash.js/lib/hash/sha/224.js$": empty,
-            "hash.js/lib/hash/sha/384.js$": empty,
+            'hash.js/lib/hash/sha/1.js$': empty,
+            'hash.js/lib/hash/sha/224.js$': empty,
+            'hash.js/lib/hash/sha/384.js$': empty,
 
             // Swap out borland for the random bytes we already have
-            "brorand/index.js$": brorand,
+            'brorand/index.js$': brorand,
         }
     });
 
@@ -101,35 +105,35 @@ function getConfig(minify, buildModule, testing) {
         }),
         commonjs({
             namedExports: {
-                "bn.js": [ "BN" ],
-                "hash.js": [ "hmac", "ripemd160", "sha256", "sha512" ],
-                "elliptic": [ "ec" ],
-                "scrypt-js": [ "scrypt", "syncScrypt" ],
+                'bn.js': [ 'BN' ],
+                'hash.js': [ 'hmac', 'ripemd160', 'sha256', 'sha512' ],
+                'elliptic': [ 'ec' ],
+                'scrypt-js': [ 'scrypt', 'syncScrypt' ],
             },
         }),
     ];
 
     if (minify) {
-        output.push("min");
+        output.push('min');
         plugins.push(terser());
     }
 
     const outputFile = [
-        "packages",
-        (testing ? "tests": "fisco"),
-        ("/dist/fisco." + output.join(".") + ".js")
-    ].join("/");
+        'packages',
+        (testing ? 'tests': 'fisco'),
+        ('/dist/fisco.' + output.join('.') + '.js')
+    ].join('/');
 
     return {
       input: input,
-      external: [ "http", "https", "url" ],
+      external: [ 'http', 'https', 'url' ],
       output: {
         file: outputFile,
         format: format,
-        name: "fisco",
-        exports: "named",
+        name: 'fisco',
+        exports: 'named',
       },
-      context: "window",
+      context: 'window',
       treeshake: false,
       plugins: plugins
   };
@@ -137,10 +141,11 @@ function getConfig(minify, buildModule, testing) {
 
 export default commandLineArgs => {
     const testing = commandLineArgs.configTest;
+    const buildWechat = commandLineArgs.configWechat;
     const buildModule = commandLineArgs.configModule;
 
     return [
-        getConfig(false, buildModule, testing),
-        getConfig(true, buildModule, testing),
+        getConfig(false, buildModule, buildWechat, testing),
+        getConfig(true, buildModule, buildWechat, testing),
     ];
 }

@@ -1,16 +1,16 @@
-"use strict";
+'use strict';
 
-const config = require("../config");
+const config = require('../config');
 
-const { ChangelogPath, latestChange } = require("../changelog");
-const { getOrdered, loadPackage } = require("../depgraph");
-const { getGitTag } = require("../git");
-const { createRelease } = require("../github");
-const { getPackageVersion, publish } = require("../npm");
-const { log } = require("../log");
+const { ChangelogPath, latestChange } = require('../changelog');
+const { getOrdered, loadPackage } = require('../depgraph');
+const { getGitTag } = require('../git');
+const { createRelease } = require('../github');
+const { getPackageVersion, publish } = require('../npm');
+const { log } = require('../log');
 
-const USER_AGENT = "ethers-dist@0.0.0";
-const TAG = "latest";
+const USER_AGENT = 'ethers-dist@0.0.0';
+const TAG = 'latest';
 
 
 let dirnames = getOrdered();
@@ -24,7 +24,7 @@ if (process.argv.length > 2) {
         try {
             loadPackage(dirname);
         } catch (error) {
-            console.log("Package not found: " + dirname);
+            console.log('Package not found: ' + dirname);
             process.exit(1);
         }
     });
@@ -44,24 +44,24 @@ if (process.argv.length > 2) {
 
     // Load the token from the encrypted store
     try {
-        token = await config.get("npm-token");
+        token = await config.get('npm-token');
     } catch (error) {
         switch (error.message) {
-            case "wrong password":
-                log("<bold:Wrong password>");
+            case 'wrong password':
+                log('<bold:Wrong password>');
                 break;
-            case "cancelled":
+            case 'cancelled':
                 break;
             default:
                 console.log(error);
         }
 
-        log("<red:Aborting.>");
+        log('<red:Aborting.>');
 
         return;
     }
 
-    token = token.trim().split("=");
+    token = token.trim().split('=');
 
     let options = {
         npmVersion: USER_AGENT,
@@ -74,13 +74,13 @@ if (process.argv.length > 2) {
     for (let i = 0; i < dirnames.length; i++) {
         let dirname = dirnames[i];
 
-        if (dirname === "ethers") {
+        if (dirname === 'ethers') {
             includeEthers = true;
         }
 
         let info = loadPackage(dirname);
         let npmInfo = await getPackageVersion(info.name);
-        if (!npmInfo) { npmInfo = { version: "NEW" }; }
+        if (!npmInfo) { npmInfo = { version: 'NEW' }; }
 
         if (info.tarballHash === npmInfo.tarballHash) { continue; }
 
@@ -89,10 +89,10 @@ if (process.argv.length > 2) {
 
         let success = await publish(dirname, options);
         if (!success) {
-            log("  <red:FAILED! Aborting.>");
+            log('  <red:FAILED! Aborting.>');
             return;
         }
-        log("  <green:Done.>");
+        log('  <green:Done.>');
     }
 
     // Publish the GitHub release
@@ -100,8 +100,8 @@ if (process.argv.length > 2) {
     if (includeEthers) {
         {
             // The password above already succeeded
-            const username = await config.get("github-user");
-            const password = await config.get("github-release");
+            const username = await config.get('github-user');
+            const password = await config.get('github-release');
 
             // Get the latest change from the changelog
             const change = latestChange();
@@ -113,9 +113,9 @@ if (process.argv.length > 2) {
 
         /*
         {
-            const accessKey = await config.get("aws-upload-scripts-accesskey");
-            const secretKey = await config.get("aws-upload-scripts-secretkey");
-            const s3 = 
+            const accessKey = await config.get('aws-upload-scripts-accesskey');
+            const secretKey = await config.get('aws-upload-scripts-secretkey');
+            const s3 =
         }
         */
 

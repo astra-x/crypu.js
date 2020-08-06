@@ -148,17 +148,22 @@ export function fetchJson(connection, json, processFunc) {
             runningTimeout.cancel();
             let json = null;
             if (body != null) {
-                try {
-                    json = JSON.parse(body);
+                if (typeof (body) === 'string') {
+                    try {
+                        json = JSON.parse(body);
+                    }
+                    catch (error) {
+                        logger.throwError('invalid JSON', Logger.errors.SERVER_ERROR, {
+                            body: body,
+                            error: error,
+                            requestBody: (options.body || null),
+                            requestMethod: options.method,
+                            url: url
+                        });
+                    }
                 }
-                catch (error) {
-                    logger.throwError('invalid JSON', Logger.errors.SERVER_ERROR, {
-                        body: body,
-                        error: error,
-                        requestBody: (options.body || null),
-                        requestMethod: options.method,
-                        url: url
-                    });
+                else {
+                    json = body;
                 }
             }
             if (processFunc) {

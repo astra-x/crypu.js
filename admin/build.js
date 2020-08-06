@@ -1,12 +1,12 @@
-"use strict";
+'use strict';
 
-const fs = require("fs");
-const resolve = require("path").resolve;
-const spawn = require("child_process").spawn;
+const fs = require('fs');
+const resolve = require('path').resolve;
+const spawn = require('child_process').spawn;
 
-const { dirnames } = require("./local");
-const { loadPackage, savePackage } = require("./local");
-const { loadJson, saveJson } = require("./utils");
+const { dirnames } = require('./local');
+const { loadPackage, savePackage } = require('./local');
+const { loadJson, saveJson } = require('./utils');
 
 function run(progname, args, ignoreErrorStream) {
     return new Promise((resolve, reject) => {
@@ -15,25 +15,25 @@ function run(progname, args, ignoreErrorStream) {
         let stdout = Buffer.from([]);
         let stderr = Buffer.from([]);
 
-        proc.stdout.on("data", (data) => {
+        proc.stdout.on('data', (data) => {
             stdout = Buffer.concat([ stdout, data ]);
         });
 
-        proc.stderr.on("data", (data) => {
+        proc.stderr.on('data', (data) => {
             stderr = Buffer.concat([ stdout, data ]);
         });
 
-        proc.on("error", (error) => {
-            console.log("ERROR");
+        proc.on('error', (error) => {
+            console.log('ERROR');
             console.log(stderr.toString());
             error.stderr = stderr.toString();
             error.stdout = stdout.toString();
             reject(error);
         });
 
-        proc.on("close", (code) => {
+        proc.on('close', (code) => {
             if ((stderr.length && !ignoreErrorStream) || code !== 0) {
-                console.log("ERROR");
+                console.log('ERROR');
                 console.log(stderr.toString());
 
                 let error = new Error(`stderr not empty: ${ progname } ${ JSON.stringify(args) }`);
@@ -51,7 +51,7 @@ function run(progname, args, ignoreErrorStream) {
 function setupConfig(outDir, moduleType, targetType) {
 
     // Configure the tsconfit.package.json...
-    const path = resolve(__dirname, "../tsconfig.package.json");
+    const path = resolve(__dirname, '../tsconfig.package.json');
     const content = loadJson(path);
     content.compilerOptions.module = moduleType;
     content.compilerOptions.target = targetType;
@@ -64,20 +64,20 @@ function setupConfig(outDir, moduleType, targetType) {
 
         if (info._nobuild) { return; }
 
-        if (targetType === "es2015") {
-            if (info["browser.esm"]) {
-                info.browser = info["browser.esm"];
+        if (targetType === 'es2015') {
+            if (info['browser.esm']) {
+                info.browser = info['browser.esm'];
             }
-        } else if (targetType === "es5") {
-            if (info["browser.umd"]) {
-                info.browser = info["browser.umd"];
+        } else if (targetType === 'es5') {
+            if (info['browser.umd']) {
+                info.browser = info['browser.umd'];
             }
         } else {
-            throw new Error("unsupported target");
+            throw new Error('unsupported target');
         }
         savePackage(dirname, info);
 
-        let path = resolve(__dirname, "../packages", dirname, "tsconfig.json");
+        let path = resolve(__dirname, '../packages', dirname, 'tsconfig.json');
         let content = loadJson(path);
         content.compilerOptions.outDir = outDir;
         saveJson(path, content);
@@ -86,9 +86,9 @@ function setupConfig(outDir, moduleType, targetType) {
 
 function setupBuild(buildModule) {
     if (buildModule) {
-        setupConfig("./lib.esm/", "es2015", "es2015");
+        setupConfig('./lib.esm/', 'es2015', 'es2015');
     } else {
-        setupConfig("./lib/", "commonjs", "es5");
+        setupConfig('./lib/', 'commonjs', 'es5');
     }
 }
 
@@ -96,11 +96,11 @@ function runBuild(buildModule) {
     setupBuild(buildModule);
 
     // Compile
-    return run("npx", [ "tsc", "--build", resolve(__dirname, "../tsconfig.project.json"), "--force" ]);
+    return run('npx', [ 'tsc', '--build', resolve(__dirname, '../tsconfig.project.json'), '--force' ]);
 }
 
 function runDist() {
-    return run("npm", [ "run", "_dist" ], true);
+    return run('npm', [ 'run', '_dist' ], true);
 }
 
 module.exports = {

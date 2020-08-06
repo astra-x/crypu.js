@@ -202,16 +202,20 @@ export function fetchJson(connection: string | ConnectionInfo, json?: string, pr
 
     let json: any = null;
     if (body != null) {
-      try {
-        json = JSON.parse(body);
-      } catch (error) {
-        logger.throwError('invalid JSON', Logger.errors.SERVER_ERROR, {
-          body: body,
-          error: error,
-          requestBody: (options.body || null),
-          requestMethod: options.method,
-          url: url
-        });
+      if (typeof (body) === 'string') {
+        try {
+          json = JSON.parse(body);
+        } catch (error) {
+          logger.throwError('invalid JSON', Logger.errors.SERVER_ERROR, {
+            body: body,
+            error: error,
+            requestBody: (options.body || null),
+            requestMethod: options.method,
+            url: url
+          });
+        }
+      } else {
+        json = body;
       }
     }
 

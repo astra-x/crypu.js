@@ -1,6 +1,6 @@
-const fs = require("fs");
-const http = require("http");
-const path = require("path");
+const fs = require('fs');
+const http = require('http');
+const path = require('path');
 
 function getMime(filename) {
     const comps = filename.split('.');
@@ -27,7 +27,7 @@ function getMime(filename) {
 }
 
 function start(root, options) {
-    if (root == null) { throw new Error("root required"); }
+    if (root == null) { throw new Error('root required'); }
     if (options == null) { options = { }; }
     if (options.port == null) { options.port = 8000; }
     root = path.resolve(root);
@@ -41,10 +41,10 @@ function start(root, options) {
             return;
         }
 
-        let filename = path.resolve(root, "." + req.url);
+        let filename = path.resolve(root, '.' + req.url);
 
         // Make sure we aren't crawling out of our sandbox
-        if (req.url[0] !== "/" || filename.substring(0, filename.length) !== filename) {
+        if (req.url[0] !== '/' || filename.substring(0, filename.length) !== filename) {
             resp.writeHead(403);
             resp.end();
             return;
@@ -54,27 +54,27 @@ function start(root, options) {
             const stat = fs.statSync(filename);
             if (stat.isDirectory()) {
 
-                // Redirect bare directory to its path (i.e. "/foo" => "/foo/")
-                if (req.url[req.url.length - 1] !== "/") {
-                    resp.writeHead(301, { Location: req.url + "/" });
+                // Redirect bare directory to its path (i.e. '/foo' => '/foo/')
+                if (req.url[req.url.length - 1] !== '/') {
+                    resp.writeHead(301, { Location: req.url + '/' });
                     resp.end();
                     return;
                 }
 
-                filename += "/index.html";
+                filename += '/index.html';
             }
 
             const content = fs.readFileSync(filename);
 
             resp.writeHead(200, {
-                "Content-Length": content.length,
-                "Content-Type": getMime(filename)
+                'Content-Length': content.length,
+                'Content-Type': getMime(filename)
             });
             resp.end(content);
             return;
 
         } catch (error) {
-            if (error.code === "ENOENT") {
+            if (error.code === 'ENOENT') {
                 resp.writeHead(404, { });
                 resp.end();
                 return;
@@ -93,8 +93,8 @@ function start(root, options) {
     return server;
 }
 
-start(path.resolve(__dirname, "../../docs"), {
+start(path.resolve(__dirname, '../../docs'), {
     redirects: {
-        "/": "/v5/"
+        '/': '/v5/'
     }
 });

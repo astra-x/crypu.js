@@ -1,5 +1,5 @@
-"use strict";
+'use strict';
 
-const { setupBuild } = require("../build");
+const { setupBuild } = require('../build');
 
 setupBuild(false);
