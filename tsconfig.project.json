@@ -28,6 +28,9 @@
       "path": "./packages/providers"
     },
     {
+      "path": "./packages/signing-escrow"
+    },
+    {
       "path": "./packages/wallet"
     },
     {

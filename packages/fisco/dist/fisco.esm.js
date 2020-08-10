@@ -12551,7 +12551,7 @@ const logger$j = new Logger('providers');
 class Formatter {
     constructor() {
         logger$j.checkNew(new.target, Formatter);
-        this.formats = this.getDefaultFormats();
+        defineReadOnly(this, 'formats', this.getDefaultFormats());
     }
     getDefaultFormats() {
         const address = this.address.bind(this);
@@ -14114,7 +14114,7 @@ class JsonRpcProvider extends BaseProvider {
         if (!url) {
             url = getStatic((new.target), 'defaultUrl')();
         }
-        this.connection = { url: url };
+        defineReadOnly(this, 'connection', { url: url });
         this._nextId = 42;
     }
     static defaultUrl() {
@@ -18345,7 +18345,85 @@ var __awaiter$7 = (window && window.__awaiter) || function (thisArg, _arguments,
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const logger$r = new Logger('wallet');
+const _privateKeyFake = '0x';
+const logger$r = new Logger('signing-trust');
+class SigningEscrow {
+    constructor(connection, address) {
+        this._nextId = 927;
+        defineReadOnly(this, 'connection', connection);
+        defineReadOnly(this, "curve", "secp256k1");
+        defineReadOnly(this, 'address', getAddress(address));
+        defineReadOnly(this, 'privateKey', _privateKeyFake);
+        const json = {
+            id: (this._nextId++),
+            jsonrpc: '2.0',
+            method: 'getEoa',
+            params: [this.address],
+        };
+        fetchJson(this.connection, JSON.stringify(json), this.getResult).then((result) => {
+            defineReadOnly(this, 'publicKey', result.publicKey);
+            defineReadOnly(this, 'compressedPublicKey', result.compressedPublicKey);
+        }).catch((error) => {
+            logger$r.throwError('processing response error', Logger.errors.SERVER_ERROR, {
+                body: json,
+                error: error,
+                url: this.connection.url,
+            });
+        });
+        defineReadOnly(this, '_isSigningEscrow', true);
+    }
+    signDigest(digest) {
+        return __awaiter$7(this, void 0, void 0, function* () {
+            const json = {
+                id: (this._nextId++),
+                jsonrpc: '2.0',
+                method: 'signDigest',
+                params: [this.address, arrayify(digest)],
+            };
+            const { signature } = yield fetchJson(this.connection, JSON.stringify(json), this.getResult);
+            return signature;
+        });
+    }
+    getResult(payload) {
+        return payload.result;
+    }
+    static isSigningEscrow(value) {
+        return !!(value && value._isSigningEscrow);
+    }
+}
+
+/*
+ This file is part of crypu.js.
+
+ crypu.js is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ crypu.js is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/**
+ * @file index.ts
+ * @author Youtao Xing <youtao.xing@icloud.com>
+ * @date 2020
+ */
+'use strict';
+var __awaiter$8 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+const logger$s = new Logger('wallet');
 function isAccount(value) {
     return (value != null && isHexString(value.privateKey, 32) && value.address != null);
 }
@@ -18353,85 +18431,95 @@ function hasMnemonic$1(value) {
     const mnemonic = value.mnemonic;
     return (mnemonic && mnemonic.phrase);
 }
+;
 class Wallet extends Signer {
     constructor(privateKey, provider) {
-        logger$r.checkNew(new.target, Wallet);
+        logger$s.checkNew(new.target, Wallet);
         super();
-        if (isAccount(privateKey)) {
+        if (isBytesLike(privateKey)) {
+            const signingKey = new SigningKey(privateKey);
+            defineReadOnly(this, '_signing', () => signingKey);
+        }
+        else if (isAccount(privateKey)) {
             const signingKey = new SigningKey(privateKey.privateKey);
-            defineReadOnly(this, '_signingKey', () => signingKey);
-            defineReadOnly(this, 'address', computeAddress(this.publicKey));
-            if (this.address !== getAddress(privateKey.address)) {
-                logger$r.throwArgumentError('privateKey/address mismatch', 'privateKey', '[REDACTED]');
+            defineReadOnly(this, '_signing', () => signingKey);
+            if (computeAddress(this.publicKey) !== getAddress(privateKey.address)) {
+                logger$s.throwArgumentError('privateKey/address mismatch', 'privateKey', '[REDACTED]');
             }
-            if (hasMnemonic$1(privateKey)) {
-                const srcMnemonic = privateKey.mnemonic;
-                defineReadOnly(this, '_mnemonic', () => ({
-                    phrase: srcMnemonic.phrase,
-                    path: srcMnemonic.path || defaultPath,
-                    locale: srcMnemonic.locale || 'en'
-                }));
-                const mnemonic = this.mnemonic;
-                const node = HDNode.fromMnemonic(mnemonic.phrase, null, mnemonic.locale).derivePath(mnemonic.path);
-                if (computeAddress(node.privateKey) !== this.address) {
-                    logger$r.throwArgumentError('mnemonic/address mismatch', 'privateKey', '[REDACTED]');
-                }
+        }
+        else if (SigningEscrow.isSigningEscrow(privateKey)) {
+            defineReadOnly(this, '_signing', () => privateKey);
+        }
+        else if (SigningKey.isSigningKey(privateKey)) {
+            if (privateKey.curve !== 'secp256k1') {
+                logger$s.throwArgumentError('unsupported curve; must be secp256k1', 'privateKey', '[REDACTED]');
             }
-            else {
-                defineReadOnly(this, '_mnemonic', () => null);
+            defineReadOnly(this, '_signing', () => privateKey);
+        }
+        defineReadOnly(this, 'address', computeAddress(this.publicKey));
+        if (hasMnemonic$1(privateKey)) {
+            const srcMnemonic = privateKey.mnemonic;
+            defineReadOnly(this, '_mnemonic', () => ({
+                phrase: srcMnemonic.phrase,
+                path: srcMnemonic.path || defaultPath,
+                locale: srcMnemonic.locale || 'en'
+            }));
+            const mnemonic = this.mnemonic;
+            const node = HDNode.fromMnemonic(mnemonic.phrase, null, mnemonic.locale).derivePath(mnemonic.path);
+            if (computeAddress(node.privateKey) !== this.address) {
+                logger$s.throwArgumentError('mnemonic/address mismatch', 'privateKey', '[REDACTED]');
             }
         }
         else {
-            if (SigningKey.isSigningKey(privateKey)) {
-                if (privateKey.curve !== 'secp256k1') {
-                    logger$r.throwArgumentError('unsupported curve; must be secp256k1', 'privateKey', '[REDACTED]');
-                }
-                defineReadOnly(this, '_signingKey', () => privateKey);
-            }
-            else {
-                const signingKey = new SigningKey(privateKey);
-                defineReadOnly(this, '_signingKey', () => signingKey);
-            }
             defineReadOnly(this, '_mnemonic', () => null);
-            defineReadOnly(this, 'address', computeAddress(this.publicKey));
         }
         if (provider && !Provider.isProvider(provider)) {
-            logger$r.throwArgumentError('invalid provider', 'provider', provider);
+            logger$s.throwArgumentError('invalid provider', 'provider', provider);
         }
         defineReadOnly(this, 'provider', provider || null);
     }
     get mnemonic() { return this._mnemonic(); }
-    get privateKey() { return this._signingKey().privateKey; }
-    get publicKey() { return this._signingKey().publicKey; }
+    get privateKey() { return this._signing().privateKey; }
+    get publicKey() { return this._signing().publicKey; }
     getAddress() {
-        return __awaiter$7(this, void 0, void 0, function* () {
+        return __awaiter$8(this, void 0, void 0, function* () {
             return Promise.resolve(this.address);
+        });
+    }
+    signDigest(digest) {
+        return __awaiter$8(this, void 0, void 0, function* () {
+            if (SigningKey.isSigningKey(this._signing)) {
+                return Promise.resolve(this._signing().signDigest(digest));
+            }
+            else {
+                return this._signing().signDigest(digest);
+            }
         });
     }
     connect(provider) {
         return new Wallet(this, provider);
     }
     signTransaction(transaction) {
-        return __awaiter$7(this, void 0, void 0, function* () {
-            return resolveProperties(transaction).then((tx) => {
+        return __awaiter$8(this, void 0, void 0, function* () {
+            return resolveProperties(transaction).then((tx) => __awaiter$8(this, void 0, void 0, function* () {
                 if (tx.from != null) {
                     if (getAddress(tx.from) !== this.address) {
                         throw new Error('transaction from address mismatch');
                     }
                     delete tx.from;
                 }
-                const signature = this._signingKey().signDigest(keccak256(serialize(tx)));
+                const signature = yield this.signDigest(keccak256(serialize(tx)));
                 return serialize(tx, signature);
-            });
+            }));
         });
     }
     signMessage(message) {
-        return __awaiter$7(this, void 0, void 0, function* () {
-            return Promise.resolve(joinSignature(this._signingKey().signDigest(hashMessage(message))));
+        return __awaiter$8(this, void 0, void 0, function* () {
+            return Promise.resolve(joinSignature(yield this.signDigest(hashMessage(message))));
         });
     }
     encrypt(password, options, progressCallback) {
-        return __awaiter$7(this, void 0, void 0, function* () {
+        return __awaiter$8(this, void 0, void 0, function* () {
             if (typeof (options) === 'function' && !progressCallback) {
                 progressCallback = options;
                 options = {};
@@ -18460,7 +18548,7 @@ class Wallet extends Signer {
         return Wallet.fromMnemonic(mnemonic, options.path, options.locale);
     }
     static fromEncryptedJson(json, password, progressCallback) {
-        return __awaiter$7(this, void 0, void 0, function* () {
+        return __awaiter$8(this, void 0, void 0, function* () {
             return decryptJsonWallet(json, password, progressCallback).then((account) => {
                 return new Wallet(account);
             });

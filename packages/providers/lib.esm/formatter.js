@@ -22,7 +22,7 @@
 'use strict';
 import { Logger } from '@ethersproject/logger';
 import { hexDataLength, hexDataSlice, hexValue, hexZeroPad, isHexString, } from '@ethersproject/bytes';
-import { shallowCopy } from '@ethersproject/properties';
+import { defineReadOnly, shallowCopy, } from '@ethersproject/properties';
 import { BigNumber } from '@ethersproject/bignumber';
 import { AddressZero } from '@ethersproject/constants';
 import { getAddress, getContractAddress, } from '@ethersproject/address';
@@ -31,7 +31,7 @@ const logger = new Logger('providers');
 export class Formatter {
     constructor() {
         logger.checkNew(new.target, Formatter);
-        this.formats = this.getDefaultFormats();
+        defineReadOnly(this, 'formats', this.getDefaultFormats());
     }
     getDefaultFormats() {
         const address = this.address.bind(this);
