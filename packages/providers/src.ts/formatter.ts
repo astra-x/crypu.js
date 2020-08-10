@@ -30,7 +30,10 @@ import {
   hexZeroPad,
   isHexString,
 } from '@ethersproject/bytes';
-import { shallowCopy } from '@ethersproject/properties';
+import {
+  defineReadOnly,
+  shallowCopy,
+} from '@ethersproject/properties';
 import { BigNumber } from '@ethersproject/bignumber';
 import { AddressZero } from '@ethersproject/constants';
 import {
@@ -67,7 +70,7 @@ export class Formatter {
 
   constructor() {
     logger.checkNew(new.target, Formatter);
-    this.formats = this.getDefaultFormats();
+    defineReadOnly(this, 'formats', this.getDefaultFormats());
   }
 
   getDefaultFormats(): Formats {

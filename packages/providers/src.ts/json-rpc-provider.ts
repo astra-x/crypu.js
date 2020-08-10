@@ -30,6 +30,7 @@ import {
 } from '@ethersproject/networks';
 import {
   deepCopy,
+  defineReadOnly,
   getStatic,
 } from '@ethersproject/properties'
 
@@ -66,7 +67,7 @@ export class JsonRpcProvider extends BaseProvider {
     if (!url) {
       url = getStatic<() => string>(new.target, 'defaultUrl')();
     }
-    this.connection = { url: url };
+    defineReadOnly(this, 'connection', { url: url });
 
     this._nextId = 42;
   }
