@@ -27,9 +27,11 @@ import {
   Bytes,
   BytesLike,
   SignatureLike,
+  Signature,
   arrayify,
   concat,
   hexDataSlice,
+  isBytesLike,
   isHexString,
   joinSignature,
 } from '@ethersproject/bytes';
@@ -70,6 +72,9 @@ import {
   ExternallyOwnedAccount,
   Signer,
 } from '@crypujs/abstract-signer';
+import {
+  SigningEscrow,
+} from '@crypujs/signing-escrow';
 
 const logger = new Logger('wallet');
 
@@ -82,6 +87,12 @@ function hasMnemonic(value: any): value is { mnemonic: Mnemonic } {
   return (mnemonic && mnemonic.phrase);
 }
 
+export interface Signing {
+  readonly curve: string;
+  readonly privateKey: string;
+  readonly publicKey: string;
+};
+
 export class Wallet extends Signer implements ExternallyOwnedAccount {
 
   readonly address: string;
@@ -89,54 +100,50 @@ export class Wallet extends Signer implements ExternallyOwnedAccount {
 
   // Wrapping the _signingKey and _mnemonic in a getter function prevents
   // leaking the private key in console.log; still, be careful! :)
-  readonly _signingKey: () => SigningKey;
+  readonly _signing: () => Signing;
   readonly _mnemonic: () => Mnemonic;
 
-  constructor(privateKey: BytesLike | ExternallyOwnedAccount | SigningKey, provider?: Provider) {
+  constructor(privateKey: BytesLike | ExternallyOwnedAccount | SigningKey | SigningEscrow, provider?: Provider) {
     logger.checkNew(new.target, Wallet);
 
     super();
 
-    if (isAccount(privateKey)) {
+    if (isBytesLike(privateKey)) {
+      const signingKey = new SigningKey(privateKey);
+      defineReadOnly(this, '_signing', () => signingKey);
+    } else if (isAccount(privateKey)) {
       const signingKey = new SigningKey(privateKey.privateKey);
-      defineReadOnly(this, '_signingKey', () => signingKey);
-      defineReadOnly(this, 'address', computeAddress(this.publicKey));
+      defineReadOnly(this, '_signing', () => signingKey);
 
-      if (this.address !== getAddress(privateKey.address)) {
+      if (computeAddress(this.publicKey) !== getAddress(privateKey.address)) {
         logger.throwArgumentError('privateKey/address mismatch', 'privateKey', '[REDACTED]');
       }
-
-      if (hasMnemonic(privateKey)) {
-        const srcMnemonic = privateKey.mnemonic;
-        defineReadOnly(this, '_mnemonic', () => (
-          {
-            phrase: srcMnemonic.phrase,
-            path: srcMnemonic.path || defaultPath,
-            locale: srcMnemonic.locale || 'en'
-          }
-        ));
-        const mnemonic = this.mnemonic;
-        const node = HDNode.fromMnemonic(mnemonic.phrase, null, mnemonic.locale).derivePath(mnemonic.path);
-        if (computeAddress(node.privateKey) !== this.address) {
-          logger.throwArgumentError('mnemonic/address mismatch', 'privateKey', '[REDACTED]');
-        }
-      } else {
-        defineReadOnly(this, '_mnemonic', (): Mnemonic => null);
+    } else if (SigningEscrow.isSigningEscrow(privateKey)) {
+      defineReadOnly(this, '_signing', () => privateKey);
+    } else if (SigningKey.isSigningKey(privateKey)) {
+      if (privateKey.curve !== 'secp256k1') {
+        logger.throwArgumentError('unsupported curve; must be secp256k1', 'privateKey', '[REDACTED]');
       }
+      defineReadOnly(this, '_signing', () => privateKey);
+    }
+    defineReadOnly(this, 'address', computeAddress(this.publicKey));
 
-
+    if (hasMnemonic(privateKey)) {
+      const srcMnemonic = privateKey.mnemonic;
+      defineReadOnly(this, '_mnemonic', () => (
+        {
+          phrase: srcMnemonic.phrase,
+          path: srcMnemonic.path || defaultPath,
+          locale: srcMnemonic.locale || 'en'
+        }
+      ));
+      const mnemonic = this.mnemonic;
+      const node = HDNode.fromMnemonic(mnemonic.phrase, null, mnemonic.locale).derivePath(mnemonic.path);
+      if (computeAddress(node.privateKey) !== this.address) {
+        logger.throwArgumentError('mnemonic/address mismatch', 'privateKey', '[REDACTED]');
+      }
     } else {
-      if (SigningKey.isSigningKey(privateKey)) {
-        if (privateKey.curve !== 'secp256k1') {
-          logger.throwArgumentError('unsupported curve; must be secp256k1', 'privateKey', '[REDACTED]');
-        }
-        defineReadOnly(this, '_signingKey', () => privateKey);
-      } else {
-        const signingKey = new SigningKey(privateKey);
-        defineReadOnly(this, '_signingKey', () => signingKey);
-      }
       defineReadOnly(this, '_mnemonic', (): Mnemonic => null);
-      defineReadOnly(this, 'address', computeAddress(this.publicKey));
     }
 
     if (provider && !Provider.isProvider(provider)) {
@@ -147,11 +154,19 @@ export class Wallet extends Signer implements ExternallyOwnedAccount {
   }
 
   get mnemonic(): Mnemonic { return this._mnemonic(); }
-  get privateKey(): string { return this._signingKey().privateKey; }
-  get publicKey(): string { return this._signingKey().publicKey; }
+  get privateKey(): string { return this._signing().privateKey; }
+  get publicKey(): string { return this._signing().publicKey; }
 
   async getAddress(): Promise<string> {
     return Promise.resolve(this.address);
+  }
+
+  async signDigest(digest: BytesLike): Promise<Signature> {
+    if (SigningKey.isSigningKey(this._signing)) {
+      return Promise.resolve((<SigningKey>this._signing()).signDigest(digest));
+    } else {
+      return (<SigningEscrow>this._signing()).signDigest(digest);
+    }
   }
 
   connect(provider: Provider): Wallet {
@@ -159,7 +174,7 @@ export class Wallet extends Signer implements ExternallyOwnedAccount {
   }
 
   async signTransaction(transaction: TransactionRequest): Promise<string> {
-    return resolveProperties(transaction).then((tx) => {
+    return resolveProperties(transaction).then(async (tx) => {
       if (tx.from != null) {
         if (getAddress(tx.from) !== this.address) {
           throw new Error('transaction from address mismatch');
@@ -167,13 +182,13 @@ export class Wallet extends Signer implements ExternallyOwnedAccount {
         delete tx.from;
       }
 
-      const signature = this._signingKey().signDigest(keccak256(serialize(<UnsignedTransaction>tx)));
+      const signature = await this.signDigest(keccak256(serialize(<UnsignedTransaction>tx)));
       return serialize(<UnsignedTransaction>tx, signature);
     });
   }
 
   async signMessage(message: Bytes | string): Promise<string> {
-    return Promise.resolve(joinSignature(this._signingKey().signDigest(hashMessage(message))));
+    return Promise.resolve(joinSignature(await this.signDigest(hashMessage(message))));
   }
 
   async encrypt(password: Bytes | string, options?: any, progressCallback?: ProgressCallback): Promise<string> {

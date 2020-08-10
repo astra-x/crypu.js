@@ -84,6 +84,7 @@ var json_wallets_1 = require("@ethersproject/json-wallets");
 var transactions_1 = require("@crypujs/transactions");
 var abstract_provider_1 = require("@crypujs/abstract-provider");
 var abstract_signer_1 = require("@crypujs/abstract-signer");
+var signing_escrow_1 = require("@crypujs/signing-escrow");
 var logger = new logger_1.Logger('wallet');
 function isAccount(value) {
     return (value != null && bytes_1.isHexString(value.privateKey, 32) && value.address != null);
@@ -92,6 +93,7 @@ function hasMnemonic(value) {
     var mnemonic = value.mnemonic;
     return (mnemonic && mnemonic.phrase);
 }
+;
 var Wallet = /** @class */ (function (_super) {
     __extends(Wallet, _super);
     function Wallet(privateKey, provider) {
@@ -99,43 +101,42 @@ var Wallet = /** @class */ (function (_super) {
         var _this = this;
         logger.checkNew(_newTarget, Wallet);
         _this = _super.call(this) || this;
-        if (isAccount(privateKey)) {
-            var signingKey_1 = new signing_key_1.SigningKey(privateKey.privateKey);
-            properties_1.defineReadOnly(_this, '_signingKey', function () { return signingKey_1; });
-            properties_1.defineReadOnly(_this, 'address', transactions_1.computeAddress(_this.publicKey));
-            if (_this.address !== address_1.getAddress(privateKey.address)) {
+        if (bytes_1.isBytesLike(privateKey)) {
+            var signingKey_1 = new signing_key_1.SigningKey(privateKey);
+            properties_1.defineReadOnly(_this, '_signing', function () { return signingKey_1; });
+        }
+        else if (isAccount(privateKey)) {
+            var signingKey_2 = new signing_key_1.SigningKey(privateKey.privateKey);
+            properties_1.defineReadOnly(_this, '_signing', function () { return signingKey_2; });
+            if (transactions_1.computeAddress(_this.publicKey) !== address_1.getAddress(privateKey.address)) {
                 logger.throwArgumentError('privateKey/address mismatch', 'privateKey', '[REDACTED]');
             }
-            if (hasMnemonic(privateKey)) {
-                var srcMnemonic_1 = privateKey.mnemonic;
-                properties_1.defineReadOnly(_this, '_mnemonic', function () { return ({
-                    phrase: srcMnemonic_1.phrase,
-                    path: srcMnemonic_1.path || hdnode_1.defaultPath,
-                    locale: srcMnemonic_1.locale || 'en'
-                }); });
-                var mnemonic = _this.mnemonic;
-                var node = hdnode_1.HDNode.fromMnemonic(mnemonic.phrase, null, mnemonic.locale).derivePath(mnemonic.path);
-                if (transactions_1.computeAddress(node.privateKey) !== _this.address) {
-                    logger.throwArgumentError('mnemonic/address mismatch', 'privateKey', '[REDACTED]');
-                }
+        }
+        else if (signing_escrow_1.SigningEscrow.isSigningEscrow(privateKey)) {
+            properties_1.defineReadOnly(_this, '_signing', function () { return privateKey; });
+        }
+        else if (signing_key_1.SigningKey.isSigningKey(privateKey)) {
+            if (privateKey.curve !== 'secp256k1') {
+                logger.throwArgumentError('unsupported curve; must be secp256k1', 'privateKey', '[REDACTED]');
             }
-            else {
-                properties_1.defineReadOnly(_this, '_mnemonic', function () { return null; });
+            properties_1.defineReadOnly(_this, '_signing', function () { return privateKey; });
+        }
+        properties_1.defineReadOnly(_this, 'address', transactions_1.computeAddress(_this.publicKey));
+        if (hasMnemonic(privateKey)) {
+            var srcMnemonic_1 = privateKey.mnemonic;
+            properties_1.defineReadOnly(_this, '_mnemonic', function () { return ({
+                phrase: srcMnemonic_1.phrase,
+                path: srcMnemonic_1.path || hdnode_1.defaultPath,
+                locale: srcMnemonic_1.locale || 'en'
+            }); });
+            var mnemonic = _this.mnemonic;
+            var node = hdnode_1.HDNode.fromMnemonic(mnemonic.phrase, null, mnemonic.locale).derivePath(mnemonic.path);
+            if (transactions_1.computeAddress(node.privateKey) !== _this.address) {
+                logger.throwArgumentError('mnemonic/address mismatch', 'privateKey', '[REDACTED]');
             }
         }
         else {
-            if (signing_key_1.SigningKey.isSigningKey(privateKey)) {
-                if (privateKey.curve !== 'secp256k1') {
-                    logger.throwArgumentError('unsupported curve; must be secp256k1', 'privateKey', '[REDACTED]');
-                }
-                properties_1.defineReadOnly(_this, '_signingKey', function () { return privateKey; });
-            }
-            else {
-                var signingKey_2 = new signing_key_1.SigningKey(privateKey);
-                properties_1.defineReadOnly(_this, '_signingKey', function () { return signingKey_2; });
-            }
             properties_1.defineReadOnly(_this, '_mnemonic', function () { return null; });
-            properties_1.defineReadOnly(_this, 'address', transactions_1.computeAddress(_this.publicKey));
         }
         if (provider && !abstract_provider_1.Provider.isProvider(provider)) {
             logger.throwArgumentError('invalid provider', 'provider', provider);
@@ -149,12 +150,12 @@ var Wallet = /** @class */ (function (_super) {
         configurable: true
     });
     Object.defineProperty(Wallet.prototype, "privateKey", {
-        get: function () { return this._signingKey().privateKey; },
+        get: function () { return this._signing().privateKey; },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(Wallet.prototype, "publicKey", {
-        get: function () { return this._signingKey().publicKey; },
+        get: function () { return this._signing().publicKey; },
         enumerable: false,
         configurable: true
     });
@@ -165,6 +166,19 @@ var Wallet = /** @class */ (function (_super) {
             });
         });
     };
+    Wallet.prototype.signDigest = function (digest) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                if (signing_key_1.SigningKey.isSigningKey(this._signing)) {
+                    return [2 /*return*/, Promise.resolve(this._signing().signDigest(digest))];
+                }
+                else {
+                    return [2 /*return*/, this._signing().signDigest(digest)];
+                }
+                return [2 /*return*/];
+            });
+        });
+    };
     Wallet.prototype.connect = function (provider) {
         return new Wallet(this, provider);
     };
@@ -172,23 +186,38 @@ var Wallet = /** @class */ (function (_super) {
         return __awaiter(this, void 0, void 0, function () {
             var _this = this;
             return __generator(this, function (_a) {
-                return [2 /*return*/, properties_1.resolveProperties(transaction).then(function (tx) {
-                        if (tx.from != null) {
-                            if (address_1.getAddress(tx.from) !== _this.address) {
-                                throw new Error('transaction from address mismatch');
+                return [2 /*return*/, properties_1.resolveProperties(transaction).then(function (tx) { return __awaiter(_this, void 0, void 0, function () {
+                        var signature;
+                        return __generator(this, function (_a) {
+                            switch (_a.label) {
+                                case 0:
+                                    if (tx.from != null) {
+                                        if (address_1.getAddress(tx.from) !== this.address) {
+                                            throw new Error('transaction from address mismatch');
+                                        }
+                                        delete tx.from;
+                                    }
+                                    return [4 /*yield*/, this.signDigest(keccak256_1.keccak256(transactions_1.serialize(tx)))];
+                                case 1:
+                                    signature = _a.sent();
+                                    return [2 /*return*/, transactions_1.serialize(tx, signature)];
                             }
-                            delete tx.from;
-                        }
-                        var signature = _this._signingKey().signDigest(keccak256_1.keccak256(transactions_1.serialize(tx)));
-                        return transactions_1.serialize(tx, signature);
-                    })];
+                        });
+                    }); })];
             });
         });
     };
     Wallet.prototype.signMessage = function (message) {
         return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                return [2 /*return*/, Promise.resolve(bytes_1.joinSignature(this._signingKey().signDigest(hash_1.hashMessage(message))))];
+            var _a, _b, _c;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
+                    case 0:
+                        _b = (_a = Promise).resolve;
+                        _c = bytes_1.joinSignature;
+                        return [4 /*yield*/, this.signDigest(hash_1.hashMessage(message))];
+                    case 1: return [2 /*return*/, _b.apply(_a, [_c.apply(void 0, [_d.sent()])])];
+                }
             });
         });
     };

@@ -34,7 +34,7 @@ var Formatter = /** @class */ (function () {
     function Formatter() {
         var _newTarget = this.constructor;
         logger.checkNew(_newTarget, Formatter);
-        this.formats = this.getDefaultFormats();
+        properties_1.defineReadOnly(this, 'formats', this.getDefaultFormats());
     }
     Formatter.prototype.getDefaultFormats = function () {
         var _this = this;

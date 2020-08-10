@@ -31,7 +31,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import { Logger } from '@ethersproject/logger';
 import { getNetwork, } from '@ethersproject/networks';
-import { deepCopy, getStatic, } from '@ethersproject/properties';
+import { deepCopy, defineReadOnly, getStatic, } from '@ethersproject/properties';
 import { fetchJson } from '@crypujs/web';
 import { Formatter } from './formatter';
 import { BaseProvider, } from './base-provider';
@@ -49,7 +49,7 @@ export class JsonRpcProvider extends BaseProvider {
         if (!url) {
             url = getStatic((new.target), 'defaultUrl')();
         }
-        this.connection = { url: url };
+        defineReadOnly(this, 'connection', { url: url });
         this._nextId = 42;
     }
     static defaultUrl() {

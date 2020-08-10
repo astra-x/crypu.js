@@ -30,7 +30,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { Logger } from '@ethersproject/logger';
-import { arrayify, concat, hexDataSlice, isHexString, joinSignature, } from '@ethersproject/bytes';
+import { arrayify, concat, hexDataSlice, isBytesLike, isHexString, joinSignature, } from '@ethersproject/bytes';
 import { keccak256 } from '@ethersproject/keccak256';
 import { defineReadOnly, resolveProperties, } from '@ethersproject/properties';
 import { randomBytes } from '@ethersproject/random';
@@ -42,6 +42,7 @@ import { decryptJsonWallet, decryptJsonWalletSync, encryptKeystore, } from '@eth
 import { computeAddress, recoverAddress, serialize, } from '@crypujs/transactions';
 import { Provider, } from '@crypujs/abstract-provider';
 import { Signer, } from '@crypujs/abstract-signer';
+import { SigningEscrow, } from '@crypujs/signing-escrow';
 const logger = new Logger('wallet');
 function isAccount(value) {
     return (value != null && isHexString(value.privateKey, 32) && value.address != null);
@@ -50,47 +51,47 @@ function hasMnemonic(value) {
     const mnemonic = value.mnemonic;
     return (mnemonic && mnemonic.phrase);
 }
+;
 export class Wallet extends Signer {
     constructor(privateKey, provider) {
         logger.checkNew(new.target, Wallet);
         super();
-        if (isAccount(privateKey)) {
+        if (isBytesLike(privateKey)) {
+            const signingKey = new SigningKey(privateKey);
+            defineReadOnly(this, '_signing', () => signingKey);
+        }
+        else if (isAccount(privateKey)) {
             const signingKey = new SigningKey(privateKey.privateKey);
-            defineReadOnly(this, '_signingKey', () => signingKey);
-            defineReadOnly(this, 'address', computeAddress(this.publicKey));
-            if (this.address !== getAddress(privateKey.address)) {
+            defineReadOnly(this, '_signing', () => signingKey);
+            if (computeAddress(this.publicKey) !== getAddress(privateKey.address)) {
                 logger.throwArgumentError('privateKey/address mismatch', 'privateKey', '[REDACTED]');
             }
-            if (hasMnemonic(privateKey)) {
-                const srcMnemonic = privateKey.mnemonic;
-                defineReadOnly(this, '_mnemonic', () => ({
-                    phrase: srcMnemonic.phrase,
-                    path: srcMnemonic.path || defaultPath,
-                    locale: srcMnemonic.locale || 'en'
-                }));
-                const mnemonic = this.mnemonic;
-                const node = HDNode.fromMnemonic(mnemonic.phrase, null, mnemonic.locale).derivePath(mnemonic.path);
-                if (computeAddress(node.privateKey) !== this.address) {
-                    logger.throwArgumentError('mnemonic/address mismatch', 'privateKey', '[REDACTED]');
-                }
+        }
+        else if (SigningEscrow.isSigningEscrow(privateKey)) {
+            defineReadOnly(this, '_signing', () => privateKey);
+        }
+        else if (SigningKey.isSigningKey(privateKey)) {
+            if (privateKey.curve !== 'secp256k1') {
+                logger.throwArgumentError('unsupported curve; must be secp256k1', 'privateKey', '[REDACTED]');
             }
-            else {
-                defineReadOnly(this, '_mnemonic', () => null);
+            defineReadOnly(this, '_signing', () => privateKey);
+        }
+        defineReadOnly(this, 'address', computeAddress(this.publicKey));
+        if (hasMnemonic(privateKey)) {
+            const srcMnemonic = privateKey.mnemonic;
+            defineReadOnly(this, '_mnemonic', () => ({
+                phrase: srcMnemonic.phrase,
+                path: srcMnemonic.path || defaultPath,
+                locale: srcMnemonic.locale || 'en'
+            }));
+            const mnemonic = this.mnemonic;
+            const node = HDNode.fromMnemonic(mnemonic.phrase, null, mnemonic.locale).derivePath(mnemonic.path);
+            if (computeAddress(node.privateKey) !== this.address) {
+                logger.throwArgumentError('mnemonic/address mismatch', 'privateKey', '[REDACTED]');
             }
         }
         else {
-            if (SigningKey.isSigningKey(privateKey)) {
-                if (privateKey.curve !== 'secp256k1') {
-                    logger.throwArgumentError('unsupported curve; must be secp256k1', 'privateKey', '[REDACTED]');
-                }
-                defineReadOnly(this, '_signingKey', () => privateKey);
-            }
-            else {
-                const signingKey = new SigningKey(privateKey);
-                defineReadOnly(this, '_signingKey', () => signingKey);
-            }
             defineReadOnly(this, '_mnemonic', () => null);
-            defineReadOnly(this, 'address', computeAddress(this.publicKey));
         }
         if (provider && !Provider.isProvider(provider)) {
             logger.throwArgumentError('invalid provider', 'provider', provider);
@@ -98,11 +99,21 @@ export class Wallet extends Signer {
         defineReadOnly(this, 'provider', provider || null);
     }
     get mnemonic() { return this._mnemonic(); }
-    get privateKey() { return this._signingKey().privateKey; }
-    get publicKey() { return this._signingKey().publicKey; }
+    get privateKey() { return this._signing().privateKey; }
+    get publicKey() { return this._signing().publicKey; }
     getAddress() {
         return __awaiter(this, void 0, void 0, function* () {
             return Promise.resolve(this.address);
+        });
+    }
+    signDigest(digest) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (SigningKey.isSigningKey(this._signing)) {
+                return Promise.resolve(this._signing().signDigest(digest));
+            }
+            else {
+                return this._signing().signDigest(digest);
+            }
         });
     }
     connect(provider) {
@@ -110,21 +121,21 @@ export class Wallet extends Signer {
     }
     signTransaction(transaction) {
         return __awaiter(this, void 0, void 0, function* () {
-            return resolveProperties(transaction).then((tx) => {
+            return resolveProperties(transaction).then((tx) => __awaiter(this, void 0, void 0, function* () {
                 if (tx.from != null) {
                     if (getAddress(tx.from) !== this.address) {
                         throw new Error('transaction from address mismatch');
                     }
                     delete tx.from;
                 }
-                const signature = this._signingKey().signDigest(keccak256(serialize(tx)));
+                const signature = yield this.signDigest(keccak256(serialize(tx)));
                 return serialize(tx, signature);
-            });
+            }));
         });
     }
     signMessage(message) {
         return __awaiter(this, void 0, void 0, function* () {
-            return Promise.resolve(joinSignature(this._signingKey().signDigest(hashMessage(message))));
+            return Promise.resolve(joinSignature(yield this.signDigest(hashMessage(message))));
         });
     }
     encrypt(password, options, progressCallback) {

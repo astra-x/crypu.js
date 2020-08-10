@@ -93,7 +93,7 @@ var JsonRpcProvider = /** @class */ (function (_super) {
         if (!url) {
             url = properties_1.getStatic((_newTarget), 'defaultUrl')();
         }
-        _this.connection = { url: url };
+        properties_1.defineReadOnly(_this, 'connection', { url: url });
         _this._nextId = 42;
         return _this;
     }
