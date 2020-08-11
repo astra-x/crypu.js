@@ -183,6 +183,8 @@ var JsonRpcProvider = /** @class */ (function (_super) {
                 return ['getTransactionByHash', [this.groupId, params.transactionHash]];
             case 'getTransactionReceipt':
                 return ['getTransactionReceipt', [this.groupId, params.transactionHash]];
+            case 'call':
+                return ['call', [this.groupId, params.transaction]];
             default:
                 logger.throwError(method + ' not implemented', logger_1.Logger.errors.NOT_IMPLEMENTED, { operation: method });
         }

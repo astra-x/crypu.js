@@ -912,7 +912,7 @@ export class BaseProvider extends Provider {
       transaction: this._getTransactionRequest(transaction),
       blockTag: this._getBlockTag(blockTag)
     });
-    return hexlify(await this.perform('call', params));
+    return hexlify((await this.perform('call', params)).output);
   }
 
   async estimateGas(_?: Deferrable<TransactionRequest>): Promise<BigNumber> {
