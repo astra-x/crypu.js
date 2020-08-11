@@ -1,4 +1,3 @@
-"use strict";
 /*
  This file is part of crypu.js.
 
@@ -20,6 +19,7 @@
  * @author Abnernat <zhang951005@gmail.com>
  * @date 2020
  */
+'use strict';
 Object.defineProperty(exports, "__esModule", { value: true });
 var bignumber_1 = require("@ethersproject/bignumber");
 var providers_1 = require("@crypujs/providers");
@@ -259,13 +259,13 @@ function testProvider(providerConf, example) {
             done();
         });
     });
-    test("provider.getBlock with tag", function (done) {
+    test("provider.getBlock by tag", function (done) {
         provider.getBlock(example.blockTag).then(function (block) {
             expect(block).toEqual(example.blockByTag);
             done();
         });
     });
-    test("provider.getBlock with address", function (done) {
+    test("provider.getBlock by address", function (done) {
         provider.getBlock(example.blockAddress).then(function (block) {
             expect(block).toEqual(example.blockByAddress);
             done();
@@ -277,14 +277,14 @@ function testProvider(providerConf, example) {
             done();
         });
     });
-    test("provider.getBlock with address", function (done) {
+    test("provider.getBlock by address", function (done) {
         provider.getBlock(example.blockAddress).then(function (block) {
             matchTransaction(block, example.blockByAddress);
             done();
         });
     });
-    test("provider.getBlock with block tag", function (done) {
-        provider.getBlock(example.blockAddress).then(function (block) {
+    test("provider.getBlock by block tag", function (done) {
+        provider.getBlock(example.blockTag).then(function (block) {
             matchTransaction(block, example.blockByTag);
             done();
         });

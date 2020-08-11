@@ -19,6 +19,7 @@
  * @author Abnernat <zhang951005@gmail.com>
  * @date 2020
  */
+'use strict';
 
 import { BigNumber } from "@ethersproject/bignumber";
 import { Network } from "@ethersproject/networks";
@@ -347,14 +348,14 @@ function testProvider(providerConf: ProviderConfig, example: Example) {
     });
   });
 
-  test("provider.getBlock with tag", (done) => {
+  test("provider.getBlock by tag", (done) => {
     provider.getBlock(example.blockTag).then((block) => {
       expect(block).toEqual(example.blockByTag);
       done();
     });
   });
 
-  test("provider.getBlock with address", (done) => {
+  test("provider.getBlock by address", (done) => {
     provider.getBlock(example.blockAddress).then((block) => {
       expect(block).toEqual(example.blockByAddress);
       done();
@@ -368,15 +369,15 @@ function testProvider(providerConf: ProviderConfig, example: Example) {
     });
   });
 
-  test("provider.getBlock with address", (done) => {
+  test("provider.getBlock by address", (done) => {
     provider.getBlock(example.blockAddress).then((block) => {
       matchTransaction(block, example.blockByAddress);
       done();
     });
   });
 
-  test("provider.getBlock with block tag", (done) => {
-    provider.getBlock(example.blockAddress).then((block) => {
+  test("provider.getBlock by block tag", (done) => {
+    provider.getBlock(example.blockTag).then((block) => {
       matchTransaction(block, example.blockByTag);
       done();
     });

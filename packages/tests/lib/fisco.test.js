@@ -1020,19 +1020,19 @@ var testData = [
 ];
 function fiscoTest(config, example, abi) {
     var provider = new fisco_1.JsonRpcProvider(config.url, config.network, config.groupId);
-    test("abi.getFunction with signature", function () {
+    test("abi.getFunction by signature", function () {
         var result = abi.getFunction(example.abiTestData.function.functionFragmentSig);
         expect(result).toEqual(example.abiTestData.result.getFunctionSig);
     });
-    test("abi.getFunction with sighash", function () {
+    test("abi.getFunction by sighash", function () {
         var result = abi.getFunction(example.abiTestData.function.functionFragmentSighash);
         expect(result).toEqual(example.abiTestData.result.getFunctionSighash);
     });
-    test("abi.getEvent with signature", function () {
+    test("abi.getEvent by signature", function () {
         var result = abi.getEvent(example.abiTestData.event.eventFragmentSig);
         expect(result).toEqual(example.abiTestData.result.getEventWithSig);
     });
-    test("abi.getEvent with topic", function () {
+    test("abi.getEvent by topic", function () {
         var result = abi.getEvent(example.abiTestData.event.eventFragmentTopic);
         expect(result).toEqual(example.abiTestData.result.getEventWithTopic);
     });
@@ -1044,35 +1044,35 @@ function fiscoTest(config, example, abi) {
         var result = abi.getEventTopic(example.abiTestData.event.eventFragmentSig);
         expect(result).toBe(example.abiTestData.result.getEventTopic);
     });
-    test("abi.encodeFunctionData with signature", function () {
+    test("abi.encodeFunctionData by signature", function () {
         var result = abi.encodeFunctionData(example.abiTestData.function.functionFragmentSig, example.abiTestData.function.encodeData);
         expect(result).toBe(example.abiTestData.result.encodeFunctionData);
     });
-    test("abi.encodeFunctionData with sighash", function () {
+    test("abi.encodeFunctionData by sighash", function () {
         var result = abi.encodeFunctionData(example.abiTestData.function.functionFragmentSighash, example.abiTestData.function.encodeData);
         expect(result).toBe(example.abiTestData.result.encodeFunctionData);
     });
-    test("abi.decodeFunctionData with signature", function () {
+    test("abi.decodeFunctionData by signature", function () {
         var result = abi.decodeFunctionData(example.abiTestData.function.functionFragmentSig, example.abiTestData.function.decodeData);
         expect(JSON.parse(JSON.stringify(result))).toEqual(example.abiTestData.result.decodeFunctionData);
     });
-    test("abi.decodeFunctionData with sighash", function () {
+    test("abi.decodeFunctionData by sighash", function () {
         var result = abi.decodeFunctionData(example.abiTestData.function.functionFragmentSighash, example.abiTestData.function.decodeData);
         expect(JSON.parse(JSON.stringify(result))).toEqual(example.abiTestData.result.decodeFunctionData);
     });
-    test("abi.decodeEventLog with signature", function () {
+    test("abi.decodeEventLog by signature", function () {
         var result = abi.decodeEventLog(example.abiTestData.event.eventFragmentSig, example.abiTestData.event.decodeData, example.abiTestData.event.decodeTopic);
         expect(JSON.parse(JSON.stringify(result))).toEqual(example.abiTestData.result.decodeEventLogData);
     });
-    test("abi.decodeEventLog with topic", function () {
+    test("abi.decodeEventLog by topic", function () {
         var result = abi.decodeEventLog(example.abiTestData.event.eventFragmentTopic, example.abiTestData.event.decodeData, example.abiTestData.event.decodeTopic);
         expect(JSON.parse(JSON.stringify(result))).toEqual(example.abiTestData.result.decodeEventLogData);
     });
-    test("abi.encodeEventLog with signature", function () {
+    test("abi.encodeEventLog by signature", function () {
         var result = abi.encodeEventLog(example.abiTestData.event.eventFragmentSig, example.abiTestData.result.decodeEventLogData);
         expect(JSON.parse(JSON.stringify(result))).toEqual(example.abiTestData.result.encodeEventLogData);
     });
-    test("abi.encodeEventLog with topic", function () {
+    test("abi.encodeEventLog by topic", function () {
         var result = abi.encodeEventLog(example.abiTestData.event.eventFragmentTopic, example.abiTestData.result.decodeEventLogData);
         expect(JSON.parse(JSON.stringify(result))).toEqual(example.abiTestData.result.encodeEventLogData);
     });
@@ -1137,33 +1137,27 @@ function fiscoTest(config, example, abi) {
             done();
         });
     });
-    test("provider.getBlock with tag", function (done) {
+    test("provider.getBlock by tag", function (done) {
         provider.getBlock(example.blockTag).then(function (block) {
             expect(block).toEqual(example.blockByTag);
             done();
         });
     });
-    test("provider.getBlock with address", function (done) {
+    test("provider.getBlock by address", function (done) {
         provider.getBlock(example.blockAddress).then(function (block) {
             expect(block).toEqual(example.blockByAddress);
             done();
         });
     });
-    test("provider.getBlockWithTransactions with transactions", function (done) {
+    test("provider.getBlockWithTransactions by tag", function (done) {
         provider.getBlockWithTransactions(example.blockTag).then(function (block) {
             matchTransaction(block, example.blockWithTransactions);
             done();
         });
     });
-    test("provider.getBlockWithTransactions with address", function (done) {
+    test("provider.getBlockWithTransactions by address", function (done) {
         provider.getBlock(example.blockAddress).then(function (block) {
             matchTransaction(block, example.blockByAddress);
-            done();
-        });
-    });
-    test("provider.getBlock with tag", function (done) {
-        provider.getBlock(example.blockAddress).then(function (block) {
-            matchTransaction(block, example.blockByTag);
             done();
         });
     });

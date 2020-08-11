@@ -788,6 +788,7 @@ export class BaseProvider extends Provider {
             yield this.getNetwork();
             const params = yield resolveProperties({
                 transaction: this._getTransactionRequest(transaction),
+                blockTag: this._getBlockTag(blockTag)
             });
             return hexlify((yield this.perform('call', params)).output);
         });

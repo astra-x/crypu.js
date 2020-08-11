@@ -1,8 +1,30 @@
-import { Interface, Wallet, JsonRpcProvider } from '@crypujs/fisco';
+/*
+ This file is part of crypu.js.
+
+ crypu.js is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ crypu.js is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/**
+ * @file fisco.test.ts
+ * @author Abnernat <zhang951005@gmail.com>
+ * @date 2020
+ */
+'use strict';
 import { BigNumber } from "@ethersproject/bignumber";
+import { Interface, Wallet, JsonRpcProvider, } from "@crypujs/fisco";
 const bnify = BigNumber.from;
 // Test Abi
-const abi = [
+const erc721Abi = [
     {
         inputs: [
             {
@@ -285,6 +307,208 @@ const abi = [
         type: "function",
     },
 ];
+const roleControllerAbi = [
+    {
+        constant: true,
+        inputs: [],
+        name: "MODIFY_ADMIN",
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [],
+        name: "RETURN_CODE_FAILURE_NO_PERMISSION",
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [
+            {
+                name: "addr",
+                type: "address",
+            },
+            {
+                name: "role",
+                type: "uint256",
+            },
+        ],
+        name: "checkRole",
+        outputs: [
+            {
+                name: "",
+                type: "bool",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [],
+        name: "ROLE_COMMITTEE",
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: false,
+        inputs: [
+            {
+                name: "addr",
+                type: "address",
+            },
+            {
+                name: "role",
+                type: "uint256",
+            },
+        ],
+        name: "removeRole",
+        outputs: [],
+        payable: false,
+        stateMutability: "nonpayable",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [],
+        name: "MODIFY_KEY_CPT",
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: false,
+        inputs: [
+            {
+                name: "addr",
+                type: "address",
+            },
+            {
+                name: "role",
+                type: "uint256",
+            },
+        ],
+        name: "addRole",
+        outputs: [],
+        payable: false,
+        stateMutability: "nonpayable",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [
+            {
+                name: "addr",
+                type: "address",
+            },
+            {
+                name: "operation",
+                type: "uint256",
+            },
+        ],
+        name: "checkPermission",
+        outputs: [
+            {
+                name: "",
+                type: "bool",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [],
+        name: "MODIFY_AUTHORITY_ISSUER",
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [],
+        name: "MODIFY_COMMITTEE",
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [],
+        name: "ROLE_ADMIN",
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [],
+        name: "ROLE_AUTHORITY_ISSUER",
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        inputs: [],
+        payable: false,
+        stateMutability: "nonpayable",
+        type: "constructor",
+    },
+];
 // Test Data
 const testData = [
     {
@@ -296,9 +520,17 @@ const testData = [
             },
             groupId: 1,
         },
-        abi: new Interface(abi),
+        abi: new Interface(erc721Abi),
         examples: [
             {
+                walletCallData: {
+                    from: "0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6",
+                    to: "0x2f7bbf70d7052b4b33e3f7e0347efce131801e64",
+                    data: new Interface(roleControllerAbi).encodeFunctionData("checkPermission(address,uint)", [
+                        "0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6",
+                        201,
+                    ]),
+                },
                 testTransactionAddr: "0xdf06b656004645b727c628a3a574abd0c4f56be8d2b328eac56eef5bcbaf1f95",
                 mnemWalletAddr: "0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6",
                 privKeyWalletAddr: "0xc674ce8E3535455F0CA6643A248F53f97A923061",
@@ -563,6 +795,7 @@ const testData = [
                 estimateGasResult: { _hex: "0x0f4240", _isBigNumber: true },
                 serializeResult: "0xf8bc90b819f5906213b8c355b3ad9079e91ee28411e1a300830f4240826fdc943a1c406f0af920f9371d3b75b8f8c1a14264fd3780b884643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000010180",
                 signTransactionResult: "0xf8e680808080943a1c406f0af920f9371d3b75b8f8c1a14264fd3780b8846437197700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000361626300000000000000000000000000000000000000000000000000000000008080801ca0e240d7e1f1cea773a54e32a81a6a8e4ae80c462a71c6aa0b089156566a2c0818a01b97c22b8a946d7e3f0ed36c9f04534d3ca0d23230a8872af10b75e7ffa639f3",
+                walletCallResult: "0x0000000000000000000000000000000000000000000000000000000000000000",
                 walletMnemPhrase: "ribbon glimpse rescue nuclear elevator album rookie imitate fuel resemble banner arrow",
                 walletMnemPrivKey: "0xd0261992c686061d8597a69ef24374c9ce88dbdab163285c5afb288f2a701194",
                 walletPrivKey: "0x1925b8bee81b6189e0a3aa0e6ce99e7c3deaf8bdf8767ee388ff15e78eae863e",
@@ -786,86 +1019,86 @@ const testData = [
 ];
 function fiscoTest(config, example, abi) {
     const provider = new JsonRpcProvider(config.url, config.network, config.groupId);
-    test("Abi get function with signature", () => {
+    test("abi.getFunction by signature", () => {
         const result = abi.getFunction(example.abiTestData.function.functionFragmentSig);
         expect(result).toEqual(example.abiTestData.result.getFunctionSig);
     });
-    test("Abi get function with sighash", () => {
+    test("abi.getFunction by sighash", () => {
         const result = abi.getFunction(example.abiTestData.function.functionFragmentSighash);
         expect(result).toEqual(example.abiTestData.result.getFunctionSighash);
     });
-    test("Abi get event with signature", () => {
+    test("abi.getEvent by signature", () => {
         const result = abi.getEvent(example.abiTestData.event.eventFragmentSig);
         expect(result).toEqual(example.abiTestData.result.getEventWithSig);
     });
-    test("Abi get event with topic", () => {
+    test("abi.getEvent by topic", () => {
         const result = abi.getEvent(example.abiTestData.event.eventFragmentTopic);
         expect(result).toEqual(example.abiTestData.result.getEventWithTopic);
     });
-    test("Abi get sighash", () => {
+    test("abi.getSighash", () => {
         const result = abi.getSighash(example.abiTestData.function.functionFragmentSig);
         expect(result).toBe(example.abiTestData.result.getSighash);
     });
-    test("Abi get event topic", () => {
+    test("abi.getEventTopic", () => {
         const result = abi.getEventTopic(example.abiTestData.event.eventFragmentSig);
         expect(result).toBe(example.abiTestData.result.getEventTopic);
     });
-    test("Abi encode function data with signature", () => {
+    test("abi.encodeFunctionData by signature", () => {
         const result = abi.encodeFunctionData(example.abiTestData.function.functionFragmentSig, example.abiTestData.function.encodeData);
         expect(result).toBe(example.abiTestData.result.encodeFunctionData);
     });
-    test("Abi encode function data with sighash", () => {
+    test("abi.encodeFunctionData by sighash", () => {
         const result = abi.encodeFunctionData(example.abiTestData.function.functionFragmentSighash, example.abiTestData.function.encodeData);
         expect(result).toBe(example.abiTestData.result.encodeFunctionData);
     });
-    test("Abi decode function data with signature", () => {
+    test("abi.decodeFunctionData by signature", () => {
         const result = abi.decodeFunctionData(example.abiTestData.function.functionFragmentSig, example.abiTestData.function.decodeData);
         expect(JSON.parse(JSON.stringify(result))).toEqual(example.abiTestData.result.decodeFunctionData);
     });
-    test("Abi decode function data with sighash", () => {
+    test("abi.decodeFunctionData by sighash", () => {
         const result = abi.decodeFunctionData(example.abiTestData.function.functionFragmentSighash, example.abiTestData.function.decodeData);
         expect(JSON.parse(JSON.stringify(result))).toEqual(example.abiTestData.result.decodeFunctionData);
     });
-    test("Abi decode event log with signature", () => {
+    test("abi.decodeEventLog by signature", () => {
         const result = abi.decodeEventLog(example.abiTestData.event.eventFragmentSig, example.abiTestData.event.decodeData, example.abiTestData.event.decodeTopic);
         expect(JSON.parse(JSON.stringify(result))).toEqual(example.abiTestData.result.decodeEventLogData);
     });
-    test("Abi decode event log with topic", () => {
+    test("abi.decodeEventLog by topic", () => {
         const result = abi.decodeEventLog(example.abiTestData.event.eventFragmentTopic, example.abiTestData.event.decodeData, example.abiTestData.event.decodeTopic);
         expect(JSON.parse(JSON.stringify(result))).toEqual(example.abiTestData.result.decodeEventLogData);
     });
-    test("Abi encode event log with signature", () => {
+    test("abi.encodeEventLog by signature", () => {
         const result = abi.encodeEventLog(example.abiTestData.event.eventFragmentSig, example.abiTestData.result.decodeEventLogData);
         expect(JSON.parse(JSON.stringify(result))).toEqual(example.abiTestData.result.encodeEventLogData);
     });
-    test("Abi encode event log with topic", () => {
+    test("abi.encodeEventLog by topic", () => {
         const result = abi.encodeEventLog(example.abiTestData.event.eventFragmentTopic, example.abiTestData.result.decodeEventLogData);
         expect(JSON.parse(JSON.stringify(result))).toEqual(example.abiTestData.result.encodeEventLogData);
     });
     // Initialize wallet with mnem phrases
     let wallet = Wallet.fromMnemonic(example.walletMnemPhrase);
     wallet = wallet.connect(provider);
-    test("Provider get client version", () => {
+    test("provider.getClientVersion", () => {
         provider.getClientVersion().then((result) => {
             expect(result).toEqual(example.clientVersion);
         });
     });
-    test("Provider get PBFTView", () => {
+    test("provider.getPbftView", () => {
         provider.getPbftView().then((result) => {
             expect(result).toBeTruthy();
         });
     });
-    test("Provider get sealer list", () => {
+    test("provider.getSealerList", () => {
         provider.getSealerList().then((result) => {
             expect(result).toEqual(example.sealerList);
         });
     });
-    test("Provider get observer list", () => {
+    test("provider.getObserverList", () => {
         provider.getObserverList().then((result) => {
             expect(result).toEqual(example.observerList);
         });
     });
-    test("Provider get sync status", () => {
+    test("provider.getSyncStatus", () => {
         provider.getSyncStatus().then((result) => {
             expect(result.blockNumber).toBeDefined();
             expect(result.genesisHash).toEqual(example.syncStatus.genesisHash);
@@ -885,61 +1118,55 @@ function fiscoTest(config, example, abi) {
             expect(result.txPoolSize).toBeDefined();
         });
     });
-    test("Provider get peers", (done) => {
+    test("provider.getPeers", (done) => {
         provider.getPeers().then((result) => {
             expect(result).toEqual(example.peers);
             done();
         });
     });
-    test("Provider get node ID list", (done) => {
+    test("provider.getNodeIdList", (done) => {
         provider.getNodeIdList().then((result) => {
             expect(result).toEqual(example.nodeIdList);
             done();
         });
     });
-    test("Provider get block number", (done) => {
+    test("provider.getBlockNumber", (done) => {
         provider.getBlockNumber().then((result) => {
             expect(result).toBeDefined();
             done();
         });
     });
-    test("Provider get block with block tag", (done) => {
+    test("provider.getBlock by tag", (done) => {
         provider.getBlock(example.blockTag).then((block) => {
             expect(block).toEqual(example.blockByTag);
             done();
         });
     });
-    test("Provider get block with block address", (done) => {
+    test("provider.getBlock by address", (done) => {
         provider.getBlock(example.blockAddress).then((block) => {
             expect(block).toEqual(example.blockByAddress);
             done();
         });
     });
-    test("Provider get block with transactions", (done) => {
+    test("provider.getBlockWithTransactions by tag", (done) => {
         provider.getBlockWithTransactions(example.blockTag).then((block) => {
             matchTransaction(block, example.blockWithTransactions);
             done();
         });
     });
-    test("Provider get block by address", (done) => {
+    test("provider.getBlockWithTransactions by address", (done) => {
         provider.getBlock(example.blockAddress).then((block) => {
             matchTransaction(block, example.blockByAddress);
             done();
         });
     });
-    test("Provider get block by block tag", (done) => {
-        provider.getBlock(example.blockAddress).then((block) => {
-            matchTransaction(block, example.blockByTag);
-            done();
-        });
-    });
-    test("Provider get gas price", (done) => {
+    test("provider.getGasPrice", (done) => {
         provider.getGasPrice().then((price) => {
             expect(price).toBeDefined();
             done();
         });
     });
-    test("Provider send transaction", (done) => {
+    test("provider.sendTransaction", (done) => {
         provider.sendTransaction(example.signTransactionResult).then((response) => {
             expect(response.nonce).toEqual(example.providerSendTransactionResult.nonce);
             expect(response.gasPrice).toEqual(example.providerSendTransactionResult.gasPrice);
@@ -958,58 +1185,64 @@ function fiscoTest(config, example, abi) {
             done();
         });
     });
-    test("Provider estimate gas", (done) => {
+    test("provider.estimateGas", (done) => {
         provider.estimateGas(example.testTransaction).then((result) => {
             expect(result).toEqual(example.estimateGasResult);
             done();
         });
     });
-    test("Wallet established from mnemonic words", () => {
+    test("Wallet.fromMnemonic", () => {
         const wallet = Wallet.fromMnemonic(example.walletMnemPhrase);
         wallet.getAddress().then((str) => {
             expect(str).toBe(example.mnemWalletAddr);
         });
     });
-    test("Wallet established wallet from privkey", () => {
+    test("Wallet.new", () => {
         const wallet = new Wallet(example.walletPrivKey);
         wallet.getAddress().then((str) => {
             expect(str).toBe(example.privKeyWalletAddr);
         });
     });
-    test("Wallet get mnemonic phrases", () => {
+    test("Wallet.mnemonic", () => {
         expect(wallet.mnemonic.phrase).toBe(example.walletMnemPhrase);
     });
-    test("Wallet get private key", () => {
+    test("Wallet.privateKey", () => {
         expect(wallet.privateKey).toBe(example.walletMnemPrivKey);
     });
-    test("Wallet get public key", () => {
+    test("Wallet.publicKey", () => {
         expect(wallet.publicKey).toBe(example.walletPubkey);
     });
-    test("Wallet get chainId", (done) => {
+    test("wallet.call", (done) => {
+        wallet.call(example.walletCallData).then((result) => {
+            expect(result).toBe(example.walletCallResult);
+            done();
+        });
+    });
+    test("wallet.getChainId", (done) => {
         wallet.getChainId().then((result) => {
             expect(result).toBe(example.getGroupIdResult);
             done();
         });
     });
-    test("Wallet get groupId", (done) => {
+    test("wallet.getGroupId", (done) => {
         wallet.getGroupId().then((result) => {
             expect(result).toBe(example.getGroupIdResult);
             done();
         });
     });
-    test("Wallet get block number", (done) => {
+    test("wallet.getBlockNumber", (done) => {
         wallet.getBlockNumber().then((result) => {
             expect(result).toBeDefined();
             done();
         });
     });
-    test("Wallet get gas price", done => {
-        wallet.getGasPrice().then(result => {
+    test("wallet.getGasPrice", (done) => {
+        wallet.getGasPrice().then((result) => {
             expect(result).toBeDefined();
             done();
         });
     });
-    test("Wallet send transaction", (done) => {
+    test("wallet.sendTransaction", (done) => {
         wallet.sendTransaction(example.testTransaction).then((tx) => {
             expect(tx.data).toBe(example.walletSendTransactionResult.data);
             expect(tx.chainId).toBe(example.walletSendTransactionResult.chainId);
@@ -1026,7 +1259,13 @@ function fiscoTest(config, example, abi) {
             done();
         });
     });
-    test("Wallet get transaction", (done) => {
+    test("wallet.signTransaction", (done) => {
+        wallet.signTransaction(example.testTransaction).then((result) => {
+            expect(result).toBe(example.signTransactionResult);
+            done();
+        });
+    });
+    test("wallet.provider.getTransaction", (done) => {
         wallet.provider.getTransaction(example.testTransactionAddr).then((tx) => {
             expect(tx.hash).toBeDefined();
             expect(tx.blockHash).toBeDefined();
@@ -1043,13 +1282,7 @@ function fiscoTest(config, example, abi) {
             done();
         });
     });
-    test("Wallet sign transaction", (done) => {
-        wallet.signTransaction(example.testTransaction).then((result) => {
-            expect(result).toBe(example.signTransactionResult);
-            done();
-        });
-    });
-    test("Wallet get transaction receipt", (done) => {
+    test("wallet.provider.getTransactionReceipt", (done) => {
         wallet.provider
             .getTransactionReceipt(example.testTransactionAddr)
             .then((tx) => {
