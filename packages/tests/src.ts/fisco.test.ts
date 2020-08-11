@@ -20,6 +20,9 @@
  * @date 2020
  */
 
+import { BigNumber } from "@ethersproject/bignumber";
+
+import { JsonFragmentType } from "@crypujs/abi";
 import {
   Network,
   JsonFragment,
@@ -36,9 +39,6 @@ import {
   Wallet,
   JsonRpcProvider,
 } from "@crypujs/fisco";
-
-import { JsonFragmentType } from "@crypujs/abi";
-import { BigNumber } from "@ethersproject/bignumber";
 
 const bnify = BigNumber.from;
 
@@ -597,10 +597,12 @@ const testData: Array<TestData> = [
         walletCallData: {
           from: "0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6",
           to: "0x2f7bbf70d7052b4b33e3f7e0347efce131801e64",
-          data: new Interface(roleControllerAbi).encodeFunctionData(
-            "checkPermission(address,uint)",
-            ["0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6", 201]
-          ),
+          data: new Interface(
+            roleControllerAbi
+          ).encodeFunctionData("checkPermission(address,uint)", [
+            "0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6",
+            201,
+          ]),
         },
         testTransactionAddr:
           "0xdf06b656004645b727c628a3a574abd0c4f56be8d2b328eac56eef5bcbaf1f95",
@@ -923,7 +925,8 @@ const testData: Array<TestData> = [
           "0xf8bc90b819f5906213b8c355b3ad9079e91ee28411e1a300830f4240826fdc943a1c406f0af920f9371d3b75b8f8c1a14264fd3780b884643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000010180",
         signTransactionResult:
           "0xf8e680808080943a1c406f0af920f9371d3b75b8f8c1a14264fd3780b8846437197700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000361626300000000000000000000000000000000000000000000000000000000008080801ca0e240d7e1f1cea773a54e32a81a6a8e4ae80c462a71c6aa0b089156566a2c0818a01b97c22b8a946d7e3f0ed36c9f04534d3ca0d23230a8872af10b75e7ffa639f3",
-        walletCallResult: '0x0000000000000000000000000000000000000000000000000000000000000000',
+        walletCallResult:
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
         walletMnemPhrase:
           "ribbon glimpse rescue nuclear elevator album rookie imitate fuel resemble banner arrow",
         walletMnemPrivKey:
@@ -1561,9 +1564,7 @@ function fiscoTest(config: ProviderConfig, example: Example, abi: Interface) {
 
   test("wallet.call", (done) => {
     wallet.call(example.walletCallData).then((result) => {
-      expect(result).toBe(
-        example.walletCallResult
-      );
+      expect(result).toBe(example.walletCallResult);
       done();
     });
   });
