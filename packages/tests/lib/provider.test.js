@@ -17,12 +17,12 @@
  */
 /**
  * @file provider.test.ts
- * @author Abnernat <drmercer@163.com>
+ * @author Abnernat <zhang951005@gmail.com>
  * @date 2020
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-var providers_1 = require("@crypujs/providers");
 var bignumber_1 = require("@ethersproject/bignumber");
+var providers_1 = require("@crypujs/providers");
 var bnify = bignumber_1.BigNumber.from;
 var testData = [
     {

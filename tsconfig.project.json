@@ -35,6 +35,9 @@
     },
     {
       "path": "./packages/fisco"
+    },
+    {
+      "path": "./packages/tests"
     }
   ],
   "files": []
