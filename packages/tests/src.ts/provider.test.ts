@@ -20,6 +20,9 @@
  * @date 2020
  */
 
+import { BigNumber } from "@ethersproject/bignumber";
+import { Network } from "@ethersproject/networks";
+
 import {
   ClientVersion,
   SyncStatus,
@@ -28,11 +31,7 @@ import {
   Block,
   BlockWithTransactions,
 } from "@crypujs/abstract-provider";
-
 import { JsonRpcProvider } from "@crypujs/providers";
-
-import { BigNumber } from "@ethersproject/bignumber";
-import { Network } from "@ethersproject/networks";
 
 const bnify = BigNumber.from;
 
@@ -60,8 +59,8 @@ interface Example {
 }
 
 interface TestData {
-  providerConfig: ProviderConfig,
-  examples: Array<Example>
+  providerConfig: ProviderConfig;
+  examples: Array<Example>;
 }
 
 const testData: Array<TestData> = [
@@ -434,4 +433,4 @@ testData.forEach((data: TestData) => {
   testExamples.forEach((example: Example) => {
     testProvider(providerConfig, example);
   });
-})
+});
