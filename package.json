@@ -7,7 +7,7 @@
   },
   "scripts": {
     "commit": "npx git-cz",
-
+    "build": "tsc --build ./tsconfig.project.json",
     "bootstrap": "node ./admin/cmds/reset-build.js && node ./admin/cmds/update-depgraph && lerna bootstrap --hoist",
     "_build-cjs": "node ./admin/cmds/set-option cjs && npm run build",
     "_build-esm": "node ./admin/cmds/set-option esm && npm run build",
