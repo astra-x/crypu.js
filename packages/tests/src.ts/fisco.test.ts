@@ -62,7 +62,7 @@ interface Example {
   groupList: Array<number>;
   blockTag: BlockTag;
   blockByTag: any;
-  blockAddress: string;
+  blockHash: string;
   blockByAddress: Block | any;
   blockWithTransactions: BlockWithTransactions | any;
   testTransaction: TransactionRequest;
@@ -732,7 +732,7 @@ const testData: Array<TestData> = [
           receiptsRoot:
             "0x972d23e051bcd1a345b0d7872d30e09b798e7702e684e62dd0ca2404c55e930a",
         },
-        blockAddress:
+        blockHash:
           "0x3bc32897ea43e6667ffb0409990dbdea218525d754bcee354ce45c8b97a24df7",
         blockByAddress: {
           extraData: [],
@@ -1356,7 +1356,7 @@ function fiscoTest(config: ProviderConfig, example: Example, abi: Interface) {
     });
   });
 
-  test("provider.getBlock by tag", (done) => {
+  test("provider.getBlock by blockTag", (done) => {
     provider.getBlock(example.blockTag).then((block) => {
       expect(block).toEqual(example.blockByTag);
       done();
@@ -1364,13 +1364,13 @@ function fiscoTest(config: ProviderConfig, example: Example, abi: Interface) {
   });
 
   test("provider.getBlock by address", (done) => {
-    provider.getBlock(example.blockAddress).then((block) => {
+    provider.getBlock(example.blockHash).then((block) => {
       expect(block).toEqual(example.blockByAddress);
       done();
     });
   });
 
-  test("provider.getBlockWithTransactions by tag", (done) => {
+  test("provider.getBlockWithTransactions by blockTag", (done) => {
     provider.getBlockWithTransactions(example.blockTag).then((block) => {
       matchTransaction(block, example.blockWithTransactions);
       done();
@@ -1378,7 +1378,7 @@ function fiscoTest(config: ProviderConfig, example: Example, abi: Interface) {
   });
 
   test("provider.getBlockWithTransactions by address", (done) => {
-    provider.getBlock(example.blockAddress).then((block) => {
+    provider.getBlock(example.blockHash).then((block) => {
       matchTransaction(block, example.blockByAddress);
       done();
     });
