@@ -1363,7 +1363,7 @@ function fiscoTest(config: ProviderConfig, example: Example, abi: Interface) {
     });
   });
 
-  test("provider.getBlock by address", (done) => {
+  test("provider.getBlock by blockHash", (done) => {
     provider.getBlock(example.blockHash).then((block) => {
       expect(block).toEqual(example.blockByAddress);
       done();
@@ -1377,7 +1377,7 @@ function fiscoTest(config: ProviderConfig, example: Example, abi: Interface) {
     });
   });
 
-  test("provider.getBlockWithTransactions by address", (done) => {
+  test("provider.getBlockWithTransactions by blockHash", (done) => {
     provider.getBlock(example.blockHash).then((block) => {
       matchTransaction(block, example.blockByAddress);
       done();

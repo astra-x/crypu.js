@@ -355,7 +355,7 @@ function testProvider(providerConf: ProviderConfig, example: Example) {
     });
   });
 
-  test("provider.getBlock by address", (done) => {
+  test("provider.getBlock by blockHash", (done) => {
     provider.getBlock(example.blockHash).then((block) => {
       expect(block).toEqual(example.blockByAddress);
       done();
@@ -365,13 +365,6 @@ function testProvider(providerConf: ProviderConfig, example: Example) {
   test("provider.getBlockWithTransactions", (done) => {
     provider.getBlockWithTransactions(example.blockTag).then((block) => {
       matchTransaction(block, example.blockWithTransactions);
-      done();
-    });
-  });
-
-  test("provider.getBlock by address", (done) => {
-    provider.getBlock(example.blockHash).then((block) => {
-      matchTransaction(block, example.blockByAddress);
       done();
     });
   });
