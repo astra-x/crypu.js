@@ -282,31 +282,31 @@ function testProvider(providerConf: ProviderConfig, example: Example) {
     providerConf.groupId
   );
 
-  test("Get client version", () => {
+  test("provider.getClientVersion", () => {
     provider.getClientVersion().then((result) => {
       expect(result).toEqual(example.clientVersion);
     });
   });
 
-  test("Get PBFTView", () => {
+  test("provider.getPbftView", () => {
     provider.getPbftView().then((result) => {
       expect(result).toBeTruthy();
     });
   });
 
-  test("Get sealer list", () => {
+  test("provider.getSealerList", () => {
     provider.getSealerList().then((result) => {
       expect(result).toEqual(example.sealerList);
     });
   });
 
-  test("Get observer list", () => {
+  test("provider.getObserverList", () => {
     provider.getObserverList().then((result) => {
       expect(result).toEqual(example.observerList);
     });
   });
 
-  test("Get sync status", () => {
+  test("provider.getSyncStatus", () => {
     provider.getSyncStatus().then((result) => {
       expect(result.blockNumber).toBeDefined();
       expect(result.genesisHash).toEqual(example.syncStatus.genesisHash);
@@ -327,56 +327,56 @@ function testProvider(providerConf: ProviderConfig, example: Example) {
     });
   });
 
-  test("Get peers", (done) => {
+  test("provider.getPeers", (done) => {
     provider.getPeers().then((result) => {
       expect(result).toEqual(example.peers);
       done();
     });
   });
 
-  test("Get node ID list", (done) => {
+  test("provider.getNodeIdList", (done) => {
     provider.getNodeIdList().then((result) => {
       expect(result).toEqual(example.nodeIdList);
       done();
     });
   });
 
-  test("Get block number", (done) => {
+  test("provider.getBlockNumber", (done) => {
     provider.getBlockNumber().then((result) => {
       expect(result).toBeDefined();
       done();
     });
   });
 
-  test("Get block with block tag", (done) => {
+  test("provider.getBlock with tag", (done) => {
     provider.getBlock(example.blockTag).then((block) => {
       expect(block).toEqual(example.blockByTag);
       done();
     });
   });
 
-  test("Get block with block address", (done) => {
+  test("provider.getBlock with address", (done) => {
     provider.getBlock(example.blockAddress).then((block) => {
       expect(block).toEqual(example.blockByAddress);
       done();
     });
   });
 
-  test("Get block with transactions", (done) => {
+  test("provider.getBlockWithTransactions", (done) => {
     provider.getBlockWithTransactions(example.blockTag).then((block) => {
       matchTransaction(block, example.blockWithTransactions);
       done();
     });
   });
 
-  test("Get block by address", (done) => {
+  test("provider.getBlock with address", (done) => {
     provider.getBlock(example.blockAddress).then((block) => {
       matchTransaction(block, example.blockByAddress);
       done();
     });
   });
 
-  test("Get block by block tag", (done) => {
+  test("provider.getBlock with block tag", (done) => {
     provider.getBlock(example.blockAddress).then((block) => {
       matchTransaction(block, example.blockByTag);
       done();

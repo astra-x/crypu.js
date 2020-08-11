@@ -1,4 +1,25 @@
 "use strict";
+/*
+ This file is part of crypu.js.
+
+ crypu.js is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ crypu.js is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/**
+ * @file wallet.test.ts
+ * @author Abnernat <drmercer@163.com>
+ * @date 2020
+ */
 Object.defineProperty(exports, "__esModule", { value: true });
 var wallet_1 = require("@crypujs/wallet");
 var bignumber_1 = require("@ethersproject/bignumber");
@@ -112,19 +133,19 @@ function testWallet(providerConf, example) {
     // Initialize wallet with mnem phrases
     var wallet = wallet_1.Wallet.fromMnemonic(example.walletMnemPhrase);
     wallet = wallet.connect(provider);
-    test("Create wallet from mnemonic words", function () {
+    test("Wallet.fromMnemonic", function () {
         var wallet = wallet_1.Wallet.fromMnemonic(example.walletMnemPhrase);
         wallet.getAddress().then(function (str) {
             expect(str).toBe(example.mnemWalletAddr);
         });
     });
-    test("Create wallet from privkey", function () {
+    test("new Wallet", function () {
         var wallet = new wallet_1.Wallet(example.walletPkey);
         wallet.getAddress().then(function (str) {
             expect(str).toBe(example.privKeyWalletAddr);
         });
     });
-    test("Population transaction from transaction provided", function (done) {
+    test("wallet.populateTransaction", function (done) {
         wallet.populateTransaction(example.testTransaction).then(function (tx) {
             expect(tx.blockLimit).toBeDefined();
             expect(tx.data).toBe(example.populateTransactionResult.data);
@@ -138,7 +159,7 @@ function testWallet(providerConf, example) {
             done();
         });
     });
-    test("Send transaction", function (done) {
+    test("wallet.sendTransaction", function (done) {
         wallet.sendTransaction(example.testTransaction).then(function (tx) {
             expect(tx.data).toBe(example.sendTransactionResult.data);
             expect(tx.chainId).toBe(example.sendTransactionResult.chainId);
@@ -155,7 +176,7 @@ function testWallet(providerConf, example) {
             done();
         });
     });
-    test("Get transaction", function (done) {
+    test("wallet.provider.getTransaction", function (done) {
         wallet.provider.getTransaction(example.testTransactionAddr).then(function (tx) {
             expect(tx.hash).toBeDefined();
             expect(tx.blockHash).toBeDefined();
@@ -172,7 +193,7 @@ function testWallet(providerConf, example) {
             done();
         });
     });
-    test("get transaction receipt", function (done) {
+    test("wallet.provider.getTransactionReceipt", function (done) {
         wallet.provider
             .getTransactionReceipt(example.testTransactionAddr)
             .then(function (tx) {

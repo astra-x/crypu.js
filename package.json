@@ -15,11 +15,16 @@
     "_dist-esm": "node ./admin/cmds/set-option esm && rollup -c --configModule && mv ./packages/fisco/dist/fisco.esm.min.js ./packages/fisco/dist/fisco-all.esm.min.js && node ./admin/cmds/set-option esm && rollup -c --configModule",
     "_dist-wechat": "node ./admin/cmds/set-option wechat && rollup -c --configWechat && mv ./packages/fisco/dist/fisco.wechat.min.js ./packages/fisco/dist/fisco-all.wechat.min.js && node ./admin/cmds/set-option wechat && rollup -c --configWechat",
     "_dist": "npm run _dist-umd && npm run _dist-esm && npm run _dist-wechat",
-    "clean": "node ./admin/cmds/reset-build.js && tsc --build --clean ./tsconfig.project.json"
+    "clean": "node ./admin/cmds/reset-build.js && tsc --build --clean ./tsconfig.project.json",
+    "commit": "npx git-cz"
   },
   "devDependencies": {
+    "@commitlint/cli": "^9.1.1",
+    "@commitlint/config-conventional": "^9.1.1",
     "@ethersproject/keccak256": "^5.0.2",
     "@types/node": "^14.0.27",
+    "commitlint": "^9.1.0",
+    "husky": "^4.2.5",
     "lerna": "^3.22.1",
     "npm-packlist": "^2.1.2",
     "rollup": "1.20.1",
@@ -31,5 +36,10 @@
     "tar": "^6.0.2",
     "typescript": "^3.9.7"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "husky": {
+    "hooks": {
+      "commit-msg": "commitlint -e $GIT_PARAMS"
+    }
+  }
 }
