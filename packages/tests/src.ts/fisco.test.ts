@@ -1340,7 +1340,7 @@ function fiscoTest(config: ProviderConfig, example: Example, abi: Interface) {
     });
   });
 
-  test("Provider get node ID list", (done) => {
+  test("provider.getNodeIdList", (done) => {
     provider.getNodeIdList().then((result) => {
       expect(result).toEqual(example.nodeIdList);
       done();
@@ -1444,7 +1444,7 @@ function fiscoTest(config: ProviderConfig, example: Example, abi: Interface) {
     });
   });
 
-  test("new Wallet", () => {
+  test("Wallet.new", () => {
     const wallet = new Wallet(example.walletPrivKey);
     wallet.getAddress().then((str) => {
       expect(str).toBe(example.privKeyWalletAddr);
@@ -1461,6 +1461,13 @@ function fiscoTest(config: ProviderConfig, example: Example, abi: Interface) {
 
   test("Wallet.publicKey", () => {
     expect(wallet.publicKey).toBe(example.walletPubkey);
+  });
+
+  test("wallet.call", (done) => {
+    wallet.call(example.walletCallData).then((result) => {
+      expect(result).toBe(example.walletCallResult);
+      done();
+    });
   });
 
   test("wallet.getChainId", (done) => {
@@ -1509,6 +1516,13 @@ function fiscoTest(config: ProviderConfig, example: Example, abi: Interface) {
     });
   });
 
+  test("wallet.signTransaction", (done) => {
+    wallet.signTransaction(example.testTransaction).then((result) => {
+      expect(result).toBe(example.signTransactionResult);
+      done();
+    });
+  });
+
   test("wallet.provider.getTransaction", (done) => {
     wallet.provider.getTransaction(example.testTransactionAddr).then((tx) => {
       expect(tx.hash).toBeDefined();
@@ -1523,13 +1537,6 @@ function fiscoTest(config: ProviderConfig, example: Example, abi: Interface) {
       expect(tx.nonce).toBeDefined();
       expect(tx.data).toBe(example.getTransactionResult.data);
       expect(tx.chainId).toBe(example.getTransactionResult.chainId);
-      done();
-    });
-  });
-
-  test("wallet.signTransaction", (done) => {
-    wallet.signTransaction(example.testTransaction).then((result) => {
-      expect(result).toBe(example.signTransactionResult);
       done();
     });
   });
@@ -1560,13 +1567,6 @@ function fiscoTest(config: ProviderConfig, example: Example, abi: Interface) {
         expect(tx.logs).toBeDefined();
         done();
       });
-  });
-
-  test("wallet.call", (done) => {
-    wallet.call(example.walletCallData).then((result) => {
-      expect(result).toBe(example.walletCallResult);
-      done();
-    });
   });
 }
 

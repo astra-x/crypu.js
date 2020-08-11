@@ -420,10 +420,18 @@ function testWallet(providerConf: ProviderConfig, example: Example) {
     });
   });
 
-  test("new Wallet", () => {
+  test("Wallet.new", () => {
     const wallet = new Wallet(example.walletPkey);
     wallet.getAddress().then((str) => {
       expect(str).toBe(example.privKeyWalletAddr);
+    });
+  });
+
+
+  test("wallet.call", (done) => {
+    wallet.call(example.walletCallData).then((result) => {
+      expect(result).toBe(example.walletCallResult);
+      done();
     });
   });
 
@@ -504,13 +512,6 @@ function testWallet(providerConf: ProviderConfig, example: Example) {
         expect(tx.logs).toBeDefined();
         done();
       });
-  });
-
-  test("wallet.call", (done) => {
-    wallet.call(example.walletCallData).then((result) => {
-      expect(result).toBe(example.walletCallResult);
-      done();
-    });
   });
 }
 
