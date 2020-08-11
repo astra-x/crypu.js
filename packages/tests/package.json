@@ -37,8 +37,7 @@
     "fisco"
   ],
   "license": "ISC",
-  "main": "lib/index.js",
-  "name": "test",
+  "name": "@crypujs/tests",
   "publishConfig": {
     "registry": "https://registry.npm.taobao.org/"
   },

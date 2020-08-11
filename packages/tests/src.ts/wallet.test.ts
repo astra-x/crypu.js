@@ -196,21 +196,21 @@ function testWallet(providerConf: ProviderConfig, example: Example) {
   let wallet = Wallet.fromMnemonic(example.walletMnemPhrase);
   wallet = wallet.connect(provider);
 
-  test("Create wallet from mnemonic words", () => {
+  test("Wallet.fromMnemonic", () => {
     const wallet = Wallet.fromMnemonic(example.walletMnemPhrase);
     wallet.getAddress().then((str) => {
       expect(str).toBe(example.mnemWalletAddr);
     });
   });
 
-  test("Create wallet from privkey", () => {
+  test("new Wallet", () => {
     const wallet = new Wallet(example.walletPkey);
     wallet.getAddress().then((str) => {
       expect(str).toBe(example.privKeyWalletAddr);
     });
   });
 
-  test("Population transaction from transaction provided", (done) => {
+  test("wallet.populateTransaction", (done) => {
     wallet.populateTransaction(example.testTransaction).then((tx) => {
       expect(tx.blockLimit).toBeDefined();
       expect(tx.data).toBe(example.populateTransactionResult.data);
@@ -225,7 +225,7 @@ function testWallet(providerConf: ProviderConfig, example: Example) {
     });
   });
 
-  test("Send transaction", (done) => {
+  test("wallet.sendTransaction", (done) => {
     wallet.sendTransaction(example.testTransaction).then((tx) => {
       expect(tx.data).toBe(example.sendTransactionResult.data);
       expect(tx.chainId).toBe(example.sendTransactionResult.chainId);
@@ -243,7 +243,7 @@ function testWallet(providerConf: ProviderConfig, example: Example) {
     });
   });
 
-  test("Get transaction", (done) => {
+  test("wallet.provider.getTransaction", (done) => {
     wallet.provider.getTransaction(example.testTransactionAddr).then((tx) => {
       expect(tx.hash).toBeDefined();
       expect(tx.blockHash).toBeDefined();
@@ -261,7 +261,7 @@ function testWallet(providerConf: ProviderConfig, example: Example) {
     });
   });
 
-  test("get transaction receipt", (done) => {
+  test("wallet.provider.getTransactionReceipt", (done) => {
     wallet.provider
       .getTransactionReceipt(example.testTransactionAddr)
       .then((tx) => {
