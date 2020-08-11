@@ -24,7 +24,210 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var wallet_1 = require("@crypujs/wallet");
 var bignumber_1 = require("@ethersproject/bignumber");
 var providers_1 = require("@crypujs/providers");
+var abi_1 = require("@crypujs/abi");
 var bnify = bignumber_1.BigNumber.from;
+var roleControllerAbi = [
+    {
+        constant: true,
+        inputs: [],
+        name: "MODIFY_ADMIN",
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [],
+        name: "RETURN_CODE_FAILURE_NO_PERMISSION",
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [
+            {
+                name: "addr",
+                type: "address",
+            },
+            {
+                name: "role",
+                type: "uint256",
+            },
+        ],
+        name: "checkRole",
+        outputs: [
+            {
+                name: "",
+                type: "bool",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [],
+        name: "ROLE_COMMITTEE",
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: false,
+        inputs: [
+            {
+                name: "addr",
+                type: "address",
+            },
+            {
+                name: "role",
+                type: "uint256",
+            },
+        ],
+        name: "removeRole",
+        outputs: [],
+        payable: false,
+        stateMutability: "nonpayable",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [],
+        name: "MODIFY_KEY_CPT",
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: false,
+        inputs: [
+            {
+                name: "addr",
+                type: "address",
+            },
+            {
+                name: "role",
+                type: "uint256",
+            },
+        ],
+        name: "addRole",
+        outputs: [],
+        payable: false,
+        stateMutability: "nonpayable",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [
+            {
+                name: "addr",
+                type: "address",
+            },
+            {
+                name: "operation",
+                type: "uint256",
+            },
+        ],
+        name: "checkPermission",
+        outputs: [
+            {
+                name: "",
+                type: "bool",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [],
+        name: "MODIFY_AUTHORITY_ISSUER",
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [],
+        name: "MODIFY_COMMITTEE",
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [],
+        name: "ROLE_ADMIN",
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        constant: true,
+        inputs: [],
+        name: "ROLE_AUTHORITY_ISSUER",
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+            },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+    },
+    {
+        inputs: [],
+        payable: false,
+        stateMutability: "nonpayable",
+        type: "constructor",
+    },
+];
 var testData = [
     {
         providerConfig: {
@@ -37,6 +240,11 @@ var testData = [
         },
         examples: [
             {
+                walletCallData: {
+                    from: "0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6",
+                    to: "0x2f7bbf70d7052b4b33e3f7e0347efce131801e64",
+                    data: new abi_1.Interface(roleControllerAbi).encodeFunctionData("checkPermission(address,uint)", ["0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6", 201]),
+                },
                 testTransactionAddr: "0xdf06b656004645b727c628a3a574abd0c4f56be8d2b328eac56eef5bcbaf1f95",
                 mnemWalletAddr: "0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6",
                 privKeyWalletAddr: "0xc674ce8E3535455F0CA6643A248F53f97A923061",
@@ -123,6 +331,7 @@ var testData = [
                 serializeResult: "0xf8bc90b819f5906213b8c355b3ad9079e91ee28411e1a300830f4240826fdc943a1c406f0af920f9371d3b75b8f8c1a14264fd3780b884643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000010180",
                 signTransactionResult: "0xf8ff90b819f5906213b8c355b3ad9079e91ee28411e1a300830f4240826fdc943a1c406f0af920f9371d3b75b8f8c1a14264fd3780b8846437197700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000361626300000000000000000000000000000000000000000000000000000000000101801ca089ef906ba24237ce157694b495ca192701f3a3e6d8368d690ed3b3d011643dcaa04d9a6a825d7bc5a09d59673e17dd8ac16752ce19ad9f01220f3d6c09792ca4a1",
                 walletMnemPhrase: "ribbon glimpse rescue nuclear elevator album rookie imitate fuel resemble banner arrow",
+                walletCallResult: '0x0000000000000000000000000000000000000000000000000000000000000000',
                 walletPkey: "0x1925b8bee81b6189e0a3aa0e6ce99e7c3deaf8bdf8767ee388ff15e78eae863e",
             },
         ],
@@ -211,6 +420,12 @@ function testWallet(providerConf, example) {
             expect(tx.confirmations).toBeDefined();
             expect(tx.status).toBeDefined();
             expect(tx.logs).toBeDefined();
+            done();
+        });
+    });
+    test("wallet.call", function (done) {
+        wallet.call(example.walletCallData).then(function (result) {
+            expect(result).toBe(example.walletCallResult);
             done();
         });
     });
