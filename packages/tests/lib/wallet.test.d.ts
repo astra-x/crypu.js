@@ -1,6 +1,6 @@
 /**
  * @file wallet.test.ts
- * @author Abnernat <drmercer@163.com>
+ * @author Abnernat <zhang951005@gmail.com>
  * @date 2020
  */
 export {};

@@ -1054,6 +1054,7 @@ var BaseProvider = /** @class */ (function (_super) {
                         _b.sent();
                         return [4 /*yield*/, properties_1.resolveProperties({
                                 transaction: this._getTransactionRequest(transaction),
+                                blockTag: this._getBlockTag(blockTag)
                             })];
                     case 2:
                         params = _b.sent();
