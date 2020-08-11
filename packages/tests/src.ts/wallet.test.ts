@@ -20,18 +20,17 @@
  * @date 2020
  */
 
-import { Wallet } from "@crypujs/wallet";
+import { BigNumber } from "@ethersproject/bignumber";
+import { Network } from "@ethersproject/networks";
 
+import { Interface, JsonFragment } from "@crypujs/abi";
 import {
   TransactionRequest,
   TransactionResponse,
   TransactionReceipt,
 } from "@crypujs/abstract-provider";
-
-import { BigNumber } from "@ethersproject/bignumber";
-import { Network } from "@ethersproject/networks";
 import { JsonRpcProvider } from "@crypujs/providers";
-import { Interface, JsonFragment } from "@crypujs/abi";
+import { Wallet } from "@crypujs/wallet";
 
 const bnify = BigNumber.from;
 
@@ -282,10 +281,12 @@ const testData: Array<TestData> = [
         walletCallData: {
           from: "0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6",
           to: "0x2f7bbf70d7052b4b33e3f7e0347efce131801e64",
-          data: new Interface(roleControllerAbi).encodeFunctionData(
-            "checkPermission(address,uint)",
-            ["0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6", 201]
-          ),
+          data: new Interface(
+            roleControllerAbi
+          ).encodeFunctionData("checkPermission(address,uint)", [
+            "0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6",
+            201,
+          ]),
         },
         testTransactionAddr:
           "0xdf06b656004645b727c628a3a574abd0c4f56be8d2b328eac56eef5bcbaf1f95",
@@ -392,7 +393,8 @@ const testData: Array<TestData> = [
           "0xf8ff90b819f5906213b8c355b3ad9079e91ee28411e1a300830f4240826fdc943a1c406f0af920f9371d3b75b8f8c1a14264fd3780b8846437197700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000361626300000000000000000000000000000000000000000000000000000000000101801ca089ef906ba24237ce157694b495ca192701f3a3e6d8368d690ed3b3d011643dcaa04d9a6a825d7bc5a09d59673e17dd8ac16752ce19ad9f01220f3d6c09792ca4a1",
         walletMnemPhrase:
           "ribbon glimpse rescue nuclear elevator album rookie imitate fuel resemble banner arrow",
-        walletCallResult: '0x0000000000000000000000000000000000000000000000000000000000000000',
+        walletCallResult:
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
         walletPkey:
           "0x1925b8bee81b6189e0a3aa0e6ce99e7c3deaf8bdf8767ee388ff15e78eae863e",
       },
@@ -506,9 +508,7 @@ function testWallet(providerConf: ProviderConfig, example: Example) {
 
   test("wallet.call", (done) => {
     wallet.call(example.walletCallData).then((result) => {
-      expect(result).toBe(
-        example.walletCallResult
-      );
+      expect(result).toBe(example.walletCallResult);
       done();
     });
   });
@@ -519,5 +519,5 @@ testData.forEach((data: TestData) => {
   const testExample: Array<Example> = data.examples;
   testExample.forEach((example: Example) => {
     testWallet(providerConfig, example);
-  })
-})
+  });
+});
