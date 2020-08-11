@@ -1,5 +1,27 @@
-import { JsonRpcProvider } from "@crypujs/providers";
+/*
+ This file is part of crypu.js.
+
+ crypu.js is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ crypu.js is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/**
+ * @file provider.test.ts
+ * @author Abnernat <zhang951005@gmail.com>
+ * @date 2020
+ */
+'use strict';
 import { BigNumber } from "@ethersproject/bignumber";
+import { JsonRpcProvider } from "@crypujs/providers";
 const bnify = BigNumber.from;
 const testData = [
     {
@@ -178,27 +200,27 @@ const testData = [
 ];
 function testProvider(providerConf, example) {
     const provider = new JsonRpcProvider(providerConf.url, providerConf.network, providerConf.groupId);
-    test("Get client version", () => {
+    test("provider.getClientVersion", () => {
         provider.getClientVersion().then((result) => {
             expect(result).toEqual(example.clientVersion);
         });
     });
-    test("Get PBFTView", () => {
+    test("provider.getPbftView", () => {
         provider.getPbftView().then((result) => {
             expect(result).toBeTruthy();
         });
     });
-    test("Get sealer list", () => {
+    test("provider.getSealerList", () => {
         provider.getSealerList().then((result) => {
             expect(result).toEqual(example.sealerList);
         });
     });
-    test("Get observer list", () => {
+    test("provider.getObserverList", () => {
         provider.getObserverList().then((result) => {
             expect(result).toEqual(example.observerList);
         });
     });
-    test("Get sync status", () => {
+    test("provider.getSyncStatus", () => {
         provider.getSyncStatus().then((result) => {
             expect(result.blockNumber).toBeDefined();
             expect(result.genesisHash).toEqual(example.syncStatus.genesisHash);
@@ -218,50 +240,50 @@ function testProvider(providerConf, example) {
             expect(result.txPoolSize).toBeDefined();
         });
     });
-    test("Get peers", (done) => {
+    test("provider.getPeers", (done) => {
         provider.getPeers().then((result) => {
             expect(result).toEqual(example.peers);
             done();
         });
     });
-    test("Get node ID list", (done) => {
+    test("provider.getNodeIdList", (done) => {
         provider.getNodeIdList().then((result) => {
             expect(result).toEqual(example.nodeIdList);
             done();
         });
     });
-    test("Get block number", (done) => {
+    test("provider.getBlockNumber", (done) => {
         provider.getBlockNumber().then((result) => {
             expect(result).toBeDefined();
             done();
         });
     });
-    test("Get block with block tag", (done) => {
+    test("provider.getBlock by tag", (done) => {
         provider.getBlock(example.blockTag).then((block) => {
             expect(block).toEqual(example.blockByTag);
             done();
         });
     });
-    test("Get block with block address", (done) => {
+    test("provider.getBlock by address", (done) => {
         provider.getBlock(example.blockAddress).then((block) => {
             expect(block).toEqual(example.blockByAddress);
             done();
         });
     });
-    test("Get block with transactions", (done) => {
+    test("provider.getBlockWithTransactions", (done) => {
         provider.getBlockWithTransactions(example.blockTag).then((block) => {
             matchTransaction(block, example.blockWithTransactions);
             done();
         });
     });
-    test("Get block by address", (done) => {
+    test("provider.getBlock by address", (done) => {
         provider.getBlock(example.blockAddress).then((block) => {
             matchTransaction(block, example.blockByAddress);
             done();
         });
     });
-    test("Get block by block tag", (done) => {
-        provider.getBlock(example.blockAddress).then((block) => {
+    test("provider.getBlock by block tag", (done) => {
+        provider.getBlock(example.blockTag).then((block) => {
             matchTransaction(block, example.blockByTag);
             done();
         });

@@ -20,6 +20,8 @@
  * @date 2020
  */
 
+'use strict';
+
 import { BigNumber } from "@ethersproject/bignumber";
 import { Network } from "@ethersproject/networks";
 

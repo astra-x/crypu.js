@@ -1,4 +1,3 @@
-"use strict";
 /*
  This file is part of crypu.js.
 
@@ -20,6 +19,7 @@
  * @author Abnernat <zhang951005@gmail.com>
  * @date 2020
  */
+'use strict';
 Object.defineProperty(exports, "__esModule", { value: true });
 var bignumber_1 = require("@ethersproject/bignumber");
 var abi_1 = require("@crypujs/abi");
