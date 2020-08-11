@@ -6,8 +6,9 @@
     "url": "git://github.com/astra-x/crypu.js.git"
   },
   "scripts": {
+    "commit": "npx git-cz",
+
     "bootstrap": "node ./admin/cmds/reset-build.js && node ./admin/cmds/update-depgraph && lerna bootstrap --hoist",
-    "build": "tsc --build ./tsconfig.project.json",
     "_build-cjs": "node ./admin/cmds/set-option cjs && npm run build",
     "_build-esm": "node ./admin/cmds/set-option esm && npm run build",
     "_build": "npm run _build-cjs && npm run _build-esm",
@@ -16,7 +17,6 @@
     "_dist-wechat": "node ./admin/cmds/set-option wechat && rollup -c --configWechat && mv ./packages/fisco/dist/fisco.wechat.min.js ./packages/fisco/dist/fisco-all.wechat.min.js && node ./admin/cmds/set-option wechat && rollup -c --configWechat",
     "_dist": "npm run _dist-umd && npm run _dist-esm && npm run _dist-wechat",
     "clean": "node ./admin/cmds/reset-build.js && tsc --build --clean ./tsconfig.project.json",
-    "commit": "npx git-cz",
     "test": "lerna run --scope @crypujs/tests test --stream"
   },
   "devDependencies": {
