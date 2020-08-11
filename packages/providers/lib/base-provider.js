@@ -1054,13 +1054,12 @@ var BaseProvider = /** @class */ (function (_super) {
                         _b.sent();
                         return [4 /*yield*/, properties_1.resolveProperties({
                                 transaction: this._getTransactionRequest(transaction),
-                                blockTag: this._getBlockTag(blockTag)
                             })];
                     case 2:
                         params = _b.sent();
                         _a = bytes_1.hexlify;
                         return [4 /*yield*/, this.perform('call', params)];
-                    case 3: return [2 /*return*/, _a.apply(void 0, [_b.sent()])];
+                    case 3: return [2 /*return*/, _a.apply(void 0, [(_b.sent()).output])];
                 }
             });
         });
