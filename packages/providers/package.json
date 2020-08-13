@@ -37,6 +37,9 @@
   "main": "./lib/index.js",
   "module": "./lib.esm/index.js",
   "name": "@crypujs/providers",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git://github.com/astra-x/crypu.js.git"
