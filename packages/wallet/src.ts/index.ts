@@ -162,7 +162,7 @@ export class Wallet extends Signer implements ExternallyOwnedAccount {
   }
 
   async signDigest(digest: BytesLike): Promise<Signature> {
-    if (SigningKey.isSigningKey(this._signing)) {
+    if (SigningKey.isSigningKey(this._signing())) {
       return Promise.resolve((<SigningKey>this._signing()).signDigest(digest));
     } else {
       return (<SigningEscrow>this._signing()).signDigest(digest);
