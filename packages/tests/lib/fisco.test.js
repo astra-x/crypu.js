@@ -23,7 +23,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var bignumber_1 = require("@ethersproject/bignumber");
 var providers_1 = require("@crypujs/providers");
-var fisco_1 = require("@crypujs/fisco");
+var crypu_1 = require("crypu");
 var bnify = bignumber_1.BigNumber.from;
 // Test Abi
 var erc721Abi = [
@@ -523,13 +523,13 @@ var testData = [
             },
             groupId: 1,
         },
-        abi: new fisco_1.Interface(erc721Abi),
+        abi: new crypu_1.Interface(erc721Abi),
         examples: [
             {
                 walletCallData: {
                     from: '0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6',
                     to: '0x2f7bbf70d7052b4b33e3f7e0347efce131801e64',
-                    data: new fisco_1.Interface(roleControllerAbi).encodeFunctionData('checkPermission(address,uint)', [
+                    data: new crypu_1.Interface(roleControllerAbi).encodeFunctionData('checkPermission(address,uint)', [
                         '0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6',
                         201,
                     ]),
@@ -1021,7 +1021,7 @@ var testData = [
     },
 ];
 function fiscoTest(config, example, abi) {
-    var provider = new fisco_1.JsonRpcProvider(config.chain, config.url, config.network, config.groupId);
+    var provider = new crypu_1.JsonRpcProvider(config.chain, config.url, config.network, config.groupId);
     test('abi.getFunction by signature', function () {
         var result = abi.getFunction(example.abiTestData.function.functionFragmentSig);
         expect(result).toEqual(example.abiTestData.result.getFunctionSig);
@@ -1079,7 +1079,7 @@ function fiscoTest(config, example, abi) {
         expect(JSON.parse(JSON.stringify(result))).toEqual(example.abiTestData.result.encodeEventLogData);
     });
     // Initialize wallet with mnem phrases
-    var wallet = fisco_1.Wallet.fromMnemonic(example.walletMnemPhrase);
+    var wallet = crypu_1.Wallet.fromMnemonic(example.walletMnemPhrase);
     wallet = wallet.connect(provider);
     test('provider.getClientVersion', function () {
         provider.getClientVersion().then(function (result) {
@@ -1195,13 +1195,13 @@ function fiscoTest(config, example, abi) {
         });
     });
     test('Wallet.fromMnemonic', function () {
-        var wallet = fisco_1.Wallet.fromMnemonic(example.walletMnemPhrase);
+        var wallet = crypu_1.Wallet.fromMnemonic(example.walletMnemPhrase);
         wallet.getAddress().then(function (str) {
             expect(str).toBe(example.mnemWalletAddr);
         });
     });
     test('Wallet.new', function () {
-        var wallet = new fisco_1.Wallet(example.walletPrivKey);
+        var wallet = new crypu_1.Wallet(example.walletPrivKey);
         wallet.getAddress().then(function (str) {
             expect(str).toBe(example.privKeyWalletAddr);
         });

@@ -1,7 +1,7 @@
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
-	(global = global || self, factory(global.fisco = {}));
+	(global = global || self, factory(global.crypu = {}));
 }(this, function (exports) { 'use strict';
 
 	var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
@@ -9124,6 +9124,42 @@
 	var lib_4$9 = lib$c.BlockForkEvent;
 	var lib_5$8 = lib$c.ForkEvent;
 
+	var constants = createCommonjsModule(function (module, exports) {
+	"use strict";
+	/*
+	 This file is part of crypu.js.
+
+	 crypu.js is free software: you can redistribute it and/or modify
+	 it under the terms of the GNU Lesser General Public License as published by
+	 the Free Software Foundation, either version 3 of the License, or
+	 (at your option) any later version.
+
+	 crypu.js is distributed in the hope that it will be useful,
+	 but WITHOUT ANY WARRANTY; without even the implied warranty of
+	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	 GNU Lesser General Public License for more details.
+
+	 You should have received a copy of the GNU Lesser General Public License
+	 along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
+	 */
+	/**
+	 * @file constants.ts
+	 * @author Youtao Xing <youtao.xing@icloud.com>
+	 * @date 2020
+	 */
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.Chain = void 0;
+	var Chain;
+	(function (Chain) {
+	    Chain[Chain["ETHERS"] = 0] = "ETHERS";
+	    Chain[Chain["FISCO"] = 1] = "FISCO";
+	    Chain[Chain["ANTFIN"] = 2] = "ANTFIN";
+	})(Chain = exports.Chain || (exports.Chain = {}));
+	});
+
+	var constants$1 = unwrapExports(constants);
+	var constants_1 = constants.Chain;
+
 	var _version$i = createCommonjsModule(function (module, exports) {
 	"use strict";
 	Object.defineProperty(exports, "__esModule", { value: true });
@@ -9810,6 +9846,157 @@
 	var index$e = unwrapExports(lib$e);
 	var lib_1$e = lib$e.poll;
 	var lib_2$c = lib$e.fetchJson;
+
+	var ethers_api = createCommonjsModule(function (module, exports) {
+	"use strict";
+	/*
+	 This file is part of crypu.js.
+
+	 crypu.js is free software: you can redistribute it and/or modify
+	 it under the terms of the GNU Lesser General Public License as published by
+	 the Free Software Foundation, either version 3 of the License, or
+	 (at your option) any later version.
+
+	 crypu.js is distributed in the hope that it will be useful,
+	 but WITHOUT ANY WARRANTY; without even the implied warranty of
+	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	 GNU Lesser General Public License for more details.
+
+	 You should have received a copy of the GNU Lesser General Public License
+	 along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
+	 */
+	/**
+	 * @file ethers.api.ts
+	 * @author Youtao Xing <youtao.xing@icloud.com>
+	 * @date 2020
+	 */
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.Api = void 0;
+	exports.Api = {
+	    prepareRequest: function (method, params) {
+	        switch (method) {
+	            case 'getBlockNumber':
+	                return ['eth_blockNumber', []];
+	            case 'getGasPrice':
+	                return ['eth_gasPrice', []];
+	            case 'getBalance':
+	                return ['eth_getBalance', [params.address.toLowerCase(), params.blockTag]];
+	            case 'getTransactionCount':
+	                return ['eth_getTransactionCount', [params.address.toLowerCase(), params.blockTag]];
+	            case 'getCode':
+	                return ['eth_getCode', [params.address.toLowerCase(), params.blockTag]];
+	            case 'getStorageAt':
+	                return ['eth_getStorageAt', [params.address.toLowerCase(), params.position, params.blockTag]];
+	            case 'sendTransaction':
+	                return ['eth_sendRawTransaction', [params.signedTransaction]];
+	            case 'getBlock':
+	                if (params.blockTag) {
+	                    return ['eth_getBlockByNumber', [params.blockTag, !!params.includeTransactions]];
+	                }
+	                else if (params.blockHash) {
+	                    return ['eth_getBlockByHash', [params.blockHash, !!params.includeTransactions]];
+	                }
+	                return null;
+	            case 'getTransaction':
+	                return ['eth_getTransactionByHash', [params.transactionHash]];
+	            case 'getTransactionReceipt':
+	                return ['eth_getTransactionReceipt', [params.transactionHash]];
+	            case 'call': {
+	                return ['eth_call', [params.transaction, params.blockTag]];
+	            }
+	            case 'estimateGas': {
+	                return ['eth_estimateGas', [params.transaction]];
+	            }
+	            case 'getLogs':
+	                if (params.filter && params.filter.address != null) {
+	                    params.filter.address = params.filter.address.toLowerCase();
+	                }
+	                return ['eth_getLogs', [params.filter]];
+	            default:
+	                break;
+	        }
+	        return null;
+	    },
+	};
+	});
+
+	var ethers_api$1 = unwrapExports(ethers_api);
+	var ethers_api_1 = ethers_api.Api;
+
+	var fisco_api = createCommonjsModule(function (module, exports) {
+	"use strict";
+	/*
+	 This file is part of crypu.js.
+
+	 crypu.js is free software: you can redistribute it and/or modify
+	 it under the terms of the GNU Lesser General Public License as published by
+	 the Free Software Foundation, either version 3 of the License, or
+	 (at your option) any later version.
+
+	 crypu.js is distributed in the hope that it will be useful,
+	 but WITHOUT ANY WARRANTY; without even the implied warranty of
+	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	 GNU Lesser General Public License for more details.
+
+	 You should have received a copy of the GNU Lesser General Public License
+	 along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
+	 */
+	/**
+	 * @file fisco.api.ts
+	 * @author Youtao Xing <youtao.xing@icloud.com>
+	 * @date 2020
+	 */
+	Object.defineProperty(exports, "__esModule", { value: true });
+	exports.Api = void 0;
+	exports.Api = {
+	    prepareRequest: function (groupId) {
+	        return function (method, params) {
+	            switch (method) {
+	                case 'getClientVersion':
+	                    return ['getClientVersion', []];
+	                case 'getPbftView':
+	                    return ['getPbftView', [groupId]];
+	                case 'getSealerList':
+	                    return ['getSealerList', [groupId]];
+	                case 'getObserverList':
+	                    return ['getObserverList', [groupId]];
+	                case 'getSyncStatus':
+	                    return ['getSyncStatus', [groupId]];
+	                case 'getPeers':
+	                    return ['getPeers', [groupId]];
+	                case 'getNodeIdList':
+	                    return ['getNodeIDList', [groupId]];
+	                case 'getGroupList':
+	                    return ['getGroupList', [groupId]];
+	                case 'getBlockNumber':
+	                    return ['getBlockNumber', [groupId]];
+	                case 'getBlock':
+	                    if (params.blockTag) {
+	                        return ['getBlockByNumber', [groupId, params.blockTag, !!params.includeTransactions]];
+	                    }
+	                    else if (params.blockHash) {
+	                        return ['getBlockByHash', [groupId, params.blockHash, !!params.includeTransactions]];
+	                    }
+	                    break;
+	                case 'sendTransaction':
+	                    return ['sendRawTransaction', [groupId, params.signedTransaction]];
+	                case 'getTransaction':
+	                    return ['getTransactionByHash', [groupId, params.transactionHash]];
+	                case 'getTransactionReceipt':
+	                    return ['getTransactionReceipt', [groupId, params.transactionHash]];
+	                case 'call':
+	                    return ['call', [groupId, params.transaction]];
+	                default:
+	                    break;
+	            }
+	            return null;
+	        };
+	    },
+	};
+	});
+
+	var fisco_api$1 = unwrapExports(fisco_api);
+	var fisco_api_1 = fisco_api.Api;
 
 	var version = "6.5.3";
 	var _package = {
@@ -15146,7 +15333,7 @@
 	                        params = _b.sent();
 	                        _a = lib$1.hexlify;
 	                        return [4 /*yield*/, this.perform('call', params)];
-	                    case 3: return [2 /*return*/, _a.apply(void 0, [_b.sent()])];
+	                    case 3: return [2 /*return*/, _a.apply(void 0, [(_b.sent()).output])];
 	                }
 	            });
 	        });
@@ -15756,16 +15943,19 @@
 
 
 
+
+
+
 	var logger = new lib.Logger('provider');
 	var defaultUrl = 'http://localhost:8545';
 	var defaultNetwork = {
 	    chainId: 1,
-	    name: 'fisco-bcos',
+	    name: 'fisco',
 	};
 	var defaultFormatter;
 	var JsonRpcProvider = /** @class */ (function (_super) {
 	    __extends(JsonRpcProvider, _super);
-	    function JsonRpcProvider(url, network, groupId) {
+	    function JsonRpcProvider(chain, url, network, groupId) {
 	        var _newTarget = this.constructor;
 	        var _this = _super.call(this, network || lib$3.getStatic((_newTarget), 'defaultNetwork')(), groupId || 1) || this;
 	        logger.checkNew(_newTarget, JsonRpcProvider);
@@ -15773,6 +15963,16 @@
 	            url = lib$3.getStatic((_newTarget), 'defaultUrl')();
 	        }
 	        lib$3.defineReadOnly(_this, 'connection', { url: url });
+	        switch (chain) {
+	            case constants.Chain.ETHERS: {
+	                lib$3.defineReadOnly(_this, 'prepareRequest', ethers_api.Api.prepareRequest);
+	                break;
+	            }
+	            case constants.Chain.FISCO: {
+	                lib$3.defineReadOnly(_this, 'prepareRequest', fisco_api.Api.prepareRequest(_this.groupId));
+	                break;
+	            }
+	        }
 	        _this._nextId = 42;
 	        return _this;
 	    }
@@ -15827,47 +16027,6 @@
 	    };
 	    JsonRpcProvider.prototype.getResult = function (payload) {
 	        return payload.result;
-	    };
-	    JsonRpcProvider.prototype.prepareRequest = function (method, params) {
-	        switch (method) {
-	            case 'getClientVersion':
-	                return ['getClientVersion', []];
-	            case 'getPbftView':
-	                return ['getPbftView', [this.groupId]];
-	            case 'getSealerList':
-	                return ['getSealerList', [this.groupId]];
-	            case 'getObserverList':
-	                return ['getObserverList', [this.groupId]];
-	            case 'getSyncStatus':
-	                return ['getSyncStatus', [this.groupId]];
-	            case 'getPeers':
-	                return ['getPeers', [this.groupId]];
-	            case 'getNodeIdList':
-	                return ['getNodeIDList', [this.groupId]];
-	            case 'getGroupList':
-	                return ['getGroupList', [this.groupId]];
-	            case 'getBlockNumber':
-	                return ['getBlockNumber', [this.groupId]];
-	            case 'getBlock':
-	                if (params.blockTag) {
-	                    return ['getBlockByNumber', [this.groupId, params.blockTag, !!params.includeTransactions]];
-	                }
-	                else if (params.blockHash) {
-	                    return ['getBlockByHash', [this.groupId, params.blockHash, !!params.includeTransactions]];
-	                }
-	                break;
-	            case 'sendTransaction':
-	                return ['sendRawTransaction', [this.groupId, params.signedTransaction]];
-	            case 'getTransaction':
-	                return ['getTransactionByHash', [this.groupId, params.transactionHash]];
-	            case 'getTransactionReceipt':
-	                return ['getTransactionReceipt', [this.groupId, params.transactionHash]];
-	            case 'call':
-	                return ['call', [this.groupId, params.transaction]];
-	            default:
-	                logger.throwError(method + ' not implemented', lib.Logger.errors.NOT_IMPLEMENTED, { operation: method });
-	        }
-	        return ['', []];
 	    };
 	    JsonRpcProvider.prototype.send = function (method, params) {
 	        return __awaiter(this, void 0, void 0, function () {
@@ -15946,6 +16105,8 @@
 	 */
 	'use strict';
 	Object.defineProperty(exports, "__esModule", { value: true });
+
+	Object.defineProperty(exports, "Chain", { enumerable: true, get: function () { return constants.Chain; } });
 
 	Object.defineProperty(exports, "JsonRpcProvider", { enumerable: true, get: function () { return jsonRpcProvider.JsonRpcProvider; } });
 	});
@@ -20720,7 +20881,7 @@
 	    Wallet.prototype.signDigest = function (digest) {
 	        return __awaiter(this, void 0, void 0, function () {
 	            return __generator(this, function (_a) {
-	                if (lib$f.SigningKey.isSigningKey(this._signing)) {
+	                if (lib$f.SigningKey.isSigningKey(this._signing())) {
 	                    return [2 /*return*/, Promise.resolve(this._signing().signDigest(digest))];
 	                }
 	                else {

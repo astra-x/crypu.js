@@ -8151,6 +8151,34 @@ class Provider {
     }
 }
 
+/*
+ This file is part of crypu.js.
+
+ crypu.js is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ crypu.js is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/**
+ * @file constants.ts
+ * @author Youtao Xing <youtao.xing@icloud.com>
+ * @date 2020
+ */
+var Chain;
+(function (Chain) {
+    Chain[Chain["ETHERS"] = 0] = "ETHERS";
+    Chain[Chain["FISCO"] = 1] = "FISCO";
+    Chain[Chain["ANTFIN"] = 2] = "ANTFIN";
+})(Chain || (Chain = {}));
+
 const version$9 = "networks/5.0.2";
 
 "use strict";
@@ -8716,6 +8744,141 @@ function poll(func, options) {
         check();
     });
 }
+
+/*
+ This file is part of crypu.js.
+
+ crypu.js is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ crypu.js is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/**
+ * @file ethers.api.ts
+ * @author Youtao Xing <youtao.xing@icloud.com>
+ * @date 2020
+ */
+const Api = {
+    prepareRequest: (method, params) => {
+        switch (method) {
+            case 'getBlockNumber':
+                return ['eth_blockNumber', []];
+            case 'getGasPrice':
+                return ['eth_gasPrice', []];
+            case 'getBalance':
+                return ['eth_getBalance', [params.address.toLowerCase(), params.blockTag]];
+            case 'getTransactionCount':
+                return ['eth_getTransactionCount', [params.address.toLowerCase(), params.blockTag]];
+            case 'getCode':
+                return ['eth_getCode', [params.address.toLowerCase(), params.blockTag]];
+            case 'getStorageAt':
+                return ['eth_getStorageAt', [params.address.toLowerCase(), params.position, params.blockTag]];
+            case 'sendTransaction':
+                return ['eth_sendRawTransaction', [params.signedTransaction]];
+            case 'getBlock':
+                if (params.blockTag) {
+                    return ['eth_getBlockByNumber', [params.blockTag, !!params.includeTransactions]];
+                }
+                else if (params.blockHash) {
+                    return ['eth_getBlockByHash', [params.blockHash, !!params.includeTransactions]];
+                }
+                return null;
+            case 'getTransaction':
+                return ['eth_getTransactionByHash', [params.transactionHash]];
+            case 'getTransactionReceipt':
+                return ['eth_getTransactionReceipt', [params.transactionHash]];
+            case 'call': {
+                return ['eth_call', [params.transaction, params.blockTag]];
+            }
+            case 'estimateGas': {
+                return ['eth_estimateGas', [params.transaction]];
+            }
+            case 'getLogs':
+                if (params.filter && params.filter.address != null) {
+                    params.filter.address = params.filter.address.toLowerCase();
+                }
+                return ['eth_getLogs', [params.filter]];
+            default:
+                break;
+        }
+        return null;
+    },
+};
+
+/*
+ This file is part of crypu.js.
+
+ crypu.js is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ crypu.js is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/**
+ * @file fisco.api.ts
+ * @author Youtao Xing <youtao.xing@icloud.com>
+ * @date 2020
+ */
+const Api$1 = {
+    prepareRequest: (groupId) => {
+        return (method, params) => {
+            switch (method) {
+                case 'getClientVersion':
+                    return ['getClientVersion', []];
+                case 'getPbftView':
+                    return ['getPbftView', [groupId]];
+                case 'getSealerList':
+                    return ['getSealerList', [groupId]];
+                case 'getObserverList':
+                    return ['getObserverList', [groupId]];
+                case 'getSyncStatus':
+                    return ['getSyncStatus', [groupId]];
+                case 'getPeers':
+                    return ['getPeers', [groupId]];
+                case 'getNodeIdList':
+                    return ['getNodeIDList', [groupId]];
+                case 'getGroupList':
+                    return ['getGroupList', [groupId]];
+                case 'getBlockNumber':
+                    return ['getBlockNumber', [groupId]];
+                case 'getBlock':
+                    if (params.blockTag) {
+                        return ['getBlockByNumber', [groupId, params.blockTag, !!params.includeTransactions]];
+                    }
+                    else if (params.blockHash) {
+                        return ['getBlockByHash', [groupId, params.blockHash, !!params.includeTransactions]];
+                    }
+                    break;
+                case 'sendTransaction':
+                    return ['sendRawTransaction', [groupId, params.signedTransaction]];
+                case 'getTransaction':
+                    return ['getTransactionByHash', [groupId, params.transactionHash]];
+                case 'getTransactionReceipt':
+                    return ['getTransactionReceipt', [groupId, params.transactionHash]];
+                case 'call':
+                    return ['call', [groupId, params.transaction]];
+                default:
+                    break;
+            }
+            return null;
+        };
+    },
+};
 
 var version$a = "6.5.3";
 var _package = {
@@ -13684,7 +13847,7 @@ class BaseProvider extends Provider {
                 transaction: this._getTransactionRequest(transaction),
                 blockTag: this._getBlockTag(blockTag)
             });
-            return hexlify(yield this.perform('call', params));
+            return hexlify((yield this.perform('call', params)).output);
         });
     }
     estimateGas(_) {
@@ -14104,17 +14267,27 @@ const logger$l = new Logger('provider');
 const defaultUrl = 'http://localhost:8545';
 const defaultNetwork = {
     chainId: 1,
-    name: 'fisco-bcos',
+    name: 'fisco',
 };
 let defaultFormatter$1;
 class JsonRpcProvider extends BaseProvider {
-    constructor(url, network, groupId) {
+    constructor(chain, url, network, groupId) {
         super(network || getStatic((new.target), 'defaultNetwork')(), groupId || 1);
         logger$l.checkNew(new.target, JsonRpcProvider);
         if (!url) {
             url = getStatic((new.target), 'defaultUrl')();
         }
         defineReadOnly(this, 'connection', { url: url });
+        switch (chain) {
+            case Chain.ETHERS: {
+                defineReadOnly(this, 'prepareRequest', Api.prepareRequest);
+                break;
+            }
+            case Chain.FISCO: {
+                defineReadOnly(this, 'prepareRequest', Api$1.prepareRequest(this.groupId));
+                break;
+            }
+        }
         this._nextId = 42;
     }
     static defaultUrl() {
@@ -14158,47 +14331,6 @@ class JsonRpcProvider extends BaseProvider {
     }
     getResult(payload) {
         return payload.result;
-    }
-    prepareRequest(method, params) {
-        switch (method) {
-            case 'getClientVersion':
-                return ['getClientVersion', []];
-            case 'getPbftView':
-                return ['getPbftView', [this.groupId]];
-            case 'getSealerList':
-                return ['getSealerList', [this.groupId]];
-            case 'getObserverList':
-                return ['getObserverList', [this.groupId]];
-            case 'getSyncStatus':
-                return ['getSyncStatus', [this.groupId]];
-            case 'getPeers':
-                return ['getPeers', [this.groupId]];
-            case 'getNodeIdList':
-                return ['getNodeIDList', [this.groupId]];
-            case 'getGroupList':
-                return ['getGroupList', [this.groupId]];
-            case 'getBlockNumber':
-                return ['getBlockNumber', [this.groupId]];
-            case 'getBlock':
-                if (params.blockTag) {
-                    return ['getBlockByNumber', [this.groupId, params.blockTag, !!params.includeTransactions]];
-                }
-                else if (params.blockHash) {
-                    return ['getBlockByHash', [this.groupId, params.blockHash, !!params.includeTransactions]];
-                }
-                break;
-            case 'sendTransaction':
-                return ['sendRawTransaction', [this.groupId, params.signedTransaction]];
-            case 'getTransaction':
-                return ['getTransactionByHash', [this.groupId, params.transactionHash]];
-            case 'getTransactionReceipt':
-                return ['getTransactionReceipt', [this.groupId, params.transactionHash]];
-            case 'call':
-                return ['call', [this.groupId, params.transaction]];
-            default:
-                logger$l.throwError(method + ' not implemented', Logger.errors.NOT_IMPLEMENTED, { operation: method });
-        }
-        return ['', []];
     }
     send(method, params) {
         return __awaiter$4(this, void 0, void 0, function* () {
@@ -18490,7 +18622,7 @@ class Wallet extends Signer {
     }
     signDigest(digest) {
         return __awaiter$8(this, void 0, void 0, function* () {
-            if (SigningKey.isSigningKey(this._signing)) {
+            if (SigningKey.isSigningKey(this._signing())) {
                 return Promise.resolve(this._signing().signDigest(digest));
             }
             else {
