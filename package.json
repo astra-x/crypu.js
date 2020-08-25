@@ -17,7 +17,8 @@
     "_dist-wechat": "node ./admin/cmds/set-option wechat && rollup -c --configWechat && mv ./packages/crypu/dist/crypu.wechat.min.js ./packages/crypu/dist/crypu-all.wechat.min.js && node ./admin/cmds/set-option wechat && rollup -c --configWechat",
     "_dist": "npm run _dist-umd && npm run _dist-esm && npm run _dist-wechat",
     "clean": "node ./admin/cmds/reset-build.js && tsc --build --clean ./tsconfig.project.json",
-    "test": "lerna run --scope @crypujs/tests test --stream"
+    "test": "lerna run --scope @crypujs/tests test --stream",
+    "publish": "npm login && lerna version && lerna publish from-package"
   },
   "devDependencies": {
     "@commitlint/cli": "^9.1.1",
