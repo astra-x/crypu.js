@@ -20,4 +20,5 @@
  * @date 2020
  */
 'use strict';
+export { Chain } from './constants';
 export { JsonRpcProvider } from './json-rpc-provider';
