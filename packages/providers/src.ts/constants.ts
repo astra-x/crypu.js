@@ -15,13 +15,13 @@
  along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
  */
 /**
- * @file index.ts
+ * @file constants.ts
  * @author Youtao Xing <youtao.xing@icloud.com>
  * @date 2020
  */
-'use strict';
-Object.defineProperty(exports, "__esModule", { value: true });
-var constants_1 = require("./constants");
-Object.defineProperty(exports, "Chain", { enumerable: true, get: function () { return constants_1.Chain; } });
-var json_rpc_provider_1 = require("./json-rpc-provider");
-Object.defineProperty(exports, "JsonRpcProvider", { enumerable: true, get: function () { return json_rpc_provider_1.JsonRpcProvider; } });
+
+export enum Chain {
+  ETHERS = 0,
+  FISCO,
+  ANTFIN,
+}

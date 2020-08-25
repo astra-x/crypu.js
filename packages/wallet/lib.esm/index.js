@@ -108,7 +108,7 @@ export class Wallet extends Signer {
     }
     signDigest(digest) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (SigningKey.isSigningKey(this._signing)) {
+            if (SigningKey.isSigningKey(this._signing())) {
                 return Promise.resolve(this._signing().signDigest(digest));
             }
             else {

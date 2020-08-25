@@ -75,18 +75,21 @@ var logger_1 = require("@ethersproject/logger");
 var networks_1 = require("@ethersproject/networks");
 var properties_1 = require("@ethersproject/properties");
 var web_1 = require("@crypujs/web");
+var constants_1 = require("./constants");
+var ethers_api_1 = require("./api/ethers.api");
+var fisco_api_1 = require("./api/fisco.api");
 var formatter_1 = require("./formatter");
 var base_provider_1 = require("./base-provider");
 var logger = new logger_1.Logger('provider');
 var defaultUrl = 'http://localhost:8545';
 var defaultNetwork = {
     chainId: 1,
-    name: 'fisco-bcos',
+    name: 'fisco',
 };
 var defaultFormatter;
 var JsonRpcProvider = /** @class */ (function (_super) {
     __extends(JsonRpcProvider, _super);
-    function JsonRpcProvider(url, network, groupId) {
+    function JsonRpcProvider(chain, url, network, groupId) {
         var _newTarget = this.constructor;
         var _this = _super.call(this, network || properties_1.getStatic((_newTarget), 'defaultNetwork')(), groupId || 1) || this;
         logger.checkNew(_newTarget, JsonRpcProvider);
@@ -94,6 +97,16 @@ var JsonRpcProvider = /** @class */ (function (_super) {
             url = properties_1.getStatic((_newTarget), 'defaultUrl')();
         }
         properties_1.defineReadOnly(_this, 'connection', { url: url });
+        switch (chain) {
+            case constants_1.Chain.ETHERS: {
+                properties_1.defineReadOnly(_this, 'prepareRequest', ethers_api_1.Api.prepareRequest);
+                break;
+            }
+            case constants_1.Chain.FISCO: {
+                properties_1.defineReadOnly(_this, 'prepareRequest', fisco_api_1.Api.prepareRequest(_this.groupId));
+                break;
+            }
+        }
         _this._nextId = 42;
         return _this;
     }
@@ -148,47 +161,6 @@ var JsonRpcProvider = /** @class */ (function (_super) {
     };
     JsonRpcProvider.prototype.getResult = function (payload) {
         return payload.result;
-    };
-    JsonRpcProvider.prototype.prepareRequest = function (method, params) {
-        switch (method) {
-            case 'getClientVersion':
-                return ['getClientVersion', []];
-            case 'getPbftView':
-                return ['getPbftView', [this.groupId]];
-            case 'getSealerList':
-                return ['getSealerList', [this.groupId]];
-            case 'getObserverList':
-                return ['getObserverList', [this.groupId]];
-            case 'getSyncStatus':
-                return ['getSyncStatus', [this.groupId]];
-            case 'getPeers':
-                return ['getPeers', [this.groupId]];
-            case 'getNodeIdList':
-                return ['getNodeIDList', [this.groupId]];
-            case 'getGroupList':
-                return ['getGroupList', [this.groupId]];
-            case 'getBlockNumber':
-                return ['getBlockNumber', [this.groupId]];
-            case 'getBlock':
-                if (params.blockTag) {
-                    return ['getBlockByNumber', [this.groupId, params.blockTag, !!params.includeTransactions]];
-                }
-                else if (params.blockHash) {
-                    return ['getBlockByHash', [this.groupId, params.blockHash, !!params.includeTransactions]];
-                }
-                break;
-            case 'sendTransaction':
-                return ['sendRawTransaction', [this.groupId, params.signedTransaction]];
-            case 'getTransaction':
-                return ['getTransactionByHash', [this.groupId, params.transactionHash]];
-            case 'getTransactionReceipt':
-                return ['getTransactionReceipt', [this.groupId, params.transactionHash]];
-            case 'call':
-                return ['call', [this.groupId, params.transaction]];
-            default:
-                logger.throwError(method + ' not implemented', logger_1.Logger.errors.NOT_IMPLEMENTED, { operation: method });
-        }
-        return ['', []];
     };
     JsonRpcProvider.prototype.send = function (method, params) {
         return __awaiter(this, void 0, void 0, function () {

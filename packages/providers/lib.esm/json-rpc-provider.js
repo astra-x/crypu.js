@@ -33,23 +33,36 @@ import { Logger } from '@ethersproject/logger';
 import { getNetwork, } from '@ethersproject/networks';
 import { deepCopy, defineReadOnly, getStatic, } from '@ethersproject/properties';
 import { fetchJson } from '@crypujs/web';
+import { Chain } from './constants';
+import { Api as EthersApi } from './api/ethers.api';
+import { Api as FiscoApi } from './api/fisco.api';
 import { Formatter } from './formatter';
-import { BaseProvider, } from './base-provider';
+import { BaseProvider } from './base-provider';
 const logger = new Logger('provider');
 const defaultUrl = 'http://localhost:8545';
 const defaultNetwork = {
     chainId: 1,
-    name: 'fisco-bcos',
+    name: 'fisco',
 };
 let defaultFormatter;
 export class JsonRpcProvider extends BaseProvider {
-    constructor(url, network, groupId) {
+    constructor(chain, url, network, groupId) {
         super(network || getStatic((new.target), 'defaultNetwork')(), groupId || 1);
         logger.checkNew(new.target, JsonRpcProvider);
         if (!url) {
             url = getStatic((new.target), 'defaultUrl')();
         }
         defineReadOnly(this, 'connection', { url: url });
+        switch (chain) {
+            case Chain.ETHERS: {
+                defineReadOnly(this, 'prepareRequest', EthersApi.prepareRequest);
+                break;
+            }
+            case Chain.FISCO: {
+                defineReadOnly(this, 'prepareRequest', FiscoApi.prepareRequest(this.groupId));
+                break;
+            }
+        }
         this._nextId = 42;
     }
     static defaultUrl() {
@@ -93,47 +106,6 @@ export class JsonRpcProvider extends BaseProvider {
     }
     getResult(payload) {
         return payload.result;
-    }
-    prepareRequest(method, params) {
-        switch (method) {
-            case 'getClientVersion':
-                return ['getClientVersion', []];
-            case 'getPbftView':
-                return ['getPbftView', [this.groupId]];
-            case 'getSealerList':
-                return ['getSealerList', [this.groupId]];
-            case 'getObserverList':
-                return ['getObserverList', [this.groupId]];
-            case 'getSyncStatus':
-                return ['getSyncStatus', [this.groupId]];
-            case 'getPeers':
-                return ['getPeers', [this.groupId]];
-            case 'getNodeIdList':
-                return ['getNodeIDList', [this.groupId]];
-            case 'getGroupList':
-                return ['getGroupList', [this.groupId]];
-            case 'getBlockNumber':
-                return ['getBlockNumber', [this.groupId]];
-            case 'getBlock':
-                if (params.blockTag) {
-                    return ['getBlockByNumber', [this.groupId, params.blockTag, !!params.includeTransactions]];
-                }
-                else if (params.blockHash) {
-                    return ['getBlockByHash', [this.groupId, params.blockHash, !!params.includeTransactions]];
-                }
-                break;
-            case 'sendTransaction':
-                return ['sendRawTransaction', [this.groupId, params.signedTransaction]];
-            case 'getTransaction':
-                return ['getTransactionByHash', [this.groupId, params.transactionHash]];
-            case 'getTransactionReceipt':
-                return ['getTransactionReceipt', [this.groupId, params.transactionHash]];
-            case 'call':
-                return ['call', [this.groupId, params.transaction]];
-            default:
-                logger.throwError(method + ' not implemented', Logger.errors.NOT_IMPLEMENTED, { operation: method });
-        }
-        return ['', []];
     }
     send(method, params) {
         return __awaiter(this, void 0, void 0, function* () {

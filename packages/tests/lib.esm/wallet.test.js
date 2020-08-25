@@ -20,219 +20,220 @@
  * @date 2020
  */
 'use strict';
-import { BigNumber } from "@ethersproject/bignumber";
-import { Interface } from "@crypujs/abi";
-import { JsonRpcProvider } from "@crypujs/providers";
-import { Wallet } from "@crypujs/wallet";
+import { BigNumber } from '@ethersproject/bignumber';
+import { Interface } from '@crypujs/abi';
+import { Chain, JsonRpcProvider, } from '@crypujs/providers';
+import { Wallet } from '@crypujs/wallet';
 const bnify = BigNumber.from;
 const roleControllerAbi = [
     {
         constant: true,
         inputs: [],
-        name: "MODIFY_ADMIN",
+        name: 'MODIFY_ADMIN',
         outputs: [
             {
-                name: "",
-                type: "uint256",
+                name: '',
+                type: 'uint256',
             },
         ],
         payable: false,
-        stateMutability: "view",
-        type: "function",
+        stateMutability: 'view',
+        type: 'function',
     },
     {
         constant: true,
         inputs: [],
-        name: "RETURN_CODE_FAILURE_NO_PERMISSION",
+        name: 'RETURN_CODE_FAILURE_NO_PERMISSION',
         outputs: [
             {
-                name: "",
-                type: "uint256",
+                name: '',
+                type: 'uint256',
             },
         ],
         payable: false,
-        stateMutability: "view",
-        type: "function",
+        stateMutability: 'view',
+        type: 'function',
     },
     {
         constant: true,
         inputs: [
             {
-                name: "addr",
-                type: "address",
+                name: 'addr',
+                type: 'address',
             },
             {
-                name: "role",
-                type: "uint256",
+                name: 'role',
+                type: 'uint256',
             },
         ],
-        name: "checkRole",
+        name: 'checkRole',
         outputs: [
             {
-                name: "",
-                type: "bool",
+                name: '',
+                type: 'bool',
             },
         ],
         payable: false,
-        stateMutability: "view",
-        type: "function",
+        stateMutability: 'view',
+        type: 'function',
     },
     {
         constant: true,
         inputs: [],
-        name: "ROLE_COMMITTEE",
+        name: 'ROLE_COMMITTEE',
         outputs: [
             {
-                name: "",
-                type: "uint256",
+                name: '',
+                type: 'uint256',
             },
         ],
         payable: false,
-        stateMutability: "view",
-        type: "function",
+        stateMutability: 'view',
+        type: 'function',
     },
     {
         constant: false,
         inputs: [
             {
-                name: "addr",
-                type: "address",
+                name: 'addr',
+                type: 'address',
             },
             {
-                name: "role",
-                type: "uint256",
+                name: 'role',
+                type: 'uint256',
             },
         ],
-        name: "removeRole",
+        name: 'removeRole',
         outputs: [],
         payable: false,
-        stateMutability: "nonpayable",
-        type: "function",
+        stateMutability: 'nonpayable',
+        type: 'function',
     },
     {
         constant: true,
         inputs: [],
-        name: "MODIFY_KEY_CPT",
+        name: 'MODIFY_KEY_CPT',
         outputs: [
             {
-                name: "",
-                type: "uint256",
+                name: '',
+                type: 'uint256',
             },
         ],
         payable: false,
-        stateMutability: "view",
-        type: "function",
+        stateMutability: 'view',
+        type: 'function',
     },
     {
         constant: false,
         inputs: [
             {
-                name: "addr",
-                type: "address",
+                name: 'addr',
+                type: 'address',
             },
             {
-                name: "role",
-                type: "uint256",
+                name: 'role',
+                type: 'uint256',
             },
         ],
-        name: "addRole",
+        name: 'addRole',
         outputs: [],
         payable: false,
-        stateMutability: "nonpayable",
-        type: "function",
+        stateMutability: 'nonpayable',
+        type: 'function',
     },
     {
         constant: true,
         inputs: [
             {
-                name: "addr",
-                type: "address",
+                name: 'addr',
+                type: 'address',
             },
             {
-                name: "operation",
-                type: "uint256",
+                name: 'operation',
+                type: 'uint256',
             },
         ],
-        name: "checkPermission",
+        name: 'checkPermission',
         outputs: [
             {
-                name: "",
-                type: "bool",
+                name: '',
+                type: 'bool',
             },
         ],
         payable: false,
-        stateMutability: "view",
-        type: "function",
+        stateMutability: 'view',
+        type: 'function',
     },
     {
         constant: true,
         inputs: [],
-        name: "MODIFY_AUTHORITY_ISSUER",
+        name: 'MODIFY_AUTHORITY_ISSUER',
         outputs: [
             {
-                name: "",
-                type: "uint256",
+                name: '',
+                type: 'uint256',
             },
         ],
         payable: false,
-        stateMutability: "view",
-        type: "function",
+        stateMutability: 'view',
+        type: 'function',
     },
     {
         constant: true,
         inputs: [],
-        name: "MODIFY_COMMITTEE",
+        name: 'MODIFY_COMMITTEE',
         outputs: [
             {
-                name: "",
-                type: "uint256",
+                name: '',
+                type: 'uint256',
             },
         ],
         payable: false,
-        stateMutability: "view",
-        type: "function",
+        stateMutability: 'view',
+        type: 'function',
     },
     {
         constant: true,
         inputs: [],
-        name: "ROLE_ADMIN",
+        name: 'ROLE_ADMIN',
         outputs: [
             {
-                name: "",
-                type: "uint256",
+                name: '',
+                type: 'uint256',
             },
         ],
         payable: false,
-        stateMutability: "view",
-        type: "function",
+        stateMutability: 'view',
+        type: 'function',
     },
     {
         constant: true,
         inputs: [],
-        name: "ROLE_AUTHORITY_ISSUER",
+        name: 'ROLE_AUTHORITY_ISSUER',
         outputs: [
             {
-                name: "",
-                type: "uint256",
+                name: '',
+                type: 'uint256',
             },
         ],
         payable: false,
-        stateMutability: "view",
-        type: "function",
+        stateMutability: 'view',
+        type: 'function',
     },
     {
         inputs: [],
         payable: false,
-        stateMutability: "nonpayable",
-        type: "constructor",
+        stateMutability: 'nonpayable',
+        type: 'constructor',
     },
 ];
 const testData = [
     {
         providerConfig: {
-            url: "http://47.56.165.246:8545",
+            chain: Chain.FISCO,
+            url: 'http://47.56.165.246:8545',
             network: {
-                name: "fisco-bcos",
+                name: 'fisco-bcos',
                 chainId: 1,
             },
             groupId: 1,
@@ -240,60 +241,60 @@ const testData = [
         examples: [
             {
                 walletCallData: {
-                    from: "0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6",
-                    to: "0x2f7bbf70d7052b4b33e3f7e0347efce131801e64",
-                    data: new Interface(roleControllerAbi).encodeFunctionData("checkPermission(address,uint)", [
-                        "0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6",
+                    from: '0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6',
+                    to: '0x2f7bbf70d7052b4b33e3f7e0347efce131801e64',
+                    data: new Interface(roleControllerAbi).encodeFunctionData('checkPermission(address,uint)', [
+                        '0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6',
                         201,
                     ]),
                 },
-                testTransactionAddr: "0xdf06b656004645b727c628a3a574abd0c4f56be8d2b328eac56eef5bcbaf1f95",
-                mnemWalletAddr: "0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6",
-                privKeyWalletAddr: "0xc674ce8E3535455F0CA6643A248F53f97A923061",
+                testTransactionAddr: '0xdf06b656004645b727c628a3a574abd0c4f56be8d2b328eac56eef5bcbaf1f95',
+                mnemWalletAddr: '0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6',
+                privKeyWalletAddr: '0xc674ce8E3535455F0CA6643A248F53f97A923061',
                 testTransaction: {
-                    data: "0x643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000",
-                    to: "0x3a1c406f0af920f9371d3b75b8f8c1a14264fd37",
+                    data: '0x643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000',
+                    to: '0x3a1c406f0af920f9371d3b75b8f8c1a14264fd37',
                 },
                 sendTransactionResult: {
                     nonce: {
-                        _hex: "0x6ea7b57109ec897f37d7492b34747245",
+                        _hex: '0x6ea7b57109ec897f37d7492b34747245',
                         _isBigNumber: true,
                     },
                     gasPrice: bnify(0x11e1a300),
                     gasLimit: bnify(0x0f4240),
                     blockLimit: bnify(0x6fdc),
-                    to: "0x3A1C406F0Af920F9371d3B75B8f8C1A14264FD37",
+                    to: '0x3A1C406F0Af920F9371d3B75B8f8C1A14264FD37',
                     value: bnify(0x00),
-                    data: "0x643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000",
+                    data: '0x643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000',
                     chainId: 1,
                     groupId: 1,
-                    extraData: "0x",
+                    extraData: '0x',
                     v: 27,
-                    r: "0x3d348b651c147f99e9e79c38fac8d55671de5fd150fe55c4e4fec63ae53c9a0f",
-                    s: "0x364f8d902a247a9f6ee6de8d33318673372ea860b066c40ab702b548418313a3",
-                    from: "0xc674ce8E3535455F0CA6643A248F53f97A923061",
-                    hash: "0xff0e19e29aa94efc32044f9f0b2c783bfe2f9dccb82b303d2883773d6487ba9f",
+                    r: '0x3d348b651c147f99e9e79c38fac8d55671de5fd150fe55c4e4fec63ae53c9a0f',
+                    s: '0x364f8d902a247a9f6ee6de8d33318673372ea860b066c40ab702b548418313a3',
+                    from: '0xc674ce8E3535455F0CA6643A248F53f97A923061',
+                    hash: '0xff0e19e29aa94efc32044f9f0b2c783bfe2f9dccb82b303d2883773d6487ba9f',
                 },
                 getTransactionReceiptResult: {
-                    to: "0x3A1C406F0Af920F9371d3B75B8f8C1A14264FD37",
-                    from: "0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6",
-                    contractAddress: "0x0000000000000000000000000000000000000000",
-                    input: "0x643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000",
-                    output: "0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000023331000000000000000000000000000000000000000000000000000000000000",
-                    root: "0x97f48fae00dc51f5e16502414db04d31cda99cef65cf42f133bf2f2133593b24",
+                    to: '0x3A1C406F0Af920F9371d3B75B8f8C1A14264FD37',
+                    from: '0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6',
+                    contractAddress: '0x0000000000000000000000000000000000000000',
+                    input: '0x643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000',
+                    output: '0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000023331000000000000000000000000000000000000000000000000000000000000',
+                    root: '0x97f48fae00dc51f5e16502414db04d31cda99cef65cf42f133bf2f2133593b24',
                     gasUsed: bnify(0xd059),
-                    logsBloom: "0x00000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000004080000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000001000000000000000000001000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000100000000000000",
-                    blockHash: "0xe2daf45a1b6af33743c6d2a392a880db7a782e36e45b331c708753ee74a3ddda",
+                    logsBloom: '0x00000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000004080000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000001000000000000000000001000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000100000000000000',
+                    blockHash: '0xe2daf45a1b6af33743c6d2a392a880db7a782e36e45b331c708753ee74a3ddda',
                     blockNumber: 28304,
-                    transactionHash: "0xdf06b656004645b727c628a3a574abd0c4f56be8d2b328eac56eef5bcbaf1f95",
+                    transactionHash: '0xdf06b656004645b727c628a3a574abd0c4f56be8d2b328eac56eef5bcbaf1f95',
                     transactionIndex: 0,
                     logs: [
                         {
-                            address: "0x3A1C406F0Af920F9371d3B75B8f8C1A14264FD37",
-                            data: "0x",
+                            address: '0x3A1C406F0Af920F9371d3B75B8f8C1A14264FD37',
+                            data: '0x',
                             topics: [
-                                "0xc70d9e3cda68d24f5c9a96a00e240c9765756eeeb308ed7da2ba63cfe23d1f2a",
-                                "0x000000000000000000000000000000000000000000000000000000000000001f",
+                                '0xc70d9e3cda68d24f5c9a96a00e240c9765756eeeb308ed7da2ba63cfe23d1f2a',
+                                '0x000000000000000000000000000000000000000000000000000000000000001f',
                             ],
                         },
                     ],
@@ -301,68 +302,68 @@ const testData = [
                     status: 0,
                 },
                 getTransactionResult: {
-                    hash: "0xdf06b656004645b727c628a3a574abd0c4f56be8d2b328eac56eef5bcbaf1f95",
-                    blockHash: "0xe2daf45a1b6af33743c6d2a392a880db7a782e36e45b331c708753ee74a3ddda",
+                    hash: '0xdf06b656004645b727c628a3a574abd0c4f56be8d2b328eac56eef5bcbaf1f95',
+                    blockHash: '0xe2daf45a1b6af33743c6d2a392a880db7a782e36e45b331c708753ee74a3ddda',
                     blockNumber: 28304,
                     transactionIndex: 0,
                     confirmations: 233,
-                    from: "0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6",
+                    from: '0x8b4AB4667ad81AF60e914A33F3AEE35865825DF6',
                     gasPrice: bnify(0x11e1a300),
                     gasLimit: bnify(0x0f4240),
-                    to: "0x3A1C406F0Af920F9371d3B75B8f8C1A14264FD37",
+                    to: '0x3A1C406F0Af920F9371d3B75B8f8C1A14264FD37',
                     value: bnify(0x00),
                     nonce: {
-                        _hex: "0x4cfeb89292ea62c2712a2dcafd2ba2c7",
+                        _hex: '0x4cfeb89292ea62c2712a2dcafd2ba2c7',
                         _isBigNumber: true,
                     },
-                    data: "0x643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000",
+                    data: '0x643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000',
                     creates: null,
                     chainId: 0,
                 },
                 populateTransactionResult: {
-                    data: "0x643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000",
-                    to: "0x3A1C406F0Af920F9371d3B75B8f8C1A14264FD37",
-                    from: "0xc674ce8E3535455F0CA6643A248F53f97A923061",
-                    nonce: "0xb819f5906213b8c355b3ad9079e91ee2",
+                    data: '0x643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000',
+                    to: '0x3A1C406F0Af920F9371d3B75B8f8C1A14264FD37',
+                    from: '0xc674ce8E3535455F0CA6643A248F53f97A923061',
+                    nonce: '0xb819f5906213b8c355b3ad9079e91ee2',
                     blockLimit: 28636,
                     chainId: 1,
                     groupId: 1,
                     gasPrice: bnify(0x11e1a300),
                     gasLimit: bnify(0x0f4240),
                 },
-                serializeResult: "0xf8bc90b819f5906213b8c355b3ad9079e91ee28411e1a300830f4240826fdc943a1c406f0af920f9371d3b75b8f8c1a14264fd3780b884643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000010180",
-                signTransactionResult: "0xf8ff90b819f5906213b8c355b3ad9079e91ee28411e1a300830f4240826fdc943a1c406f0af920f9371d3b75b8f8c1a14264fd3780b8846437197700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000361626300000000000000000000000000000000000000000000000000000000000101801ca089ef906ba24237ce157694b495ca192701f3a3e6d8368d690ed3b3d011643dcaa04d9a6a825d7bc5a09d59673e17dd8ac16752ce19ad9f01220f3d6c09792ca4a1",
-                walletMnemPhrase: "ribbon glimpse rescue nuclear elevator album rookie imitate fuel resemble banner arrow",
-                walletCallResult: "0x0000000000000000000000000000000000000000000000000000000000000000",
-                walletPkey: "0x1925b8bee81b6189e0a3aa0e6ce99e7c3deaf8bdf8767ee388ff15e78eae863e",
+                serializeResult: '0xf8bc90b819f5906213b8c355b3ad9079e91ee28411e1a300830f4240826fdc943a1c406f0af920f9371d3b75b8f8c1a14264fd3780b884643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000010180',
+                signTransactionResult: '0xf8ff90b819f5906213b8c355b3ad9079e91ee28411e1a300830f4240826fdc943a1c406f0af920f9371d3b75b8f8c1a14264fd3780b8846437197700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000361626300000000000000000000000000000000000000000000000000000000000101801ca089ef906ba24237ce157694b495ca192701f3a3e6d8368d690ed3b3d011643dcaa04d9a6a825d7bc5a09d59673e17dd8ac16752ce19ad9f01220f3d6c09792ca4a1',
+                walletMnemPhrase: 'ribbon glimpse rescue nuclear elevator album rookie imitate fuel resemble banner arrow',
+                walletCallResult: '0x0000000000000000000000000000000000000000000000000000000000000000',
+                walletPkey: '0x1925b8bee81b6189e0a3aa0e6ce99e7c3deaf8bdf8767ee388ff15e78eae863e',
             },
         ],
     },
 ];
 function testWallet(providerConf, example) {
-    const provider = new JsonRpcProvider(providerConf.url, providerConf.network, providerConf.groupId);
+    const provider = new JsonRpcProvider(providerConf.chain, providerConf.url, providerConf.network, providerConf.groupId);
     // Initialize wallet with mnem phrases
     let wallet = Wallet.fromMnemonic(example.walletMnemPhrase);
     wallet = wallet.connect(provider);
-    test("Wallet.fromMnemonic", () => {
+    test('Wallet.fromMnemonic', () => {
         const wallet = Wallet.fromMnemonic(example.walletMnemPhrase);
         wallet.getAddress().then((str) => {
             expect(str).toBe(example.mnemWalletAddr);
         });
     });
-    test("Wallet.new", () => {
+    test('Wallet.new', () => {
         const wallet = new Wallet(example.walletPkey);
         wallet.getAddress().then((str) => {
             expect(str).toBe(example.privKeyWalletAddr);
         });
     });
-    test("wallet.call", (done) => {
+    test('wallet.call', (done) => {
         wallet.call(example.walletCallData).then((result) => {
             expect(result).toBe(example.walletCallResult);
             done();
         });
     });
-    test("wallet.populateTransaction", (done) => {
+    test('wallet.populateTransaction', (done) => {
         wallet.populateTransaction(example.testTransaction).then((tx) => {
             expect(tx.blockLimit).toBeDefined();
             expect(tx.data).toBe(example.populateTransactionResult.data);
@@ -376,7 +377,7 @@ function testWallet(providerConf, example) {
             done();
         });
     });
-    test("wallet.sendTransaction", (done) => {
+    test('wallet.sendTransaction', (done) => {
         wallet.sendTransaction(example.testTransaction).then((tx) => {
             expect(tx.data).toBe(example.sendTransactionResult.data);
             expect(tx.chainId).toBe(example.sendTransactionResult.chainId);
@@ -393,7 +394,7 @@ function testWallet(providerConf, example) {
             done();
         });
     });
-    test("wallet.provider.getTransaction", (done) => {
+    test('wallet.provider.getTransaction', (done) => {
         wallet.provider.getTransaction(example.testTransactionAddr).then((tx) => {
             expect(tx.hash).toBeDefined();
             expect(tx.blockHash).toBeDefined();
@@ -410,7 +411,7 @@ function testWallet(providerConf, example) {
             done();
         });
     });
-    test("wallet.provider.getTransactionReceipt", (done) => {
+    test('wallet.provider.getTransactionReceipt', (done) => {
         wallet.provider
             .getTransactionReceipt(example.testTransactionAddr)
             .then((tx) => {
