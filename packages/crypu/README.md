@@ -1,4 +1,4 @@
-# `fisco`
+# `crypu`
 
 > TODO: description
 

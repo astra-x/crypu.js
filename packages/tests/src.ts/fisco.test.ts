@@ -41,7 +41,7 @@ import {
   BlockWithTransactions,
   Wallet,
   JsonRpcProvider,
-} from '@crypujs/fisco';
+} from 'crypu';
 
 const bnify = BigNumber.from;
 

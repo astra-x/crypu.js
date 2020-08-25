@@ -7,10 +7,10 @@
     "@crypujs/abi": "^1.1.0",
     "@crypujs/abstract-provider": "^1.1.0",
     "@crypujs/abstract-signer": "^1.1.0",
-    "@crypujs/fisco": "^1.1.0",
     "@crypujs/providers": "^1.1.0",
     "@crypujs/transactions": "^1.1.0",
     "@crypujs/wallet": "^1.1.0",
+    "crypu": "^1.1.0",
     "ethers": "^5.0.7"
   },
   "description": "crypu.js tests package",

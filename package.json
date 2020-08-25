@@ -12,9 +12,9 @@
     "_build-cjs": "node ./admin/cmds/set-option cjs && npm run build",
     "_build-esm": "node ./admin/cmds/set-option esm && npm run build",
     "_build": "npm run _build-cjs && npm run _build-esm",
-    "_dist-umd": "node ./admin/cmds/set-option cjs && rollup -c && mv ./packages/fisco/dist/fisco.umd.min.js ./packages/fisco/dist/fisco-all.umd.min.js && node ./admin/cmds/set-option cjs && rollup -c",
-    "_dist-esm": "node ./admin/cmds/set-option esm && rollup -c --configModule && mv ./packages/fisco/dist/fisco.esm.min.js ./packages/fisco/dist/fisco-all.esm.min.js && node ./admin/cmds/set-option esm && rollup -c --configModule",
-    "_dist-wechat": "node ./admin/cmds/set-option wechat && rollup -c --configWechat && mv ./packages/fisco/dist/fisco.wechat.min.js ./packages/fisco/dist/fisco-all.wechat.min.js && node ./admin/cmds/set-option wechat && rollup -c --configWechat",
+    "_dist-umd": "node ./admin/cmds/set-option cjs && rollup -c && mv ./packages/crypu/dist/crypu.umd.min.js ./packages/crypu/dist/crypu-all.umd.min.js && node ./admin/cmds/set-option cjs && rollup -c",
+    "_dist-esm": "node ./admin/cmds/set-option esm && rollup -c --configModule && mv ./packages/crypu/dist/crypu.esm.min.js ./packages/crypu/dist/crypu-all.esm.min.js && node ./admin/cmds/set-option esm && rollup -c --configModule",
+    "_dist-wechat": "node ./admin/cmds/set-option wechat && rollup -c --configWechat && mv ./packages/crypu/dist/crypu.wechat.min.js ./packages/crypu/dist/crypu-all.wechat.min.js && node ./admin/cmds/set-option wechat && rollup -c --configWechat",
     "_dist": "npm run _dist-umd && npm run _dist-esm && npm run _dist-wechat",
     "clean": "node ./admin/cmds/reset-build.js && tsc --build --clean ./tsconfig.project.json",
     "test": "lerna run --scope @crypujs/tests test --stream"

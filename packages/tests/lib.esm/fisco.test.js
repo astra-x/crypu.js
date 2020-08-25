@@ -22,7 +22,7 @@
 'use strict';
 import { BigNumber } from '@ethersproject/bignumber';
 import { Chain } from '@crypujs/providers';
-import { Interface, Wallet, JsonRpcProvider, } from '@crypujs/fisco';
+import { Interface, Wallet, JsonRpcProvider, } from 'crypu';
 const bnify = BigNumber.from;
 // Test Abi
 const erc721Abi = [

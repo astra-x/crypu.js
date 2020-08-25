@@ -169,7 +169,7 @@ var Wallet = /** @class */ (function (_super) {
     Wallet.prototype.signDigest = function (digest) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
-                if (signing_key_1.SigningKey.isSigningKey(this._signing)) {
+                if (signing_key_1.SigningKey.isSigningKey(this._signing())) {
                     return [2 /*return*/, Promise.resolve(this._signing().signDigest(digest))];
                 }
                 else {

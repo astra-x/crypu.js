@@ -34,7 +34,7 @@
       "path": "./packages/wallet"
     },
     {
-      "path": "./packages/fisco"
+      "path": "./packages/crypu"
     },
     {
       "path": "./packages/tests"
