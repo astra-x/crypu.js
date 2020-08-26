@@ -84,6 +84,7 @@ export declare class BaseProvider extends Provider {
     getPeers(): Promise<Peer>;
     getNodeIdList(): Promise<Array<string>>;
     getGroupList(): Promise<Array<number>>;
+    getBalance(addressOrName: string | Promise<string>, blockTag?: BlockTag | Promise<BlockTag>): Promise<BigNumber>;
     getTransactionCount(addressOrName: string | Promise<string>, blockTag?: BlockTag | Promise<BlockTag>): Promise<number>;
     getCode(addressOrName: string | Promise<string>, blockTag?: BlockTag | Promise<BlockTag>): Promise<string>;
     _wrapTransaction(tx: Transaction, hash?: string): TransactionResponse;

@@ -672,6 +672,16 @@ export class BaseProvider extends Provider {
             return this.perform('getGroupList', []);
         });
     }
+    getBalance(addressOrName, blockTag) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            const params = yield resolveProperties({
+                address: this._getAddress(addressOrName),
+                blockTag: this._getBlockTag(blockTag)
+            });
+            return BigNumber.from(yield this.perform('getBalance', params));
+        });
+    }
     getTransactionCount(addressOrName, blockTag) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.getNetwork();

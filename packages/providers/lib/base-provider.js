@@ -870,6 +870,27 @@ var BaseProvider = /** @class */ (function (_super) {
             });
         });
     };
+    BaseProvider.prototype.getBalance = function (addressOrName, blockTag) {
+        return __awaiter(this, void 0, void 0, function () {
+            var params, _a, _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0: return [4 /*yield*/, this.getNetwork()];
+                    case 1:
+                        _c.sent();
+                        return [4 /*yield*/, properties_1.resolveProperties({
+                                address: this._getAddress(addressOrName),
+                                blockTag: this._getBlockTag(blockTag)
+                            })];
+                    case 2:
+                        params = _c.sent();
+                        _b = (_a = bignumber_1.BigNumber).from;
+                        return [4 /*yield*/, this.perform('getBalance', params)];
+                    case 3: return [2 /*return*/, _b.apply(_a, [_c.sent()])];
+                }
+            });
+        });
+    };
     BaseProvider.prototype.getTransactionCount = function (addressOrName, blockTag) {
         return __awaiter(this, void 0, void 0, function () {
             var params, _a, _b;
