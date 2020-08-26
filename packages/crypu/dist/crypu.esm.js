@@ -12758,32 +12758,40 @@ class Formatter {
             address: address,
             data: data,
             topics: Formatter.arrayOf(hash),
+            blockHash: Formatter.allowNull(hash),
+            blockNumber: Formatter.allowNull(number),
+            transactionHash: Formatter.allowNull(hash),
+            transactionIndex: Formatter.allowNull(number),
+            logIndex: Formatter.allowNull(number),
         };
         formats.receipt = {
             to: Formatter.allowNull(this.address, null),
             from: Formatter.allowNull(this.address, null),
             contractAddress: Formatter.allowNull(address, null),
-            input: data,
-            output: data,
-            root: Formatter.allowNull(hash),
             gasUsed: bigNumber,
-            logsBloom: Formatter.allowNull(data),
             blockHash: hash,
             blockNumber: number,
             transactionHash: hash,
             transactionIndex: number,
+            root: Formatter.allowNull(hash),
             logs: Formatter.arrayOf(this.receiptLog.bind(this)),
-            confirmations: Formatter.allowNull(number, null),
+            logsBloom: Formatter.allowNull(data, null),
             status: Formatter.allowNull(number),
+            input: Formatter.allowNull(data),
+            output: Formatter.allowNull(data),
+            cumulativeGasUsed: Formatter.allowNull(bigNumber),
+            confirmations: Formatter.allowNull(number, null),
         };
         formats.block = {
-            extraData: Formatter.arrayOf(hex),
+            timestamp: number,
+            nonce: Formatter.allowNull(hex),
+            difficulty: this.difficulty.bind(this),
+            extraData: this.extraData.bind(this),
             gasLimit: bigNumber,
             gasUsed: bigNumber,
             hash: hash,
             parentHash: hash,
             number: number,
-            timestamp: number,
             sealer: hex,
             sealerList: Formatter.arrayOf(hex),
             transactions: Formatter.arrayOf(hash),
@@ -12847,7 +12855,7 @@ class Formatter {
                 return value.toLowerCase();
             }
         }
-        return logger$j.throwArgumentError('invalid hash', 'value', value);
+        return logger$j.throwArgumentError('invalid hex', 'value', value);
     }
     data(value, strict) {
         const result = this.hex(value, strict);
@@ -12894,6 +12902,26 @@ class Formatter {
         }
         return result;
     }
+    difficulty(value) {
+        if (value == null) {
+            return undefined;
+        }
+        const v = BigNumber.from(value);
+        try {
+            return v.toNumber();
+        }
+        catch (error) { }
+        return undefined;
+    }
+    extraData(value) {
+        if (value == null) {
+            return null;
+        }
+        if (typeof value === 'string') {
+            return this.hex(value, true);
+        }
+        return Formatter.arrayOf(this.hex.bind(this))(value);
+    }
     uint256(value) {
         if (!isHexString(value)) {
             throw new Error('invalid uint256');
@@ -12901,8 +12929,9 @@ class Formatter {
         return hexZeroPad(value, 32);
     }
     _block(value, format) {
-        if (value.author != null && value.miner == null) {
-            value.miner = value.author;
+        if (value.miner != null && value.sealer == null) {
+            value.sealer = value.miner;
+            value.sealerList = [];
         }
         return Formatter.check(format, value);
     }
@@ -13727,6 +13756,16 @@ class BaseProvider extends Provider {
         return __awaiter$3(this, void 0, void 0, function* () {
             yield this.getNetwork();
             return this.perform('getGroupList', []);
+        });
+    }
+    getBalance(addressOrName, blockTag) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            const params = yield resolveProperties({
+                address: this._getAddress(addressOrName),
+                blockTag: this._getBlockTag(blockTag)
+            });
+            return BigNumber.from(yield this.perform('getBalance', params));
         });
     }
     getTransactionCount(addressOrName, blockTag) {
@@ -18725,4 +18764,4 @@ function verifyMessage(message, signature) {
  */
 'use strict';
 
-export { EventFragment, Fragment, FunctionFragment, Interface$1 as Interface, JsonRpcProvider, Provider, Wallet };
+export { Chain, EventFragment, Fragment, FunctionFragment, Interface$1 as Interface, JsonRpcProvider, Provider, Wallet };
