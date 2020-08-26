@@ -234,7 +234,7 @@ var testData = [
             chain: providers_1.Chain.FISCO,
             url: 'http://47.56.165.246:8545',
             network: {
-                name: 'fisco-bcos',
+                name: 'fisco',
                 chainId: 1,
             },
             groupId: 1,
@@ -341,7 +341,7 @@ var testData = [
         ],
     },
 ];
-function testWallet(providerConf, example) {
+function Test(providerConf, example) {
     var provider = new providers_1.JsonRpcProvider(providerConf.chain, providerConf.url, providerConf.network, providerConf.groupId);
     // Initialize wallet with mnem phrases
     var wallet = wallet_1.Wallet.fromMnemonic(example.walletMnemPhrase);
@@ -438,6 +438,6 @@ testData.forEach(function (data) {
     var providerConfig = data.providerConfig;
     var testExample = data.examples;
     testExample.forEach(function (example) {
-        testWallet(providerConfig, example);
+        Test(providerConfig, example);
     });
 });
