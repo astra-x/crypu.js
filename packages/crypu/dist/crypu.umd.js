@@ -13956,32 +13956,40 @@
 	            address: address,
 	            data: data,
 	            topics: Formatter.arrayOf(hash),
+	            blockHash: Formatter.allowNull(hash),
+	            blockNumber: Formatter.allowNull(number),
+	            transactionHash: Formatter.allowNull(hash),
+	            transactionIndex: Formatter.allowNull(number),
+	            logIndex: Formatter.allowNull(number),
 	        };
 	        formats.receipt = {
 	            to: Formatter.allowNull(this.address, null),
 	            from: Formatter.allowNull(this.address, null),
 	            contractAddress: Formatter.allowNull(address, null),
-	            input: data,
-	            output: data,
-	            root: Formatter.allowNull(hash),
 	            gasUsed: bigNumber,
-	            logsBloom: Formatter.allowNull(data),
 	            blockHash: hash,
 	            blockNumber: number,
 	            transactionHash: hash,
 	            transactionIndex: number,
+	            root: Formatter.allowNull(hash),
 	            logs: Formatter.arrayOf(this.receiptLog.bind(this)),
-	            confirmations: Formatter.allowNull(number, null),
+	            logsBloom: Formatter.allowNull(data, null),
 	            status: Formatter.allowNull(number),
+	            input: Formatter.allowNull(data),
+	            output: Formatter.allowNull(data),
+	            cumulativeGasUsed: Formatter.allowNull(bigNumber),
+	            confirmations: Formatter.allowNull(number, null),
 	        };
 	        formats.block = {
-	            extraData: Formatter.arrayOf(hex),
+	            timestamp: number,
+	            nonce: Formatter.allowNull(hex),
+	            difficulty: this.difficulty.bind(this),
+	            extraData: this.extraData.bind(this),
 	            gasLimit: bigNumber,
 	            gasUsed: bigNumber,
 	            hash: hash,
 	            parentHash: hash,
 	            number: number,
-	            timestamp: number,
 	            sealer: hex,
 	            sealerList: Formatter.arrayOf(hex),
 	            transactions: Formatter.arrayOf(hash),
@@ -14045,7 +14053,7 @@
 	                return value.toLowerCase();
 	            }
 	        }
-	        return logger.throwArgumentError('invalid hash', 'value', value);
+	        return logger.throwArgumentError('invalid hex', 'value', value);
 	    };
 	    Formatter.prototype.data = function (value, strict) {
 	        var result = this.hex(value, strict);
@@ -14092,6 +14100,26 @@
 	        }
 	        return result;
 	    };
+	    Formatter.prototype.difficulty = function (value) {
+	        if (value == null) {
+	            return undefined;
+	        }
+	        var v = lib$2.BigNumber.from(value);
+	        try {
+	            return v.toNumber();
+	        }
+	        catch (error) { }
+	        return undefined;
+	    };
+	    Formatter.prototype.extraData = function (value) {
+	        if (value == null) {
+	            return null;
+	        }
+	        if (typeof value === 'string') {
+	            return this.hex(value, true);
+	        }
+	        return Formatter.arrayOf(this.hex.bind(this))(value);
+	    };
 	    Formatter.prototype.uint256 = function (value) {
 	        if (!lib$1.isHexString(value)) {
 	            throw new Error('invalid uint256');
@@ -14099,8 +14127,9 @@
 	        return lib$1.hexZeroPad(value, 32);
 	    };
 	    Formatter.prototype._block = function (value, format) {
-	        if (value.author != null && value.miner == null) {
-	            value.miner = value.author;
+	        if (value.miner != null && value.sealer == null) {
+	            value.sealer = value.miner;
+	            value.sealerList = [];
 	        }
 	        return Formatter.check(format, value);
 	    };
@@ -15139,6 +15168,27 @@
 	                    case 1:
 	                        _a.sent();
 	                        return [2 /*return*/, this.perform('getGroupList', [])];
+	                }
+	            });
+	        });
+	    };
+	    BaseProvider.prototype.getBalance = function (addressOrName, blockTag) {
+	        return __awaiter(this, void 0, void 0, function () {
+	            var params, _a, _b;
+	            return __generator(this, function (_c) {
+	                switch (_c.label) {
+	                    case 0: return [4 /*yield*/, this.getNetwork()];
+	                    case 1:
+	                        _c.sent();
+	                        return [4 /*yield*/, lib$3.resolveProperties({
+	                                address: this._getAddress(addressOrName),
+	                                blockTag: this._getBlockTag(blockTag)
+	                            })];
+	                    case 2:
+	                        params = _c.sent();
+	                        _b = (_a = lib$2.BigNumber).from;
+	                        return [4 /*yield*/, this.perform('getBalance', params)];
+	                    case 3: return [2 /*return*/, _b.apply(_a, [_c.sent()])];
 	                }
 	            });
 	        });
@@ -21027,6 +21077,7 @@
 
 	Object.defineProperty(exports, "Provider", { enumerable: true, get: function () { return lib$c.Provider; } });
 
+	Object.defineProperty(exports, "Chain", { enumerable: true, get: function () { return lib$h.Chain; } });
 	Object.defineProperty(exports, "JsonRpcProvider", { enumerable: true, get: function () { return lib$h.JsonRpcProvider; } });
 
 	Object.defineProperty(exports, "Wallet", { enumerable: true, get: function () { return lib$o.Wallet; } });
