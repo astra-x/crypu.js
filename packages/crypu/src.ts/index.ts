@@ -66,17 +66,9 @@
 // async getBlockNumber(): Promise<number>
 // async getGasPrice(): Promise<BigNumber>
 
-export {
-  BytesLike,
-} from '@ethersproject/bytes';
-
-export {
-  Deferrable,
-} from '@ethersproject/properties';
-
-export {
-  Network,
-} from '@ethersproject/networks';
+export { BytesLike } from '@ethersproject/bytes';
+export { Deferrable } from '@ethersproject/properties';
+export { Network } from '@ethersproject/networks';
 
 export {
   JsonFragment,
@@ -86,7 +78,6 @@ export {
   Result,
   Interface,
 } from '@crypujs/abi';
-
 export {
   ClientVersion,
   SyncStatus,
@@ -99,16 +90,10 @@ export {
   BlockWithTransactions,
   Provider,
 } from '@crypujs/abstract-provider';
-
-export {
-  ExternallyOwnedAccount,
-} from '@crypujs/abstract-signer';
-
+export { ExternallyOwnedAccount } from '@crypujs/abstract-signer';
 export {
   Chain,
   JsonRpcProvider,
 } from '@crypujs/providers';
-
-export {
-  Wallet,
-} from '@crypujs/wallet';
+export { SigningEscrow } from '@crypujs/signing-escrow';
+export { Wallet } from '@crypujs/wallet';
