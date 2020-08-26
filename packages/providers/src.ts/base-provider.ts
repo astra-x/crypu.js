@@ -796,6 +796,15 @@ export class BaseProvider extends Provider {
     return this.perform('getGroupList', []);
   }
 
+  async getBalance(addressOrName: string | Promise<string>, blockTag?: BlockTag | Promise<BlockTag>): Promise<BigNumber> {
+    await this.getNetwork();
+    const params = await resolveProperties({
+      address: this._getAddress(addressOrName),
+      blockTag: this._getBlockTag(blockTag)
+    });
+    return BigNumber.from(await this.perform('getBalance', params));
+  }
+
   async getTransactionCount(addressOrName: string | Promise<string>, blockTag?: BlockTag | Promise<BlockTag>): Promise<number> {
     await this.getNetwork();
     const params = await resolveProperties({
