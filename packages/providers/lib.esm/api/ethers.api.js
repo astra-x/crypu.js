@@ -20,6 +20,9 @@
  * @date 2020
  */
 export const Api = {
+    detectChainId: (send) => {
+        return () => send('eth_chainId', []);
+    },
     prepareRequest: (method, params) => {
         switch (method) {
             case 'getBlockNumber':

@@ -20,7 +20,15 @@
  * @date 2020
  */
 
-export const Api = {
+import { ClientVersion } from '@crypujs/abstract-provider';
+
+export var Api = {
+  detectChainId: (send: (method: string, params: Array<any>) => Promise<any>): () => Promise<number> => {
+    return (): Promise<number> =>
+      send('getClientVersion', []).then(
+        (clientVersion: ClientVersion) => Number(clientVersion['Chain Id'])
+      );
+  },
   prepareRequest: (groupId: number): ((method: string, params: any) => [string, Array<any>]) => {
     return (method: string, params: any): [string, Array<any>] => {
       switch (method) {

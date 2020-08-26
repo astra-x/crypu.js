@@ -21,6 +21,9 @@
  */
 
 export const Api = {
+  detectChainId: (send: (method: string, params: Array<any>) => Promise<any>): () => Promise<number> => {
+    return (): Promise<number> => send('eth_chainId', []);
+  },
   prepareRequest: (method: string, params: any): [string, Array<any>] => {
     switch (method) {
       case 'getBlockNumber':

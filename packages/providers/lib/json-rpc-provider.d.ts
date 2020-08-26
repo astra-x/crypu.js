@@ -14,6 +14,7 @@ interface Connection {
 export declare class JsonRpcProvider extends BaseProvider {
     _nextId: number;
     readonly connection: Connection;
+    readonly detectChainId: () => Promise<number>;
     readonly prepareRequest: (method: string, params: any) => [string, Array<any>];
     constructor(chain: Chain, url?: string, network?: Network | Promise<Network>, groupId?: number);
     static defaultUrl(): string;

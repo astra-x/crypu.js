@@ -14103,6 +14103,9 @@ function poll(func, options) {
  * @date 2020
  */
 const Api = {
+    detectChainId: (send) => {
+        return () => send('eth_chainId', []);
+    },
     prepareRequest: (method, params) => {
         switch (method) {
             case 'getBlockNumber':
@@ -14170,7 +14173,10 @@ const Api = {
  * @author Youtao Xing <youtao.xing@icloud.com>
  * @date 2020
  */
-const Api$1 = {
+var Api$1 = {
+    detectChainId: (send) => {
+        return () => send('getClientVersion', []).then((clientVersion) => Promise.resolve(Number(clientVersion['Chain Id'])));
+    },
     prepareRequest: (groupId) => {
         return (method, params) => {
             switch (method) {
@@ -19723,6 +19729,7 @@ class BaseProvider extends Provider {
     }
     getGasPrice() {
         return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
             return BigNumber.from(300000000);
         });
     }
@@ -20335,10 +20342,12 @@ class JsonRpcProvider extends BaseProvider {
         defineReadOnly(this, 'connection', { url: url });
         switch (chain) {
             case Chain.ETHERS: {
+                defineReadOnly(this, 'detectChainId', Api.detectChainId(this.send.bind(this)));
                 defineReadOnly(this, 'prepareRequest', Api.prepareRequest);
                 break;
             }
             case Chain.FISCO: {
+                defineReadOnly(this, 'detectChainId', Api$1.detectChainId(this.send.bind(this)));
                 defineReadOnly(this, 'prepareRequest', Api$1.prepareRequest(this.groupId));
                 break;
             }
@@ -20362,10 +20371,9 @@ class JsonRpcProvider extends BaseProvider {
     }
     detectNetwork() {
         return __awaiter$4(this, void 0, void 0, function* () {
-            let network = yield getStatic(this.constructor, 'defaultNetwork')();
+            let network = this.network;
             try {
-                const clientVersion = yield this.send('getClientVersion', []);
-                const chainId = clientVersion === null || clientVersion === void 0 ? void 0 : clientVersion.result['Chain Id'];
+                const chainId = yield this.detectChainId();
                 if (chainId) {
                     network.chainId = Number(chainId);
                 }
@@ -20422,6 +20430,9 @@ class JsonRpcProvider extends BaseProvider {
     perform(method, params) {
         return __awaiter$4(this, void 0, void 0, function* () {
             let args = this.prepareRequest(method, params);
+            if (!!args) {
+                return null;
+            }
             return this.send(args[0], args[1]);
         });
     }

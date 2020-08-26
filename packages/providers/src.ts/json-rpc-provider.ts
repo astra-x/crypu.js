@@ -35,7 +35,6 @@ import {
 } from '@ethersproject/properties'
 
 import { fetchJson } from '@crypujs/web';
-import { ClientVersion } from '@crypujs/abstract-provider';
 
 import { Chain } from './constants';
 import { Api as EthersApi } from './api/ethers.api';
@@ -60,6 +59,8 @@ export class JsonRpcProvider extends BaseProvider {
   _nextId: number;
   readonly connection: Connection;
 
+  // compatible for ethers and fisco
+  readonly detectChainId: () => Promise<number>;
   readonly prepareRequest: (method: string, params: any) => [string, Array<any>];
 
   constructor(chain: Chain, url?: string, network?: Network | Promise<Network>, groupId?: number) {
@@ -74,10 +75,12 @@ export class JsonRpcProvider extends BaseProvider {
 
     switch (chain) {
       case Chain.ETHERS: {
+        defineReadOnly(this, 'detectChainId', EthersApi.detectChainId(this.send.bind(this)));
         defineReadOnly(this, 'prepareRequest', EthersApi.prepareRequest);
         break;
       }
       case Chain.FISCO: {
+        defineReadOnly(this, 'detectChainId', FiscoApi.detectChainId(this.send.bind(this)));
         defineReadOnly(this, 'prepareRequest', FiscoApi.prepareRequest(this.groupId));
         break;
       }
@@ -106,10 +109,9 @@ export class JsonRpcProvider extends BaseProvider {
   }
 
   async detectNetwork(): Promise<Network> {
-    let network: Network = await getStatic<() => Promise<Network>>(this.constructor, 'defaultNetwork')();
+    let network: Network = this.network;
     try {
-      const clientVersion: Response<ClientVersion> = await this.send('getClientVersion', []);
-      const chainId = clientVersion ?.result['Chain Id'];
+      const chainId = await this.detectChainId();
       if (chainId) {
         network.chainId = Number(chainId);
       } else {
@@ -164,6 +166,7 @@ export class JsonRpcProvider extends BaseProvider {
 
   async perform(method: string, params: any): Promise<any> {
     let args = this.prepareRequest(method, params);
+    if (!!args) { return null; }
 
     return this.send(args[0], args[1]);
   }
