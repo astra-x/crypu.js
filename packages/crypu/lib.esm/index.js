@@ -23,4 +23,5 @@
 export { Fragment, FunctionFragment, EventFragment, Interface, } from '@crypujs/abi';
 export { Provider, } from '@crypujs/abstract-provider';
 export { Chain, JsonRpcProvider, } from '@crypujs/providers';
-export { Wallet, } from '@crypujs/wallet';
+export { SigningEscrow } from '@crypujs/signing-escrow';
+export { Wallet } from '@crypujs/wallet';

@@ -8,6 +8,7 @@
     "@crypujs/abstract-provider": "^1.1.0",
     "@crypujs/abstract-signer": "^1.1.0",
     "@crypujs/providers": "^1.1.0",
+    "@crypujs/signing-escrow": "^1.0.0",
     "@crypujs/wallet": "^1.1.0",
     "@ethersproject/bytes": "^5.0.3",
     "@ethersproject/networks": "^5.0.2",
