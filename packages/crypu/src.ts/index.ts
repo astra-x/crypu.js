@@ -105,6 +105,7 @@ export {
 } from '@crypujs/abstract-signer';
 
 export {
+  Chain,
   JsonRpcProvider,
 } from '@crypujs/providers';
 

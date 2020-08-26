@@ -29,7 +29,7 @@ const testData = [
             chain: Chain.FISCO,
             url: 'http://47.56.165.246:8545',
             network: {
-                name: 'fisco-bcos',
+                name: 'fisco',
                 chainId: 1,
             },
             groupId: 1,
@@ -199,7 +199,7 @@ const testData = [
         ],
     },
 ];
-function testProvider(providerConf, example) {
+function Test(providerConf, example) {
     const provider = new JsonRpcProvider(providerConf.chain, providerConf.url, providerConf.network, providerConf.groupId);
     test('provider.getClientVersion', () => {
         provider.getClientVersion().then((result) => {
@@ -318,6 +318,6 @@ testData.forEach((data) => {
     const providerConfig = data.providerConfig;
     const testExamples = data.examples;
     testExamples.forEach((example) => {
-        testProvider(providerConfig, example);
+        Test(providerConfig, example);
     });
 });

@@ -33,6 +33,8 @@ export declare class Formatter {
     contractAddress(value: any): string;
     blockTag(blockTag: any): string;
     hash(value: any, strict?: boolean): string;
+    difficulty(value: any): number;
+    extraData(value: any): any;
     uint256(value: any): string;
     _block(value: any, format: any): Block;
     block(value: any): Block;

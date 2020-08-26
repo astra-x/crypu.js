@@ -591,7 +591,7 @@ const testData: Array<TestData> = [
       chain: Chain.FISCO,
       url: 'http://47.56.165.246:8545',
       network: {
-        name: 'fisco-bcos',
+        name: 'fisco',
         chainId: 1,
       },
       groupId: 1,
@@ -709,6 +709,7 @@ const testData: Array<TestData> = [
         groupList: [1],
         blockTag: 0x1,
         blockByTag: {
+          timestamp: 1593594576348,
           extraData: [],
           gasLimit: { _hex: '0x00', _isBigNumber: true },
           gasUsed: { _hex: '0x00', _isBigNumber: true },
@@ -717,7 +718,6 @@ const testData: Array<TestData> = [
           parentHash:
             '0xe20e59e7dc025d979ffafafe8ef19f13d4060715b0f16f1050bdf7710e98ebd0',
           number: 1,
-          timestamp: 1593594576348,
           sealer: '0x1',
           sealerList: [
             '0x12560d0039c511a2a71b99bcf9267d0d21c4a8ff3beb1a80920c467b3d03150d5d1f2a7fc926457a1fbff3f7cd9000bfe97973294267859a7299a968635ef09e',
@@ -1166,7 +1166,7 @@ const testData: Array<TestData> = [
   },
 ];
 
-function fiscoTest(config: ProviderConfig, example: Example, abi: Interface) {
+function Test(config: ProviderConfig, example: Example, abi: Interface) {
   const provider = new JsonRpcProvider(
     config.chain,
     config.url,
@@ -1615,6 +1615,6 @@ function matchTransaction(block: BlockWithTransactions | Block, example: any) {
 
 testData.forEach((data) => {
   data.examples.forEach((example) => {
-    fiscoTest(data.providerConfig, example, data.abi);
+    Test(data.providerConfig, example, data.abi);
   });
 });

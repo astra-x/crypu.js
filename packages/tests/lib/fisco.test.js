@@ -518,7 +518,7 @@ var testData = [
             chain: providers_1.Chain.FISCO,
             url: 'http://47.56.165.246:8545',
             network: {
-                name: 'fisco-bcos',
+                name: 'fisco',
                 chainId: 1,
             },
             groupId: 1,
@@ -617,13 +617,13 @@ var testData = [
                 groupList: [1],
                 blockTag: 0x1,
                 blockByTag: {
+                    timestamp: 1593594576348,
                     extraData: [],
                     gasLimit: { _hex: '0x00', _isBigNumber: true },
                     gasUsed: { _hex: '0x00', _isBigNumber: true },
                     hash: '0x3bc32897ea43e6667ffb0409990dbdea218525d754bcee354ce45c8b97a24df7',
                     parentHash: '0xe20e59e7dc025d979ffafafe8ef19f13d4060715b0f16f1050bdf7710e98ebd0',
                     number: 1,
-                    timestamp: 1593594576348,
                     sealer: '0x1',
                     sealerList: [
                         '0x12560d0039c511a2a71b99bcf9267d0d21c4a8ff3beb1a80920c467b3d03150d5d1f2a7fc926457a1fbff3f7cd9000bfe97973294267859a7299a968635ef09e',
@@ -1020,7 +1020,7 @@ var testData = [
         ],
     },
 ];
-function fiscoTest(config, example, abi) {
+function Test(config, example, abi) {
     var provider = new crypu_1.JsonRpcProvider(config.chain, config.url, config.network, config.groupId);
     test('abi.getFunction by signature', function () {
         var result = abi.getFunction(example.abiTestData.function.functionFragmentSig);
@@ -1345,6 +1345,6 @@ function matchTransaction(block, example) {
 }
 testData.forEach(function (data) {
     data.examples.forEach(function (example) {
-        fiscoTest(data.providerConfig, example, data.abi);
+        Test(data.providerConfig, example, data.abi);
     });
 });

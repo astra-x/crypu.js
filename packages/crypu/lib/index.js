@@ -29,6 +29,7 @@ Object.defineProperty(exports, "Interface", { enumerable: true, get: function ()
 var abstract_provider_1 = require("@crypujs/abstract-provider");
 Object.defineProperty(exports, "Provider", { enumerable: true, get: function () { return abstract_provider_1.Provider; } });
 var providers_1 = require("@crypujs/providers");
+Object.defineProperty(exports, "Chain", { enumerable: true, get: function () { return providers_1.Chain; } });
 Object.defineProperty(exports, "JsonRpcProvider", { enumerable: true, get: function () { return providers_1.JsonRpcProvider; } });
 var wallet_1 = require("@crypujs/wallet");
 Object.defineProperty(exports, "Wallet", { enumerable: true, get: function () { return wallet_1.Wallet; } });

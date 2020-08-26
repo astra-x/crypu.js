@@ -22,5 +22,5 @@
 'use strict';
 export { Fragment, FunctionFragment, EventFragment, Interface, } from '@crypujs/abi';
 export { Provider, } from '@crypujs/abstract-provider';
-export { JsonRpcProvider, } from '@crypujs/providers';
+export { Chain, JsonRpcProvider, } from '@crypujs/providers';
 export { Wallet, } from '@crypujs/wallet';

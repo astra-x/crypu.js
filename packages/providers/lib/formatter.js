@@ -98,13 +98,15 @@ var Formatter = /** @class */ (function () {
             status: Formatter.allowNull(number),
         };
         formats.block = {
-            extraData: Formatter.arrayOf(hex),
+            timestamp: number,
+            nonce: Formatter.allowNull(hex),
+            difficulty: this.difficulty.bind(this),
+            extraData: this.extraData.bind(this),
             gasLimit: bigNumber,
             gasUsed: bigNumber,
             hash: hash,
             parentHash: hash,
             number: number,
-            timestamp: number,
             sealer: hex,
             sealerList: Formatter.arrayOf(hex),
             transactions: Formatter.arrayOf(hash),
@@ -168,7 +170,7 @@ var Formatter = /** @class */ (function () {
                 return value.toLowerCase();
             }
         }
-        return logger.throwArgumentError('invalid hash', 'value', value);
+        return logger.throwArgumentError('invalid hex', 'value', value);
     };
     Formatter.prototype.data = function (value, strict) {
         var result = this.hex(value, strict);
@@ -215,6 +217,26 @@ var Formatter = /** @class */ (function () {
         }
         return result;
     };
+    Formatter.prototype.difficulty = function (value) {
+        if (value == null) {
+            return undefined;
+        }
+        var v = bignumber_1.BigNumber.from(value);
+        try {
+            return v.toNumber();
+        }
+        catch (error) { }
+        return undefined;
+    };
+    Formatter.prototype.extraData = function (value) {
+        if (value == null) {
+            return null;
+        }
+        if (typeof value === 'string') {
+            return this.hex(value, true);
+        }
+        return Formatter.arrayOf(this.hex.bind(this))(value);
+    };
     Formatter.prototype.uint256 = function (value) {
         if (!bytes_1.isHexString(value)) {
             throw new Error('invalid uint256');
@@ -222,8 +244,9 @@ var Formatter = /** @class */ (function () {
         return bytes_1.hexZeroPad(value, 32);
     };
     Formatter.prototype._block = function (value, format) {
-        if (value.author != null && value.miner == null) {
-            value.miner = value.author;
+        if (value.miner != null && value.sealer == null) {
+            value.sealer = value.miner;
+            value.sealerList = [];
         }
         return Formatter.check(format, value);
     };

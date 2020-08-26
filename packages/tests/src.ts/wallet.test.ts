@@ -278,7 +278,7 @@ const testData: Array<TestData> = [
       chain: Chain.FISCO,
       url: 'http://47.56.165.246:8545',
       network: {
-        name: 'fisco-bcos',
+        name: 'fisco',
         chainId: 1,
       },
       groupId: 1,
@@ -409,7 +409,7 @@ const testData: Array<TestData> = [
   },
 ];
 
-function testWallet(providerConf: ProviderConfig, example: Example) {
+function Test(providerConf: ProviderConfig, example: Example) {
   const provider = new JsonRpcProvider(
     providerConf.chain,
     providerConf.url,
@@ -527,6 +527,6 @@ testData.forEach((data: TestData) => {
   const providerConfig: ProviderConfig = data.providerConfig;
   const testExample: Array<Example> = data.examples;
   testExample.forEach((example: Example) => {
-    testWallet(providerConfig, example);
+    Test(providerConfig, example);
   });
 });

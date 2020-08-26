@@ -134,13 +134,15 @@ export class Formatter {
       status: Formatter.allowNull(number),
     };
     formats.block = {
-      extraData: Formatter.arrayOf(hex),
+      timestamp: number,
+      nonce: Formatter.allowNull(hex),
+      difficulty: this.difficulty.bind(this),
+      extraData: this.extraData.bind(this),
       gasLimit: bigNumber,
       gasUsed: bigNumber,
       hash: hash,
       parentHash: hash,
       number: number,
-      timestamp: number,
       sealer: hex,
       sealerList: Formatter.arrayOf(hex),
       transactions: Formatter.arrayOf(hash),
@@ -200,7 +202,7 @@ export class Formatter {
         return value.toLowerCase();
       }
     }
-    return logger.throwArgumentError('invalid hash', 'value', value);
+    return logger.throwArgumentError('invalid hex', 'value', value);
   }
 
   data(value: any, strict?: boolean): string {
@@ -252,6 +254,27 @@ export class Formatter {
     return result;
   }
 
+  difficulty(value: any): number {
+    if (value == null) { return undefined; }
+
+    const v = BigNumber.from(value);
+    try {
+      return v.toNumber();
+    } catch (error) { }
+
+    return undefined;
+  }
+
+  extraData(value: any): any {
+    if (value == null) { return null; }
+
+    if (typeof value === 'string') {
+      return this.hex(value, true);
+    }
+
+    return Formatter.arrayOf(this.hex.bind(this))(value);
+  }
+
   uint256(value: any): string {
     if (!isHexString(value)) {
       throw new Error('invalid uint256');
@@ -260,8 +283,9 @@ export class Formatter {
   }
 
   _block(value: any, format: any): Block {
-    if (value.author != null && value.miner == null) {
-      value.miner = value.author;
+    if (value.miner != null && value.sealer == null) {
+      value.sealer = value.miner;
+      value.sealerList = [];
     }
     return Formatter.check(format, value);
   }
