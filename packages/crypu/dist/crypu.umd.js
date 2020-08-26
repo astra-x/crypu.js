@@ -15865,6 +15865,9 @@
 	Object.defineProperty(exports, "__esModule", { value: true });
 	exports.Api = void 0;
 	exports.Api = {
+	    detectChainId: function (send) {
+	        return function () { return send('eth_chainId', []); };
+	    },
 	    prepareRequest: function (method, params) {
 	        switch (method) {
 	            case 'getBlockNumber':
@@ -15941,6 +15944,11 @@
 	Object.defineProperty(exports, "__esModule", { value: true });
 	exports.Api = void 0;
 	exports.Api = {
+	    detectChainId: function (send) {
+	        return function () {
+	            return send('getClientVersion', []).then(function (clientVersion) { return Promise.resolve(Number(clientVersion['Chain Id'])); });
+	        };
+	    },
 	    prepareRequest: function (groupId) {
 	        return function (method, params) {
 	            switch (method) {
@@ -21837,7 +21845,12 @@
 	    BaseProvider.prototype.getGasPrice = function () {
 	        return __awaiter(this, void 0, void 0, function () {
 	            return __generator(this, function (_a) {
-	                return [2 /*return*/, lib$3.BigNumber.from(300000000)];
+	                switch (_a.label) {
+	                    case 0: return [4 /*yield*/, this.getNetwork()];
+	                    case 1:
+	                        _a.sent();
+	                        return [2 /*return*/, lib$3.BigNumber.from(300000000)];
+	                }
 	            });
 	        });
 	    };
@@ -22780,10 +22793,12 @@
 	        lib$5.defineReadOnly(_this, 'connection', { url: url });
 	        switch (chain) {
 	            case constants.Chain.ETHERS: {
+	                lib$5.defineReadOnly(_this, 'detectChainId', ethers_api.Api.detectChainId(_this.send.bind(_this)));
 	                lib$5.defineReadOnly(_this, 'prepareRequest', ethers_api.Api.prepareRequest);
 	                break;
 	            }
 	            case constants.Chain.FISCO: {
+	                lib$5.defineReadOnly(_this, 'detectChainId', fisco_api.Api.detectChainId(_this.send.bind(_this)));
 	                lib$5.defineReadOnly(_this, 'prepareRequest', fisco_api.Api.prepareRequest(_this.groupId));
 	                break;
 	            }
@@ -22808,34 +22823,32 @@
 	    };
 	    JsonRpcProvider.prototype.detectNetwork = function () {
 	        return __awaiter(this, void 0, void 0, function () {
-	            var network, clientVersion, chainId, error_1;
+	            var network, chainId, error_1;
 	            return __generator(this, function (_a) {
 	                switch (_a.label) {
-	                    case 0: return [4 /*yield*/, lib$5.getStatic(this.constructor, 'defaultNetwork')()];
+	                    case 0:
+	                        network = this.network;
+	                        _a.label = 1;
 	                    case 1:
-	                        network = _a.sent();
-	                        _a.label = 2;
+	                        _a.trys.push([1, 3, 4, 5]);
+	                        return [4 /*yield*/, this.detectChainId()];
 	                    case 2:
-	                        _a.trys.push([2, 4, 5, 6]);
-	                        return [4 /*yield*/, this.send('getClientVersion', [])];
-	                    case 3:
-	                        clientVersion = _a.sent();
-	                        chainId = clientVersion === null || clientVersion === void 0 ? void 0 : clientVersion.result['Chain Id'];
+	                        chainId = _a.sent();
 	                        if (chainId) {
 	                            network.chainId = Number(chainId);
 	                        }
 	                        else {
 	                            throw new Error('could not detect network');
 	                        }
-	                        return [3 /*break*/, 6];
-	                    case 4:
+	                        return [3 /*break*/, 5];
+	                    case 3:
 	                        error_1 = _a.sent();
 	                        return [2 /*return*/, logger.throwError('could not detect network', lib.Logger.errors.NETWORK_ERROR, {
 	                                event: 'noNetwork',
 	                                serverError: error_1,
 	                            })];
-	                    case 5: return [2 /*return*/, lib$5.getStatic(this.constructor, 'getNetwork')(network)];
-	                    case 6: return [2 /*return*/];
+	                    case 4: return [2 /*return*/, lib$5.getStatic(this.constructor, 'getNetwork')(network)];
+	                    case 5: return [2 /*return*/];
 	                }
 	            });
 	        });
@@ -22884,6 +22897,9 @@
 	            var args;
 	            return __generator(this, function (_a) {
 	                args = this.prepareRequest(method, params);
+	                if (!!args) {
+	                    return [2 /*return*/, null];
+	                }
 	                return [2 /*return*/, this.send(args[0], args[1])];
 	            });
 	        });

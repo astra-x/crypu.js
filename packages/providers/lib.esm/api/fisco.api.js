@@ -19,7 +19,10 @@
  * @author Youtao Xing <youtao.xing@icloud.com>
  * @date 2020
  */
-export const Api = {
+export var Api = {
+    detectChainId: (send) => {
+        return () => send('getClientVersion', []).then((clientVersion) => Promise.resolve(Number(clientVersion['Chain Id'])));
+    },
     prepareRequest: (groupId) => {
         return (method, params) => {
             switch (method) {

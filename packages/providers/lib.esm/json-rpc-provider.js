@@ -55,10 +55,12 @@ export class JsonRpcProvider extends BaseProvider {
         defineReadOnly(this, 'connection', { url: url });
         switch (chain) {
             case Chain.ETHERS: {
+                defineReadOnly(this, 'detectChainId', EthersApi.detectChainId(this.send.bind(this)));
                 defineReadOnly(this, 'prepareRequest', EthersApi.prepareRequest);
                 break;
             }
             case Chain.FISCO: {
+                defineReadOnly(this, 'detectChainId', FiscoApi.detectChainId(this.send.bind(this)));
                 defineReadOnly(this, 'prepareRequest', FiscoApi.prepareRequest(this.groupId));
                 break;
             }
@@ -82,10 +84,9 @@ export class JsonRpcProvider extends BaseProvider {
     }
     detectNetwork() {
         return __awaiter(this, void 0, void 0, function* () {
-            let network = yield getStatic(this.constructor, 'defaultNetwork')();
+            let network = this.network;
             try {
-                const clientVersion = yield this.send('getClientVersion', []);
-                const chainId = clientVersion === null || clientVersion === void 0 ? void 0 : clientVersion.result['Chain Id'];
+                const chainId = yield this.detectChainId();
                 if (chainId) {
                     network.chainId = Number(chainId);
                 }
@@ -142,6 +143,9 @@ export class JsonRpcProvider extends BaseProvider {
     perform(method, params) {
         return __awaiter(this, void 0, void 0, function* () {
             let args = this.prepareRequest(method, params);
+            if (!!args) {
+                return null;
+            }
             return this.send(args[0], args[1]);
         });
     }
