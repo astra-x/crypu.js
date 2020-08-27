@@ -21832,12 +21832,15 @@
 	    };
 	    BaseProvider.prototype.getGasPrice = function () {
 	        return __awaiter(this, void 0, void 0, function () {
-	            return __generator(this, function (_a) {
-	                switch (_a.label) {
+	            var _a, _b;
+	            return __generator(this, function (_c) {
+	                switch (_c.label) {
 	                    case 0: return [4 /*yield*/, this.getNetwork()];
 	                    case 1:
-	                        _a.sent();
-	                        return [2 /*return*/, this.perform('getGasPrice', {}).then(function (gasPrice) { return lib$3.BigNumber.from(gasPrice || 300000000); })];
+	                        _c.sent();
+	                        _b = (_a = lib$3.BigNumber).from;
+	                        return [4 /*yield*/, this.perform('getGasPrice', {})];
+	                    case 2: return [2 /*return*/, _b.apply(_a, [(_c.sent()) || 300000000])];
 	                }
 	            });
 	        });
@@ -22148,26 +22151,28 @@
 	                    case 2:
 	                        params = _b.sent();
 	                        _a = lib$q.hexlify;
-	                        return [4 /*yield*/, this.perform('call', params)];
-	                    case 3: return [2 /*return*/, _a.apply(void 0, [(_b.sent()).output])];
+	                        return [4 /*yield*/, this.perform('call', params).then(function (result) { return result.output || result; })];
+	                    case 3: return [2 /*return*/, _a.apply(void 0, [(_b.sent())])];
 	                }
 	            });
 	        });
 	    };
 	    BaseProvider.prototype.estimateGas = function (transaction) {
 	        return __awaiter(this, void 0, void 0, function () {
-	            var params;
-	            return __generator(this, function (_a) {
-	                switch (_a.label) {
+	            var params, _a, _b;
+	            return __generator(this, function (_c) {
+	                switch (_c.label) {
 	                    case 0: return [4 /*yield*/, this.getNetwork()];
 	                    case 1:
-	                        _a.sent();
+	                        _c.sent();
 	                        return [4 /*yield*/, lib$5.resolveProperties({
 	                                transaction: this._getTransactionRequest(transaction)
 	                            })];
 	                    case 2:
-	                        params = _a.sent();
-	                        return [2 /*return*/, this.perform('estimateGas', params).then(function (gas) { return lib$3.BigNumber.from(gas || 8000000); })];
+	                        params = _c.sent();
+	                        _b = (_a = lib$3.BigNumber).from;
+	                        return [4 /*yield*/, this.perform('estimateGas', params)];
+	                    case 3: return [2 /*return*/, _b.apply(_a, [(_c.sent()) || 1000000])];
 	                }
 	            });
 	        });
@@ -33038,11 +33043,11 @@
 	        });
 	    };
 	    // Populates 'from' if unspecified, and estimates the gas for the transation
-	    Signer.prototype.estimateGas = function (_) {
+	    Signer.prototype.estimateGas = function (tx) {
 	        return __awaiter(this, void 0, void 0, function () {
 	            return __generator(this, function (_a) {
 	                this._checkProvider('estimateGas');
-	                return [2 /*return*/, this.provider.estimateGas()];
+	                return [2 /*return*/, this.provider.estimateGas(tx)];
 	            });
 	        });
 	    };
@@ -33093,19 +33098,23 @@
 	    //   - sendTransaction
 	    Signer.prototype.populateTransaction = function (transaction) {
 	        return __awaiter(this, void 0, void 0, function () {
-	            var tx;
+	            var tx, _a, _b, _c;
 	            var _this = this;
-	            return __generator(this, function (_a) {
-	                switch (_a.label) {
+	            return __generator(this, function (_d) {
+	                switch (_d.label) {
 	                    case 0: return [4 /*yield*/, lib$5.resolveProperties(this.checkTransaction(transaction))];
 	                    case 1:
-	                        tx = _a.sent();
+	                        tx = _d.sent();
 	                        if (tx.nonce == null) {
 	                            tx.nonce = lib$q.hexlify(browser$2.randomBytes(16));
 	                        }
-	                        if (tx.blockLimit == null) {
-	                            tx.blockLimit = this.getBlockNumber().then(function (blockNumber) { return blockNumber + 100; });
-	                        }
+	                        if (!(tx.blockLimit == null)) return [3 /*break*/, 3];
+	                        _a = tx;
+	                        return [4 /*yield*/, this.getBlockNumber().then(function (blockNumber) { return blockNumber + 100; })];
+	                    case 2:
+	                        _a.blockLimit = _d.sent();
+	                        _d.label = 3;
+	                    case 3:
 	                        if (tx.to != null) {
 	                            tx.to = Promise.resolve(tx.to).then(function (to) { return _this.resolveName(to); });
 	                        }
@@ -33115,14 +33124,21 @@
 	                        if (tx.groupId == null) {
 	                            tx.groupId = this.getGroupId();
 	                        }
-	                        if (tx.gasPrice == null) {
-	                            tx.gasPrice = this.getGasPrice();
-	                        }
-	                        if (tx.gasLimit == null) {
-	                            tx.gasLimit = this.estimateGas(tx);
-	                        }
-	                        return [4 /*yield*/, lib$5.resolveProperties(tx)];
-	                    case 2: return [2 /*return*/, _a.sent()];
+	                        if (!(tx.gasPrice == null)) return [3 /*break*/, 5];
+	                        _b = tx;
+	                        return [4 /*yield*/, this.getGasPrice()];
+	                    case 4:
+	                        _b.gasPrice = _d.sent();
+	                        _d.label = 5;
+	                    case 5:
+	                        if (!(tx.gasLimit == null)) return [3 /*break*/, 7];
+	                        _c = tx;
+	                        return [4 /*yield*/, this.estimateGas(tx)];
+	                    case 6:
+	                        _c.gasLimit = _d.sent();
+	                        _d.label = 7;
+	                    case 7: return [4 /*yield*/, lib$5.resolveProperties(tx)];
+	                    case 8: return [2 /*return*/, _d.sent()];
 	                }
 	            });
 	        });

@@ -155,9 +155,9 @@ export abstract class Signer {
   }
 
   // Populates 'from' if unspecified, and estimates the gas for the transation
-  async estimateGas(_: Deferrable<TransactionRequest>): Promise<BigNumber> {
+  async estimateGas(tx: Deferrable<TransactionRequest>): Promise<BigNumber> {
     this._checkProvider('estimateGas');
-    return this.provider.estimateGas();
+    return this.provider.estimateGas(tx);
   }
 
   async resolveName(name: string): Promise<string> {
@@ -210,13 +210,13 @@ export abstract class Signer {
     const tx: Deferrable<TransactionRequest> = await resolveProperties(this.checkTransaction(transaction))
 
     if (tx.nonce == null) { tx.nonce = hexlify(randomBytes(16)); }
-    if (tx.blockLimit == null) { tx.blockLimit = this.getBlockNumber().then((blockNumber) => blockNumber + 100); }
+    if (tx.blockLimit == null) { tx.blockLimit = await this.getBlockNumber().then((blockNumber) => blockNumber + 100); }
     if (tx.to != null) { tx.to = Promise.resolve(tx.to).then((to) => this.resolveName(to)); }
     if (tx.chainId == null) { tx.chainId = this.getChainId(); }
     if (tx.groupId == null) { tx.groupId = this.getGroupId(); }
 
-    if (tx.gasPrice == null) { tx.gasPrice = this.getGasPrice(); }
-    if (tx.gasLimit == null) { tx.gasLimit = this.estimateGas(tx); }
+    if (tx.gasPrice == null) { tx.gasPrice = await this.getGasPrice(); }
+    if (tx.gasLimit == null) { tx.gasLimit = await this.estimateGas(tx); }
 
     return await resolveProperties(tx);
   }

@@ -622,7 +622,7 @@ export class BaseProvider extends Provider {
     getGasPrice() {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.getNetwork();
-            return this.perform('getGasPrice', {}).then(gasPrice => BigNumber.from(gasPrice || 300000000));
+            return BigNumber.from((yield this.perform('getGasPrice', {})) || 300000000);
         });
     }
     getClientVersion() {
@@ -801,7 +801,7 @@ export class BaseProvider extends Provider {
                 transaction: this._getTransactionRequest(transaction),
                 blockTag: this._getBlockTag(blockTag)
             });
-            return hexlify((yield this.perform('call', params)).output);
+            return hexlify((yield this.perform('call', params).then(result => result.output || result)));
         });
     }
     estimateGas(transaction) {
@@ -810,7 +810,7 @@ export class BaseProvider extends Provider {
             const params = yield resolveProperties({
                 transaction: this._getTransactionRequest(transaction)
             });
-            return this.perform('estimateGas', params).then(gas => BigNumber.from(gas || 8000000));
+            return BigNumber.from((yield this.perform('estimateGas', params)) || 1000000);
         });
     }
     _getAddress(addressOrName) {

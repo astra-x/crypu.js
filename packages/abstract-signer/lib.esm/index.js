@@ -112,10 +112,10 @@ export class Signer {
         });
     }
     // Populates 'from' if unspecified, and estimates the gas for the transation
-    estimateGas(_) {
+    estimateGas(tx) {
         return __awaiter(this, void 0, void 0, function* () {
             this._checkProvider('estimateGas');
-            return this.provider.estimateGas();
+            return this.provider.estimateGas(tx);
         });
     }
     resolveName(name) {
@@ -168,7 +168,7 @@ export class Signer {
                 tx.nonce = hexlify(randomBytes(16));
             }
             if (tx.blockLimit == null) {
-                tx.blockLimit = this.getBlockNumber().then((blockNumber) => blockNumber + 100);
+                tx.blockLimit = yield this.getBlockNumber().then((blockNumber) => blockNumber + 100);
             }
             if (tx.to != null) {
                 tx.to = Promise.resolve(tx.to).then((to) => this.resolveName(to));
@@ -180,10 +180,10 @@ export class Signer {
                 tx.groupId = this.getGroupId();
             }
             if (tx.gasPrice == null) {
-                tx.gasPrice = this.getGasPrice();
+                tx.gasPrice = yield this.getGasPrice();
             }
             if (tx.gasLimit == null) {
-                tx.gasLimit = this.estimateGas(tx);
+                tx.gasLimit = yield this.estimateGas(tx);
             }
             return yield resolveProperties(tx);
         });
