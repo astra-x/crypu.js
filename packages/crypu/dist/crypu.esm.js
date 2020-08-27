@@ -14175,7 +14175,7 @@ const Api = {
  */
 var Api$1 = {
     detectChainId: (send) => {
-        return () => send('getClientVersion', []).then((clientVersion) => Promise.resolve(Number(clientVersion['Chain Id'])));
+        return () => send('getClientVersion', []).then((clientVersion) => Number(clientVersion['Chain Id']));
     },
     prepareRequest: (groupId) => {
         return (method, params) => {
@@ -19730,7 +19730,7 @@ class BaseProvider extends Provider {
     getGasPrice() {
         return __awaiter$3(this, void 0, void 0, function* () {
             yield this.getNetwork();
-            return BigNumber.from(300000000);
+            return this.perform('getGasPrice', {}).then(gasPrice => BigNumber.from(gasPrice || 300000000));
         });
     }
     getClientVersion() {
@@ -20430,7 +20430,7 @@ class JsonRpcProvider extends BaseProvider {
     perform(method, params) {
         return __awaiter$4(this, void 0, void 0, function* () {
             let args = this.prepareRequest(method, params);
-            if (!!args) {
+            if (!args) {
                 return null;
             }
             return this.send(args[0], args[1]);

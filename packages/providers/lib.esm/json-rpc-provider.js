@@ -143,7 +143,7 @@ export class JsonRpcProvider extends BaseProvider {
     perform(method, params) {
         return __awaiter(this, void 0, void 0, function* () {
             let args = this.prepareRequest(method, params);
-            if (!!args) {
+            if (!args) {
                 return null;
             }
             return this.send(args[0], args[1]);

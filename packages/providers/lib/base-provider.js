@@ -774,7 +774,7 @@ var BaseProvider = /** @class */ (function (_super) {
                     case 0: return [4 /*yield*/, this.getNetwork()];
                     case 1:
                         _a.sent();
-                        return [2 /*return*/, bignumber_1.BigNumber.from(300000000)];
+                        return [2 /*return*/, this.perform('getGasPrice', {}).then(function (gasPrice) { return bignumber_1.BigNumber.from(gasPrice || 300000000); })];
                 }
             });
         });
