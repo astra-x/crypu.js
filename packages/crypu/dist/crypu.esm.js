@@ -19912,9 +19912,13 @@ class BaseProvider extends Provider {
             return hexlify$6((yield this.perform('call', params)).output);
         });
     }
-    estimateGas(_) {
+    estimateGas(transaction) {
         return __awaiter$3(this, void 0, void 0, function* () {
-            return BigNumber.from(1000000);
+            yield this.getNetwork();
+            const params = yield resolveProperties({
+                transaction: this._getTransactionRequest(transaction)
+            });
+            return this.perform('estimateGas', params).then(gas => BigNumber.from(gas || 8000000));
         });
     }
     _getAddress(addressOrName) {
