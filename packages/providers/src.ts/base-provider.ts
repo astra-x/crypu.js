@@ -754,7 +754,7 @@ export class BaseProvider extends Provider {
 
   async getGasPrice(): Promise<BigNumber> {
     await this.getNetwork();
-    return this.perform('getGasPrice', {}).then(gasPrice => BigNumber.from(gasPrice || 300000000));
+    return BigNumber.from(await this.perform('getGasPrice', {}) || 300000000);
   }
 
   async getClientVersion(): Promise<ClientVersion> {
@@ -922,15 +922,15 @@ export class BaseProvider extends Provider {
       transaction: this._getTransactionRequest(transaction),
       blockTag: this._getBlockTag(blockTag)
     });
-    return hexlify((await this.perform('call', params)).output);
+    return hexlify((await this.perform('call', params).then(result => result.output || result)));
   }
 
-  async estimateGas(transaction?: Deferrable<TransactionRequest>): Promise<BigNumber> {
+  async estimateGas(transaction: Deferrable<TransactionRequest>): Promise<BigNumber> {
     await this.getNetwork();
     const params = await resolveProperties({
       transaction: this._getTransactionRequest(transaction)
     });
-    return this.perform('estimateGas', params).then(gas => BigNumber.from(gas || 8000000));
+    return BigNumber.from(await this.perform('estimateGas', params) || 1000000);
   }
 
   async _getAddress(addressOrName: string | Promise<string>): Promise<string> {

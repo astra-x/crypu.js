@@ -26,7 +26,7 @@ export declare abstract class Signer {
     getGroupId(): Promise<number>;
     getBlockNumber(): Promise<number>;
     getGasPrice(): Promise<BigNumber>;
-    estimateGas(_: Deferrable<TransactionRequest>): Promise<BigNumber>;
+    estimateGas(tx: Deferrable<TransactionRequest>): Promise<BigNumber>;
     resolveName(name: string): Promise<string>;
     checkTransaction(transaction: Deferrable<TransactionRequest>): Deferrable<TransactionRequest>;
     populateTransaction(transaction: Deferrable<TransactionRequest>): Promise<TransactionRequest>;

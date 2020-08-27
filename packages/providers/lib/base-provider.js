@@ -769,12 +769,15 @@ var BaseProvider = /** @class */ (function (_super) {
     };
     BaseProvider.prototype.getGasPrice = function () {
         return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                switch (_a.label) {
+            var _a, _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0: return [4 /*yield*/, this.getNetwork()];
                     case 1:
-                        _a.sent();
-                        return [2 /*return*/, this.perform('getGasPrice', {}).then(function (gasPrice) { return bignumber_1.BigNumber.from(gasPrice || 300000000); })];
+                        _c.sent();
+                        _b = (_a = bignumber_1.BigNumber).from;
+                        return [4 /*yield*/, this.perform('getGasPrice', {})];
+                    case 2: return [2 /*return*/, _b.apply(_a, [(_c.sent()) || 300000000])];
                 }
             });
         });
@@ -1085,26 +1088,28 @@ var BaseProvider = /** @class */ (function (_super) {
                     case 2:
                         params = _b.sent();
                         _a = bytes_1.hexlify;
-                        return [4 /*yield*/, this.perform('call', params)];
-                    case 3: return [2 /*return*/, _a.apply(void 0, [(_b.sent()).output])];
+                        return [4 /*yield*/, this.perform('call', params).then(function (result) { return result.output || result; })];
+                    case 3: return [2 /*return*/, _a.apply(void 0, [(_b.sent())])];
                 }
             });
         });
     };
     BaseProvider.prototype.estimateGas = function (transaction) {
         return __awaiter(this, void 0, void 0, function () {
-            var params;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
+            var params, _a, _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0: return [4 /*yield*/, this.getNetwork()];
                     case 1:
-                        _a.sent();
+                        _c.sent();
                         return [4 /*yield*/, properties_1.resolveProperties({
                                 transaction: this._getTransactionRequest(transaction)
                             })];
                     case 2:
-                        params = _a.sent();
-                        return [2 /*return*/, this.perform('estimateGas', params).then(function (gas) { return bignumber_1.BigNumber.from(gas || 8000000); })];
+                        params = _c.sent();
+                        _b = (_a = bignumber_1.BigNumber).from;
+                        return [4 /*yield*/, this.perform('estimateGas', params)];
+                    case 3: return [2 /*return*/, _b.apply(_a, [(_c.sent()) || 1000000])];
                 }
             });
         });

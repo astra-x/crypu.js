@@ -19730,7 +19730,7 @@ class BaseProvider extends Provider {
     getGasPrice() {
         return __awaiter$3(this, void 0, void 0, function* () {
             yield this.getNetwork();
-            return this.perform('getGasPrice', {}).then(gasPrice => BigNumber.from(gasPrice || 300000000));
+            return BigNumber.from((yield this.perform('getGasPrice', {})) || 300000000);
         });
     }
     getClientVersion() {
@@ -19909,7 +19909,7 @@ class BaseProvider extends Provider {
                 transaction: this._getTransactionRequest(transaction),
                 blockTag: this._getBlockTag(blockTag)
             });
-            return hexlify$6((yield this.perform('call', params)).output);
+            return hexlify$6((yield this.perform('call', params).then(result => result.output || result)));
         });
     }
     estimateGas(transaction) {
@@ -19918,7 +19918,7 @@ class BaseProvider extends Provider {
             const params = yield resolveProperties({
                 transaction: this._getTransactionRequest(transaction)
             });
-            return this.perform('estimateGas', params).then(gas => BigNumber.from(gas || 8000000));
+            return BigNumber.from((yield this.perform('estimateGas', params)) || 1000000);
         });
     }
     _getAddress(addressOrName) {
@@ -29585,10 +29585,10 @@ class Signer {
         });
     }
     // Populates 'from' if unspecified, and estimates the gas for the transation
-    estimateGas(_) {
+    estimateGas(tx) {
         return __awaiter$7(this, void 0, void 0, function* () {
             this._checkProvider('estimateGas');
-            return this.provider.estimateGas();
+            return this.provider.estimateGas(tx);
         });
     }
     resolveName(name) {
@@ -29641,7 +29641,7 @@ class Signer {
                 tx.nonce = hexlify$6(browser_2$1(16));
             }
             if (tx.blockLimit == null) {
-                tx.blockLimit = this.getBlockNumber().then((blockNumber) => blockNumber + 100);
+                tx.blockLimit = yield this.getBlockNumber().then((blockNumber) => blockNumber + 100);
             }
             if (tx.to != null) {
                 tx.to = Promise.resolve(tx.to).then((to) => this.resolveName(to));
@@ -29653,10 +29653,10 @@ class Signer {
                 tx.groupId = this.getGroupId();
             }
             if (tx.gasPrice == null) {
-                tx.gasPrice = this.getGasPrice();
+                tx.gasPrice = yield this.getGasPrice();
             }
             if (tx.gasLimit == null) {
-                tx.gasLimit = this.estimateGas(tx);
+                tx.gasLimit = yield this.estimateGas(tx);
             }
             return yield resolveProperties(tx);
         });
