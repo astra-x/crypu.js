@@ -925,8 +925,12 @@ export class BaseProvider extends Provider {
     return hexlify((await this.perform('call', params)).output);
   }
 
-  async estimateGas(_?: Deferrable<TransactionRequest>): Promise<BigNumber> {
-    return BigNumber.from(1000000);
+  async estimateGas(transaction?: Deferrable<TransactionRequest>): Promise<BigNumber> {
+    await this.getNetwork();
+    const params = await resolveProperties({
+      transaction: this._getTransactionRequest(transaction)
+    });
+    return this.perform('estimateGas', params).then(gas => BigNumber.from(gas || 8000000));
   }
 
   async _getAddress(addressOrName: string | Promise<string>): Promise<string> {

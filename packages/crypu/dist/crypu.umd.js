@@ -22166,10 +22166,21 @@
 	            });
 	        });
 	    };
-	    BaseProvider.prototype.estimateGas = function (_) {
+	    BaseProvider.prototype.estimateGas = function (transaction) {
 	        return __awaiter(this, void 0, void 0, function () {
+	            var params;
 	            return __generator(this, function (_a) {
-	                return [2 /*return*/, lib$3.BigNumber.from(1000000)];
+	                switch (_a.label) {
+	                    case 0: return [4 /*yield*/, this.getNetwork()];
+	                    case 1:
+	                        _a.sent();
+	                        return [4 /*yield*/, lib$5.resolveProperties({
+	                                transaction: this._getTransactionRequest(transaction)
+	                            })];
+	                    case 2:
+	                        params = _a.sent();
+	                        return [2 /*return*/, this.perform('estimateGas', params).then(function (gas) { return lib$3.BigNumber.from(gas || 8000000); })];
+	                }
 	            });
 	        });
 	    };

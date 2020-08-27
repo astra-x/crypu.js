@@ -92,7 +92,7 @@ export declare class BaseProvider extends Provider {
     _getTransactionRequest(transaction: Deferrable<TransactionRequest>): Promise<Transaction>;
     _getFilter(filter: Filter | FilterByBlockHash | Promise<Filter | FilterByBlockHash>): Promise<Filter | FilterByBlockHash>;
     call(transaction: Deferrable<TransactionRequest>, blockTag?: BlockTag | Promise<BlockTag>): Promise<string>;
-    estimateGas(_?: Deferrable<TransactionRequest>): Promise<BigNumber>;
+    estimateGas(transaction?: Deferrable<TransactionRequest>): Promise<BigNumber>;
     _getAddress(addressOrName: string | Promise<string>): Promise<string>;
     _getBlock(blockHashOrBlockTag: BlockTag | string | Promise<BlockTag | string>, includeTransactions?: boolean): Promise<Block | BlockWithTransactions>;
     getBlock(blockHashOrBlockTag: BlockTag | string | Promise<BlockTag | string>): Promise<Block>;
