@@ -753,7 +753,8 @@ export class BaseProvider extends Provider {
   }
 
   async getGasPrice(): Promise<BigNumber> {
-    return BigNumber.from(300000000);
+    await this.getNetwork();
+    return this.perform('getGasPrice', {}).then(gasPrice => BigNumber.from(gasPrice || 300000000));
   }
 
   async getClientVersion(): Promise<ClientVersion> {

@@ -203,7 +203,7 @@ var JsonRpcProvider = /** @class */ (function (_super) {
             var args;
             return __generator(this, function (_a) {
                 args = this.prepareRequest(method, params);
-                if (!!args) {
+                if (!args) {
                     return [2 /*return*/, null];
                 }
                 return [2 /*return*/, this.send(args[0], args[1])];

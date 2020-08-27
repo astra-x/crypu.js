@@ -621,7 +621,8 @@ export class BaseProvider extends Provider {
     }
     getGasPrice() {
         return __awaiter(this, void 0, void 0, function* () {
-            return BigNumber.from(300000000);
+            yield this.getNetwork();
+            return this.perform('getGasPrice', {}).then(gasPrice => BigNumber.from(gasPrice || 300000000));
         });
     }
     getClientVersion() {

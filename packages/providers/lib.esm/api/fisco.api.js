@@ -21,7 +21,7 @@
  */
 export var Api = {
     detectChainId: (send) => {
-        return () => send('getClientVersion', []).then((clientVersion) => Promise.resolve(Number(clientVersion['Chain Id'])));
+        return () => send('getClientVersion', []).then((clientVersion) => Number(clientVersion['Chain Id']));
     },
     prepareRequest: (groupId) => {
         return (method, params) => {

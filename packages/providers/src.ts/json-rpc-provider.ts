@@ -166,7 +166,7 @@ export class JsonRpcProvider extends BaseProvider {
 
   async perform(method: string, params: any): Promise<any> {
     let args = this.prepareRequest(method, params);
-    if (!!args) { return null; }
+    if (!args) { return null; }
 
     return this.send(args[0], args[1]);
   }

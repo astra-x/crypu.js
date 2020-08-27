@@ -15934,7 +15934,7 @@
 	exports.Api = {
 	    detectChainId: function (send) {
 	        return function () {
-	            return send('getClientVersion', []).then(function (clientVersion) { return Promise.resolve(Number(clientVersion['Chain Id'])); });
+	            return send('getClientVersion', []).then(function (clientVersion) { return Number(clientVersion['Chain Id']); });
 	        };
 	    },
 	    prepareRequest: function (groupId) {
@@ -21837,7 +21837,7 @@
 	                    case 0: return [4 /*yield*/, this.getNetwork()];
 	                    case 1:
 	                        _a.sent();
-	                        return [2 /*return*/, lib$3.BigNumber.from(300000000)];
+	                        return [2 /*return*/, this.perform('getGasPrice', {}).then(function (gasPrice) { return lib$3.BigNumber.from(gasPrice || 300000000); })];
 	                }
 	            });
 	        });
@@ -22885,7 +22885,7 @@
 	            var args;
 	            return __generator(this, function (_a) {
 	                args = this.prepareRequest(method, params);
-	                if (!!args) {
+	                if (!args) {
 	                    return [2 /*return*/, null];
 	                }
 	                return [2 /*return*/, this.send(args[0], args[1])];
