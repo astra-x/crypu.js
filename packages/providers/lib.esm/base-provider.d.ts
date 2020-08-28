@@ -4,11 +4,13 @@
  * @date 2020
  */
 /// <reference types="node" />
+import { SignatureLike } from '@ethersproject/bytes';
 import { Network, Networkish } from '@ethersproject/networks';
 import { Deferrable } from '@ethersproject/properties';
 import { BigNumber } from '@ethersproject/bignumber';
 import { Transaction } from '@crypujs/transactions';
 import { ClientVersion, SyncStatus, Peer, Block, BlockTag, BlockWithTransactions, TransactionReceipt, TransactionRequest, TransactionResponse, EventType, Filter, FilterByBlockHash, Listener, Log, Provider } from '@crypujs/abstract-provider';
+import { Chain } from './constants';
 import { Formatter } from './formatter';
 export declare class Event {
     readonly listener: Listener;
@@ -22,14 +24,11 @@ export declare class Event {
     pollable(): boolean;
 }
 export declare class BaseProvider extends Provider {
-    _networkPromise: Promise<Network>;
-    _network: Network;
-    _groupId: number;
-    _events: Array<Event>;
     formatter: Formatter;
     _emitted: {
         [eventName: string]: number | 'pending';
     };
+    _events: Array<Event>;
     _pollingInterval: number;
     _poller: NodeJS.Timer;
     _bootstrapPoll: NodeJS.Timer;
@@ -44,6 +43,12 @@ export declare class BaseProvider extends Provider {
         respTime: number;
     }>;
     readonly anyNetwork: boolean;
+    _networkPromise: Promise<Network>;
+    _network: Network;
+    _groupId: number;
+    readonly getChainId: () => Promise<number>;
+    readonly populateTransaction: (transaction: Deferrable<TransactionRequest>) => Promise<TransactionRequest>;
+    readonly serializeTransaction: (transaction: TransactionRequest) => string;
     /**
      *  ready
      *
@@ -53,11 +58,14 @@ export declare class BaseProvider extends Provider {
      *  MUST set this. Standard named networks have a known chainId.
      *
      */
-    constructor(network: Networkish | Promise<Network>, groupId: number);
+    constructor(chain: Chain, network: Networkish | Promise<Network>, groupId: number);
     _ready(): Promise<Network>;
     get ready(): Promise<Network>;
     static getFormatter(): Formatter;
     static getNetwork(network: Networkish): Network;
+    static getChainId(chain: Chain, perform: (method: string, params: any) => Promise<any>): () => Promise<number>;
+    static populateTransaction(chain: Chain, self: Provider): (transaction: Deferrable<TransactionRequest>) => Promise<TransactionRequest>;
+    static serializeTransaction(chain: Chain): (transaction: TransactionRequest, signature?: SignatureLike) => string;
     _getInternalBlockNumber(maxAge: number): Promise<number>;
     poll(): Promise<void>;
     resetEventsBlock(blockNumber: number): void;

@@ -89,13 +89,12 @@ var JsonRpcProvider = /** @class */ (function (_super) {
     __extends(JsonRpcProvider, _super);
     function JsonRpcProvider(chain, url, network, groupId) {
         var _newTarget = this.constructor;
-        var _this = _super.call(this, network || properties_1.getStatic((_newTarget), 'defaultNetwork')(), groupId || 1) || this;
+        var _this = _super.call(this, chain, network || properties_1.getStatic((_newTarget), 'defaultNetwork')(), groupId || 1) || this;
         logger.checkNew(_newTarget, JsonRpcProvider);
         if (!url) {
             url = properties_1.getStatic((_newTarget), 'defaultUrl')();
         }
         properties_1.defineReadOnly(_this, 'connection', { url: url });
-        properties_1.defineReadOnly(_this, 'getChainId', properties_1.getStatic((_newTarget), 'getChainId')(chain, _this.send.bind(_this)));
         properties_1.defineReadOnly(_this, 'prepareRequest', properties_1.getStatic((_newTarget), 'prepareRequest')(chain, _this.network, _this.groupId));
         _this._nextId = 42;
         return _this;
@@ -115,22 +114,13 @@ var JsonRpcProvider = /** @class */ (function (_super) {
     JsonRpcProvider.getNetwork = function (network) {
         return networks_1.getNetwork((network == null) ? defaultNetwork : network);
     };
-    JsonRpcProvider.getChainId = function (chain, send) {
-        switch (chain) {
-            case constants_1.Chain.ETHERS:
-                return function () { return send('eth_chainId', []); };
-            case constants_1.Chain.FISCO:
-                return function () {
-                    return send('getClientVersion', []).then(function (clientVersion) { return Number(clientVersion['Chain Id']); });
-                };
-        }
-        return logger.throwArgumentError('invalid chain', 'chain', chain);
-    };
     JsonRpcProvider.prepareRequest = function (chain, _, groupId) {
         switch (chain) {
             case constants_1.Chain.ETHERS:
                 return function (method, params) {
                     switch (method) {
+                        case 'getChainId':
+                            return ['eth_chainId', []];
                         case 'getBlockNumber':
                             return ['eth_blockNumber', []];
                         case 'getGasPrice':

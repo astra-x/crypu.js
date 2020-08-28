@@ -3,7 +3,7 @@
  * @author Youtao Xing <youtao.xing@icloud.com>
  * @date 2020
  */
-import { BytesLike } from '@ethersproject/bytes';
+import { BytesLike, SignatureLike } from '@ethersproject/bytes';
 import { Network } from '@ethersproject/networks';
 import { Deferrable, Description } from '@ethersproject/properties';
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
@@ -150,6 +150,7 @@ export declare type EventType = string | Array<string | Array<string>> | EventFi
 export declare type Listener = (...args: Array<any>) => void;
 export declare abstract class Provider implements OnceBlockable {
     abstract getNetwork(): Promise<Network>;
+    abstract getChainId(): Promise<number>;
     abstract getGroupId(): Promise<number>;
     abstract getBlockNumber(): Promise<number>;
     abstract getGasPrice(): Promise<BigNumber>;
@@ -175,6 +176,8 @@ export declare abstract class Provider implements OnceBlockable {
     abstract removeAllListeners(eventName?: EventType): Provider;
     addListener(eventName: EventType, listener: Listener): Provider;
     removeListener(eventName: EventType, listener: Listener): Provider;
+    abstract populateTransaction(transaction: Deferrable<TransactionRequest>): Promise<TransactionRequest>;
+    abstract serializeTransaction(transaction: TransactionRequest, signature?: SignatureLike): string;
     abstract waitForTransaction(transactionHash: string, confirmations?: number, timeout?: number): Promise<TransactionReceipt>;
     readonly _isProvider: boolean;
     constructor();

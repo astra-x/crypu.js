@@ -18443,8 +18443,24 @@ function computePublicKey(key, compressed) {
 'use strict';
 ///////////////////////////////
 const logger$q = new Logger('transactions');
-const transactionFields = [
-    { name: 'nonce', maxLength: 16, numeric: true },
+const transactionFieldsEthers = [
+    { name: 'nonce', maxLength: 32, numeric: true },
+    { name: 'gasPrice', maxLength: 32, numeric: true },
+    { name: 'gasLimit', maxLength: 32, numeric: true },
+    { name: 'to', length: 20 },
+    { name: 'value', maxLength: 32, numeric: true },
+    { name: 'data' },
+];
+const allowedTransactionKeysEthers = {
+    nonce: true,
+    gasPrice: true,
+    gasLimit: true,
+    to: true,
+    value: true,
+    data: true,
+};
+const transactionFieldsRc2 = [
+    { name: 'nonce', maxLength: 32, numeric: true },
     { name: 'gasPrice', maxLength: 32, numeric: true },
     { name: 'gasLimit', maxLength: 32, numeric: true },
     { name: 'blockLimit', maxLength: 32, numeric: true },
@@ -18455,7 +18471,7 @@ const transactionFields = [
     { name: 'groupId', maxLength: 32 },
     { name: 'extraData' },
 ];
-const allowedTransactionKeys = {
+const allowedTransactionKeysRc2 = {
     nonce: true,
     gasPrice: true,
     gasLimit: true,
@@ -18488,10 +18504,80 @@ function computeAddress(key) {
 function recoverAddress(digest, signature) {
     return computeAddress(recoverPublicKey(arrayify$6(digest), signature));
 }
-function serialize(transaction, signature) {
-    checkProperties(transaction, allowedTransactionKeys);
+function serializeEthers(transaction, signature) {
+    console.log('serializeEthers');
+    checkProperties(transaction, allowedTransactionKeysEthers);
     const raw = [];
-    transactionFields.forEach(function (fieldInfo) {
+    transactionFieldsEthers.forEach(function (fieldInfo) {
+        let value = transaction[fieldInfo.name] || ([]);
+        const options = {};
+        if (fieldInfo.numeric) {
+            options.hexPad = 'left';
+        }
+        value = arrayify$6(hexlify$6(value, options));
+        // Fixed-width field
+        if (fieldInfo.length && value.length !== fieldInfo.length && value.length > 0) {
+            logger$q.throwArgumentError('invalid length for ' + fieldInfo.name, ('transaction:' + fieldInfo.name), value);
+        }
+        // Variable-width (with a maximum)
+        if (fieldInfo.maxLength) {
+            value = stripZeros$6(value);
+            if (value.length > fieldInfo.maxLength) {
+                logger$q.throwArgumentError('invalid length for ' + fieldInfo.name, ('transaction:' + fieldInfo.name), value);
+            }
+        }
+        raw.push(hexlify$6(value));
+    });
+    let chainId = 0;
+    if (transaction.chainId != null) {
+        // A chainId was provided; if non-zero we'll use EIP-155
+        chainId = transaction.chainId;
+        if (typeof (chainId) !== "number") {
+            logger$q.throwArgumentError("invalid transaction.chainId", "transaction", transaction);
+        }
+    }
+    else if (signature && !isBytesLike$6(signature) && signature.v > 28) {
+        // No chainId provided, but the signature is signing with EIP-155; derive chainId
+        chainId = Math.floor((signature.v - 35) / 2);
+    }
+    // We have an EIP-155 transaction (chainId was specified and non-zero)
+    if (chainId !== 0) {
+        raw.push(hexlify$6(chainId));
+        raw.push("0x");
+        raw.push("0x");
+    }
+    // Requesting an unsigned transation
+    if (!signature) {
+        return encode(raw);
+    }
+    // The splitSignature will ensure the transaction has a recoveryParam in the
+    // case that the signTransaction function only adds a v.
+    const sig = splitSignature$6(signature);
+    // We pushed a chainId and null r, s on for hashing only; remove those
+    let v = 27 + sig.recoveryParam;
+    if (chainId !== 0) {
+        raw.pop();
+        raw.pop();
+        raw.pop();
+        v += chainId * 2 + 8;
+        // If an EIP-155 v (directly or indirectly; maybe _vs) was provided, check it!
+        if (sig.v > 28 && sig.v !== v) {
+            logger$q.throwArgumentError("transaction.chainId/signature.v mismatch", "signature", signature);
+        }
+    }
+    else if (sig.v !== v) {
+        logger$q.throwArgumentError("transaction.chainId/signature.v mismatch", "signature", signature);
+    }
+    raw.push(hexlify$6(v));
+    raw.push(stripZeros$6(arrayify$6(sig.r)));
+    raw.push(stripZeros$6(arrayify$6(sig.s)));
+    return encode(raw);
+}
+function serializeRc2(transaction, signature) {
+    console.log('serializeRc2');
+    checkProperties(transaction, allowedTransactionKeysRc2);
+    const raw = [];
+    transactionFieldsRc2.forEach(function (fieldInfo) {
         let value = transaction[fieldInfo.name] || ([]);
         const options = {};
         if (fieldInfo.numeric) {
@@ -18975,1520 +19061,6 @@ class Formatter {
     }
 }
 
-/*
- This file is part of crypu.js.
-
- crypu.js is free software: you can redistribute it and/or modify
- it under the terms of the GNU Lesser General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- crypu.js is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU Lesser General Public License for more details.
-
- You should have received a copy of the GNU Lesser General Public License
- along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
- */
-/**
- * @file base-provider.ts
- * @author Youtao Xing <youtao.xing@icloud.com>
- * @date 2020
- */
-'use strict';
-var __awaiter$3 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-const logger$s = new Logger('providers');
-//////////////////////////////
-// Event Serializeing
-function checkTopic(topic) {
-    if (topic == null) {
-        return 'null';
-    }
-    if (hexDataLength$6(topic) !== 32) {
-        logger$s.throwArgumentError('invalid topic', 'topic', topic);
-    }
-    return topic.toLowerCase();
-}
-function serializeTopics(topics) {
-    // Remove trailing null AND-topics; they are redundant
-    topics = topics.slice();
-    while (topics.length > 0 && topics[topics.length - 1] == null) {
-        topics.pop();
-    }
-    return topics.map((topic) => {
-        if (Array.isArray(topic)) {
-            // Only track unique OR-topics
-            const unique = {};
-            topic.forEach((topic) => {
-                unique[checkTopic(topic)] = true;
-            });
-            // The order of OR-topics does not matter
-            const sorted = Object.keys(unique);
-            sorted.sort();
-            return sorted.join('|');
-        }
-        else {
-            return checkTopic(topic);
-        }
-    }).join('&');
-}
-function deserializeTopics(data) {
-    if (data === '') {
-        return [];
-    }
-    return data.split(/&/g).map((topic) => {
-        if (topic === '') {
-            return [];
-        }
-        const comps = topic.split('|').map((topic) => {
-            return ((topic === 'null') ? null : topic);
-        });
-        return ((comps.length === 1) ? comps[0] : comps);
-    });
-}
-function getEventTag(eventName) {
-    if (typeof (eventName) === 'string') {
-        eventName = eventName.toLowerCase();
-        if (hexDataLength$6(eventName) === 32) {
-            return 'tx:' + eventName;
-        }
-        if (eventName.indexOf(':') === -1) {
-            return eventName;
-        }
-    }
-    else if (Array.isArray(eventName)) {
-        return 'filter:*:' + serializeTopics(eventName);
-    }
-    else if (ForkEvent.isForkEvent(eventName)) {
-        logger$s.warn('not implemented');
-        throw new Error('not implemented');
-    }
-    else if (eventName && typeof (eventName) === 'object') {
-        return 'filter:' + (eventName.address || '*') + ':' + serializeTopics(eventName.topics || []);
-    }
-    throw new Error('invalid event - ' + eventName);
-}
-//////////////////////////////
-// Helper Object
-function getTime() {
-    return (new Date()).getTime();
-}
-function stall(duration) {
-    return new Promise((resolve) => {
-        setTimeout(resolve, duration);
-    });
-}
-//////////////////////////////
-// Provider Object
-/**
- *  EventType
- *   - 'block'
- *   - 'poll'
- *   - 'didPoll'
- *   - 'pending'
- *   - 'error'
- *   - 'network'
- *   - filter
- *   - topics array
- *   - transaction hash
- */
-const PollableEvents = ['block', 'network', 'pending', 'poll'];
-class Event {
-    constructor(tag, listener, once) {
-        defineReadOnly(this, 'tag', tag);
-        defineReadOnly(this, 'listener', listener);
-        defineReadOnly(this, 'once', once);
-    }
-    get event() {
-        switch (this.type) {
-            case 'tx':
-                return this.hash;
-            case 'filter':
-                return this.filter;
-        }
-        return this.tag;
-    }
-    get type() {
-        return this.tag.split(':')[0];
-    }
-    get hash() {
-        const comps = this.tag.split(':');
-        if (comps[0] !== 'tx') {
-            return null;
-        }
-        return comps[1];
-    }
-    get filter() {
-        const comps = this.tag.split(':');
-        if (comps[0] !== 'filter') {
-            return null;
-        }
-        const address = comps[1];
-        const topics = deserializeTopics(comps[2]);
-        const filter = {};
-        if (topics.length > 0) {
-            filter.topics = topics;
-        }
-        if (address && address !== '*') {
-            filter.address = address;
-        }
-        return filter;
-    }
-    pollable() {
-        return (this.tag.indexOf(':') >= 0 || PollableEvents.indexOf(this.tag) >= 0);
-    }
-}
-let defaultFormatter = null;
-let nextPollId = 1;
-class BaseProvider extends Provider {
-    /**
-     *  ready
-     *
-     *  A Promise<Network> that resolves only once the provider is ready.
-     *
-     *  Sub-classes that call the super with a network without a chainId
-     *  MUST set this. Standard named networks have a known chainId.
-     *
-     */
-    constructor(network, groupId) {
-        logger$s.checkNew(new.target, Provider);
-        super();
-        // Events being listened to
-        this._events = [];
-        this._emitted = { block: -2 };
-        this.formatter = new.target.getFormatter();
-        // If network is any, this Provider allows the underlying
-        // network to change dynamically, and we auto-detect the
-        // current network
-        defineReadOnly(this, 'anyNetwork', (network === 'any'));
-        if (this.anyNetwork) {
-            network = this.detectNetwork();
-        }
-        if (network instanceof Promise) {
-            this._networkPromise = network;
-            // Squash any 'unhandled promise' errors; that do not need to be handled
-            network.catch((_) => { });
-            // Trigger initial network setting (async)
-            this._ready().catch((_) => { });
-        }
-        else {
-            const knownNetwork = getStatic((new.target), 'getNetwork')(network);
-            if (knownNetwork) {
-                defineReadOnly(this, '_network', knownNetwork);
-                this.emit('network', knownNetwork, null);
-            }
-            else {
-                logger$s.throwArgumentError('invalid network', 'network', network);
-            }
-        }
-        this._groupId = groupId;
-        this._maxInternalBlockNumber = -1024;
-        this._lastBlockNumber = -2;
-        this._pollingInterval = 4000;
-        this._fastQueryDate = 0;
-    }
-    _ready() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            if (this._network == null) {
-                let network = null;
-                if (this._networkPromise) {
-                    try {
-                        network = yield this._networkPromise;
-                    }
-                    catch (error) { }
-                }
-                // Try the Provider's network detection (this MUST throw if it cannot)
-                if (network == null) {
-                    network = yield this.detectNetwork();
-                }
-                // This should never happen; every Provider sub-class should have
-                // suggested a network by here (or have thrown).
-                if (!network) {
-                    logger$s.throwError('no network detected', Logger.errors.UNKNOWN_ERROR, {});
-                }
-                // Possible this call stacked so do not call defineReadOnly again
-                if (this._network == null) {
-                    if (this.anyNetwork) {
-                        this._network = network;
-                    }
-                    else {
-                        defineReadOnly(this, '_network', network);
-                    }
-                    this.emit('network', network, null);
-                }
-            }
-            return this._network;
-        });
-    }
-    // This will always return the most recently established network.
-    // For 'any', this can change (a 'network' event is emitted before
-    // any change is refelcted); otherwise this cannot change
-    get ready() {
-        return poll(() => {
-            return this._ready().then((network) => {
-                return network;
-            }, (error) => {
-                // If the network isn't running yet, we will wait
-                if (error.code === Logger.errors.NETWORK_ERROR && error.event === 'noNetwork') {
-                    return undefined;
-                }
-                throw error;
-            });
-        });
-    }
-    // @TODO: Remove this and just create a singleton formatter
-    static getFormatter() {
-        if (defaultFormatter == null) {
-            defaultFormatter = new Formatter();
-        }
-        return defaultFormatter;
-    }
-    // @TODO: Remove this and just use getNetwork
-    static getNetwork(network) {
-        return getNetwork((network == null) ? 'homestead' : network);
-    }
-    // Fetches the blockNumber, but will reuse any result that is less
-    // than maxAge old or has been requested since the last request
-    _getInternalBlockNumber(maxAge) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this._ready();
-            const internalBlockNumber = this._internalBlockNumber;
-            if (maxAge > 0 && this._internalBlockNumber) {
-                const result = yield internalBlockNumber;
-                if ((getTime() - result.respTime) <= maxAge) {
-                    return result.blockNumber;
-                }
-            }
-            const reqTime = getTime();
-            const checkInternalBlockNumber = resolveProperties({
-                blockNumber: this.perform('getBlockNumber', {}),
-                networkError: this.getNetwork().then((_) => (null), (error) => (error))
-            }).then(({ blockNumber, networkError }) => {
-                if (networkError) {
-                    // Unremember this bad internal block number
-                    if (this._internalBlockNumber === checkInternalBlockNumber) {
-                        this._internalBlockNumber = null;
-                    }
-                    throw networkError;
-                }
-                const respTime = getTime();
-                blockNumber = BigNumber.from(blockNumber).toNumber();
-                if (blockNumber < this._maxInternalBlockNumber) {
-                    blockNumber = this._maxInternalBlockNumber;
-                }
-                this._maxInternalBlockNumber = blockNumber;
-                this._setFastBlockNumber(blockNumber); // @TODO: Still need this?
-                return { blockNumber, reqTime, respTime };
-            });
-            this._internalBlockNumber = checkInternalBlockNumber;
-            return (yield checkInternalBlockNumber).blockNumber;
-        });
-    }
-    poll() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            const pollId = nextPollId++;
-            // Track all running promises, so we can trigger a post-poll once they are complete
-            const runners = [];
-            const blockNumber = yield this._getInternalBlockNumber(100 + this.pollingInterval / 2);
-            this._setFastBlockNumber(blockNumber);
-            // Emit a poll event after we have the latest (fast) block number
-            this.emit('poll', pollId, blockNumber);
-            // If the block has not changed, meh.
-            if (blockNumber === this._lastBlockNumber) {
-                this.emit('didPoll', pollId);
-                return;
-            }
-            // First polling cycle, trigger a 'block' events
-            if (this._emitted.block === -2) {
-                this._emitted.block = blockNumber - 1;
-            }
-            if (Math.abs((this._emitted.block) - blockNumber) > 1000) {
-                logger$s.warn('network block skew detected; skipping block events');
-                this.emit('error', logger$s.makeError('network block skew detected', Logger.errors.NETWORK_ERROR, {
-                    blockNumber: blockNumber,
-                    event: 'blockSkew',
-                    previousBlockNumber: this._emitted.block
-                }));
-                this.emit('block', blockNumber);
-            }
-            else {
-                // Notify all listener for each block that has passed
-                for (let i = this._emitted.block + 1; i <= blockNumber; i++) {
-                    this.emit('block', i);
-                }
-            }
-            // The emitted block was updated, check for obsolete events
-            if (this._emitted.block !== blockNumber) {
-                this._emitted.block = blockNumber;
-                Object.keys(this._emitted).forEach((key) => {
-                    // The block event does not expire
-                    if (key === 'block') {
-                        return;
-                    }
-                    // The block we were at when we emitted this event
-                    const eventBlockNumber = this._emitted[key];
-                    // We cannot garbage collect pending transactions or blocks here
-                    // They should be garbage collected by the Provider when setting
-                    // 'pending' events
-                    if (eventBlockNumber === 'pending') {
-                        return;
-                    }
-                    // Evict any transaction hashes or block hashes over 12 blocks
-                    // old, since they should not return null anyways
-                    if (blockNumber - eventBlockNumber > 12) {
-                        delete this._emitted[key];
-                    }
-                });
-            }
-            // First polling cycle
-            if (this._lastBlockNumber === -2) {
-                this._lastBlockNumber = blockNumber - 1;
-            }
-            // Find all transaction hashes we are waiting on
-            this._events.forEach((event) => {
-                switch (event.type) {
-                    case 'tx': {
-                        const hash = event.hash;
-                        let runner = this.getTransactionReceipt(hash).then((receipt) => {
-                            if (!receipt || receipt.blockNumber == null) {
-                                return null;
-                            }
-                            this._emitted['t:' + hash] = receipt.blockNumber;
-                            this.emit(hash, receipt);
-                            return null;
-                        }).catch((error) => { this.emit('error', error); });
-                        runners.push(runner);
-                        break;
-                    }
-                    case 'filter': {
-                        const filter = event.filter;
-                        filter.fromBlock = this._lastBlockNumber + 1;
-                        filter.toBlock = blockNumber;
-                        const runner = this.getLogs(filter).then((logs) => {
-                            if (logs.length === 0) {
-                                return;
-                            }
-                            logs.forEach((log) => {
-                                this._emitted['b:' + log.blockHash] = log.blockNumber;
-                                this._emitted['t:' + log.transactionHash] = log.blockNumber;
-                                this.emit(filter, log);
-                            });
-                        }).catch((error) => { this.emit('error', error); });
-                        runners.push(runner);
-                        break;
-                    }
-                }
-            });
-            this._lastBlockNumber = blockNumber;
-            // Once all events for this loop have been processed, emit 'didPoll'
-            Promise.all(runners).then(() => {
-                this.emit('didPoll', pollId);
-            });
-            return null;
-        });
-    }
-    // Deprecated; do not use this
-    resetEventsBlock(blockNumber) {
-        this._lastBlockNumber = blockNumber - 1;
-        if (this.polling) {
-            this.poll();
-        }
-    }
-    get network() {
-        return this._network;
-    }
-    get groupId() {
-        return this._groupId;
-    }
-    // This method should query the network if the underlying network
-    // can change, such as when connected to a JSON-RPC backend
-    detectNetwork() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            return logger$s.throwError('provider does not support network detection', Logger.errors.UNSUPPORTED_OPERATION, {
-                operation: 'provider.detectNetwork'
-            });
-        });
-    }
-    getNetwork() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            const network = yield this._ready();
-            // Make sure we are still connected to the same network; this is
-            // only an external call for backends which can have the underlying
-            // network change spontaneously
-            const currentNetwork = yield this.detectNetwork();
-            if (network.chainId !== currentNetwork.chainId) {
-                // We are allowing network changes, things can get complex fast;
-                // make sure you know what you are doing if you use 'any'
-                if (this.anyNetwork) {
-                    this._network = currentNetwork;
-                    // Reset all internal block number guards and caches
-                    this._lastBlockNumber = -2;
-                    this._fastBlockNumber = null;
-                    this._fastBlockNumberPromise = null;
-                    this._fastQueryDate = 0;
-                    this._emitted.block = -2;
-                    this._maxInternalBlockNumber = -1024;
-                    this._internalBlockNumber = null;
-                    // The 'network' event MUST happen before this method resolves
-                    // so any events have a chance to unregister, so we stall an
-                    // additional event loop before returning from /this/ call
-                    this.emit('network', currentNetwork, network);
-                    yield stall(0);
-                    return this._network;
-                }
-                const error = logger$s.makeError('underlying network changed', Logger.errors.NETWORK_ERROR, {
-                    event: 'changed',
-                    network: network,
-                    detectedNetwork: currentNetwork
-                });
-                this.emit('error', error);
-                throw error;
-            }
-            return network;
-        });
-    }
-    getGroupId() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            return this.groupId;
-        });
-    }
-    get blockNumber() {
-        this._getInternalBlockNumber(100 + this.pollingInterval / 2).then((blockNumber) => {
-            this._setFastBlockNumber(blockNumber);
-        });
-        return (this._fastBlockNumber != null) ? this._fastBlockNumber : -1;
-    }
-    get polling() {
-        return (this._poller != null);
-    }
-    set polling(value) {
-        if (value && !this._poller) {
-            this._poller = setInterval(this.poll.bind(this), this.pollingInterval);
-            if (!this._bootstrapPoll) {
-                this._bootstrapPoll = setTimeout(() => {
-                    this.poll();
-                    // We block additional polls until the polling interval
-                    // is done, to prevent overwhelming the poll function
-                    this._bootstrapPoll = setTimeout(() => {
-                        // If polling was disabled, something may require a poke
-                        // since starting the bootstrap poll and it was disabled
-                        if (!this._poller) {
-                            this.poll();
-                        }
-                        // Clear out the bootstrap so we can do another
-                        this._bootstrapPoll = null;
-                    }, this.pollingInterval);
-                }, 0);
-            }
-        }
-        else if (!value && this._poller) {
-            clearInterval(this._poller);
-            this._poller = null;
-        }
-    }
-    get pollingInterval() {
-        return this._pollingInterval;
-    }
-    set pollingInterval(value) {
-        if (typeof (value) !== 'number' || value <= 0 || parseInt(String(value)) != value) {
-            throw new Error('invalid polling interval');
-        }
-        this._pollingInterval = value;
-        if (this._poller) {
-            clearInterval(this._poller);
-            this._poller = setInterval(() => { this.poll(); }, this._pollingInterval);
-        }
-    }
-    _getFastBlockNumber() {
-        const now = getTime();
-        // Stale block number, request a newer value
-        if ((now - this._fastQueryDate) > 2 * this._pollingInterval) {
-            this._fastQueryDate = now;
-            this._fastBlockNumberPromise = this.getBlockNumber().then((blockNumber) => {
-                if (this._fastBlockNumber == null || blockNumber > this._fastBlockNumber) {
-                    this._fastBlockNumber = blockNumber;
-                }
-                return this._fastBlockNumber;
-            });
-        }
-        return this._fastBlockNumberPromise;
-    }
-    _setFastBlockNumber(blockNumber) {
-        // Older block, maybe a stale request
-        if (this._fastBlockNumber != null && blockNumber < this._fastBlockNumber) {
-            return;
-        }
-        // Update the time we updated the blocknumber
-        this._fastQueryDate = getTime();
-        // Newer block number, use  it
-        if (this._fastBlockNumber == null || blockNumber > this._fastBlockNumber) {
-            this._fastBlockNumber = blockNumber;
-            this._fastBlockNumberPromise = Promise.resolve(blockNumber);
-        }
-    }
-    waitForTransaction(transactionHash, confirmations, timeout) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            if (confirmations == null) {
-                confirmations = 1;
-            }
-            const receipt = yield this.getTransactionReceipt(transactionHash);
-            // Receipt is already good
-            if ((receipt ? receipt.confirmations : 0) >= confirmations) {
-                return receipt;
-            }
-            // Poll until the receipt is good...
-            return new Promise((resolve, reject) => {
-                let timer = null;
-                let done = false;
-                const handler = (receipt) => {
-                    if (receipt.confirmations < confirmations) {
-                        return;
-                    }
-                    if (timer) {
-                        clearTimeout(timer);
-                    }
-                    if (done) {
-                        return;
-                    }
-                    done = true;
-                    this.removeListener(transactionHash, handler);
-                    resolve(receipt);
-                };
-                this.on(transactionHash, handler);
-                if (typeof (timeout) === 'number' && timeout > 0) {
-                    timer = setTimeout(() => {
-                        if (done) {
-                            return;
-                        }
-                        timer = null;
-                        done = true;
-                        this.removeListener(transactionHash, handler);
-                        reject(logger$s.makeError('timeout exceeded', Logger.errors.TIMEOUT, { timeout: timeout }));
-                    }, timeout);
-                    if (timer.unref) {
-                        timer.unref();
-                    }
-                }
-            });
-        });
-    }
-    getBlockNumber() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            return this._getInternalBlockNumber(0);
-        });
-    }
-    getGasPrice() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            return BigNumber.from((yield this.perform('getGasPrice', {})) || 300000000);
-        });
-    }
-    getClientVersion() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            return this.perform('getClientVersion', []);
-        });
-    }
-    getPbftView() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            return this.perform('getPbftView', []);
-        });
-    }
-    getSealerList() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            return this.perform('getSealerList', []);
-        });
-    }
-    getObserverList() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            return this.perform('getObserverList', []);
-        });
-    }
-    getSyncStatus() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            return this.perform('getSyncStatus', []);
-        });
-    }
-    getPeers() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            return this.perform('getPeers', []);
-        });
-    }
-    getNodeIdList() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            return this.perform('getNodeIdList', []);
-        });
-    }
-    getGroupList() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            return this.perform('getGroupList', []);
-        });
-    }
-    getBalance(addressOrName, blockTag) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            const params = yield resolveProperties({
-                address: this._getAddress(addressOrName),
-                blockTag: this._getBlockTag(blockTag)
-            });
-            return BigNumber.from(yield this.perform('getBalance', params));
-        });
-    }
-    getTransactionCount(addressOrName, blockTag) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            const params = yield resolveProperties({
-                address: this._getAddress(addressOrName),
-                blockTag: this._getBlockTag(blockTag)
-            });
-            return BigNumber.from(yield this.perform('getTransactionCount', params)).toNumber();
-        });
-    }
-    getCode(addressOrName, blockTag) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            const params = yield resolveProperties({
-                address: this._getAddress(addressOrName),
-                blockTag: this._getBlockTag(blockTag)
-            });
-            return hexlify$6(yield this.perform('getCode', params));
-        });
-    }
-    // This should be called by any subclass wrapping a TransactionResponse
-    _wrapTransaction(tx, hash) {
-        if (hash != null && hexDataLength$6(hash) !== 32) {
-            throw new Error('invalid response - sendTransaction');
-        }
-        const result = tx;
-        // Check the hash we expect is the same as the hash the server reported
-        if (hash != null && tx.hash !== hash) {
-            logger$s.throwError('Transaction hash mismatch from Provider.sendTransaction.', Logger.errors.UNKNOWN_ERROR, { expectedHash: tx.hash, returnedHash: hash });
-        }
-        // @TODO: (confirmations? number, timeout? number)
-        result.wait = (confirmations) => __awaiter$3(this, void 0, void 0, function* () {
-            // We know this transaction *must* exist (whether it gets mined is
-            // another story), so setting an emitted value forces us to
-            // wait even if the node returns null for the receipt
-            if (confirmations !== 0) {
-                this._emitted['t:' + tx.hash] = 'pending';
-            }
-            const receipt = yield this.waitForTransaction(tx.hash, confirmations);
-            if (receipt == null && confirmations === 0) {
-                return null;
-            }
-            // No longer pending, allow the polling loop to garbage collect this
-            this._emitted['t:' + tx.hash] = receipt.blockNumber;
-            return receipt;
-        });
-        return result;
-    }
-    sendTransaction(signedTransaction) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            const hexTx = yield Promise.resolve(signedTransaction).then(t => hexlify$6(t));
-            const tx = this.formatter.transaction(signedTransaction);
-            try {
-                const hash = yield this.perform('sendTransaction', { signedTransaction: hexTx });
-                return this._wrapTransaction(tx, hash);
-            }
-            catch (error) {
-                error.transaction = tx;
-                error.transactionHash = tx.hash;
-                throw error;
-            }
-        });
-    }
-    _getTransactionRequest(transaction) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            const values = transaction;
-            const tx = {};
-            ['from', 'to'].forEach((key) => {
-                if (values[key] == null) {
-                    return;
-                }
-                tx[key] = Promise.resolve(values[key]).then((v) => (v ? this._getAddress(v) : null));
-            });
-            ['gasLimit', 'gasPrice', 'value'].forEach((key) => {
-                if (values[key] == null) {
-                    return;
-                }
-                tx[key] = Promise.resolve(values[key]).then((v) => (v ? BigNumber.from(v) : null));
-            });
-            ['data'].forEach((key) => {
-                if (values[key] == null) {
-                    return;
-                }
-                tx[key] = Promise.resolve(values[key]).then((v) => (v ? hexlify$6(v) : null));
-            });
-            return this.formatter.transactionRequest(yield resolveProperties(tx));
-        });
-    }
-    _getFilter(filter) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            filter = yield filter;
-            const result = {};
-            if (filter.address != null) {
-                result.address = this._getAddress(filter.address);
-            }
-            ['blockHash', 'topics'].forEach((key) => {
-                if (filter[key] == null) {
-                    return;
-                }
-                result[key] = filter[key];
-            });
-            ['fromBlock', 'toBlock'].forEach((key) => {
-                if (filter[key] == null) {
-                    return;
-                }
-                result[key] = this._getBlockTag(filter[key]);
-            });
-            return this.formatter.filter(yield resolveProperties(result));
-        });
-    }
-    call(transaction, blockTag) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            const params = yield resolveProperties({
-                transaction: this._getTransactionRequest(transaction),
-                blockTag: this._getBlockTag(blockTag)
-            });
-            return hexlify$6((yield this.perform('call', params).then(result => result.output || result)));
-        });
-    }
-    estimateGas(transaction) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            const params = yield resolveProperties({
-                transaction: this._getTransactionRequest(transaction)
-            });
-            return BigNumber.from((yield this.perform('estimateGas', params)) || 1000000);
-        });
-    }
-    _getAddress(addressOrName) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            const address = yield this.resolveName(addressOrName);
-            if (address == null) {
-                logger$s.throwError('ENS name not configured', Logger.errors.UNSUPPORTED_OPERATION, {
-                    operation: `resolveName(${JSON.stringify(addressOrName)})`
-                });
-            }
-            return address;
-        });
-    }
-    _getBlock(blockHashOrBlockTag, includeTransactions) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            blockHashOrBlockTag = yield blockHashOrBlockTag;
-            // If blockTag is a number (not 'latest', etc), this is the block number
-            let blockNumber = -128;
-            const params = {
-                includeTransactions: !!includeTransactions
-            };
-            if (isHexString$6(blockHashOrBlockTag, 32)) {
-                params.blockHash = blockHashOrBlockTag;
-            }
-            else {
-                try {
-                    params.blockTag = this.formatter.blockTag(yield this._getBlockTag(blockHashOrBlockTag));
-                    if (isHexString$6(params.blockTag)) {
-                        blockNumber = parseInt(params.blockTag.substring(2), 16);
-                    }
-                }
-                catch (error) {
-                    logger$s.throwArgumentError('invalid block hash or block tag', 'blockHashOrBlockTag', blockHashOrBlockTag);
-                }
-            }
-            return poll(() => __awaiter$3(this, void 0, void 0, function* () {
-                const block = yield this.perform('getBlock', params);
-                // Block was not found
-                if (block == null) {
-                    // For blockhashes, if we didn't say it existed, that blockhash may
-                    // not exist. If we did see it though, perhaps from a log, we know
-                    // it exists, and this node is just not caught up yet.
-                    if (params.blockHash != null) {
-                        if (this._emitted['b:' + params.blockHash] == null) {
-                            return null;
-                        }
-                    }
-                    // For block tags, if we are asking for a future block, we return null
-                    if (params.blockTag != null) {
-                        if (blockNumber > this._emitted.block) {
-                            return null;
-                        }
-                    }
-                    // Retry on the next block
-                    return undefined;
-                }
-                // Add transactions
-                if (includeTransactions) {
-                    let blockNumber = null;
-                    for (let i = 0; i < block.transactions.length; i++) {
-                        const tx = block.transactions[i];
-                        if (tx.blockNumber == null) {
-                            tx.confirmations = 0;
-                        }
-                        else if (tx.confirmations == null) {
-                            if (blockNumber == null) {
-                                blockNumber = yield this._getInternalBlockNumber(100 + 2 * this.pollingInterval);
-                            }
-                            // Add the confirmations using the fast block number (pessimistic)
-                            let confirmations = (blockNumber - tx.blockNumber) + 1;
-                            if (confirmations <= 0) {
-                                confirmations = 1;
-                            }
-                            tx.confirmations = confirmations;
-                        }
-                    }
-                    return this.formatter.blockWithTransactions(block);
-                }
-                return this.formatter.block(block);
-            }), { oncePoll: this });
-        });
-    }
-    getBlock(blockHashOrBlockTag) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            return (this._getBlock(blockHashOrBlockTag, false));
-        });
-    }
-    getBlockWithTransactions(blockHashOrBlockTag) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            return (this._getBlock(blockHashOrBlockTag, true));
-        });
-    }
-    getTransaction(transactionHash) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            transactionHash = yield transactionHash;
-            const params = { transactionHash: this.formatter.hash(transactionHash, true) };
-            return poll(() => __awaiter$3(this, void 0, void 0, function* () {
-                const result = yield this.perform('getTransaction', params);
-                if (result == null) {
-                    if (this._emitted['t:' + transactionHash] == null) {
-                        return null;
-                    }
-                    return undefined;
-                }
-                const tx = this.formatter.transactionResponse(result);
-                if (tx.blockNumber == null) {
-                    tx.confirmations = 0;
-                }
-                else if (tx.confirmations == null) {
-                    const blockNumber = yield this._getInternalBlockNumber(100 + 2 * this.pollingInterval);
-                    // Add the confirmations using the fast block number (pessimistic)
-                    let confirmations = (blockNumber - tx.blockNumber) + 1;
-                    if (confirmations <= 0) {
-                        confirmations = 1;
-                    }
-                    tx.confirmations = confirmations;
-                }
-                return this._wrapTransaction(tx);
-            }), { oncePoll: this });
-        });
-    }
-    getTransactionReceipt(transactionHash) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            transactionHash = yield transactionHash;
-            const params = { transactionHash: this.formatter.hash(transactionHash, true) };
-            return poll(() => __awaiter$3(this, void 0, void 0, function* () {
-                const result = yield this.perform('getTransactionReceipt', params);
-                if (result == null) {
-                    if (this._emitted['t:' + transactionHash] == null) {
-                        return null;
-                    }
-                    return undefined;
-                }
-                // 'geth-etc' returns receipts before they are ready
-                if (result.blockHash == null) {
-                    return undefined;
-                }
-                const receipt = this.formatter.receipt(result);
-                if (receipt.blockNumber == null) {
-                    receipt.confirmations = 0;
-                }
-                else if (receipt.confirmations == null) {
-                    const blockNumber = yield this._getInternalBlockNumber(100 + 2 * this.pollingInterval);
-                    // Add the confirmations using the fast block number (pessimistic)
-                    let confirmations = (blockNumber - receipt.blockNumber) + 1;
-                    if (confirmations <= 0) {
-                        confirmations = 1;
-                    }
-                    receipt.confirmations = confirmations;
-                }
-                return receipt;
-            }), { oncePoll: this });
-        });
-    }
-    getLogs(filter) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            const params = yield resolveProperties({ filter: this._getFilter(filter) });
-            const logs = yield this.perform('getLogs', params);
-            logs.forEach((log) => {
-                if (log.removed == null) {
-                    log.removed = false;
-                }
-            });
-            return Formatter.arrayOf(this.formatter.filterLog.bind(this.formatter))(logs);
-        });
-    }
-    getEtherPrice() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            yield this.getNetwork();
-            return this.perform('getEtherPrice', {});
-        });
-    }
-    _getBlockTag(blockTag) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            blockTag = yield blockTag;
-            if (typeof (blockTag) === 'number' && blockTag < 0) {
-                if (blockTag % 1) {
-                    logger$s.throwArgumentError('invalid BlockTag', 'blockTag', blockTag);
-                }
-                let blockNumber = yield this._getInternalBlockNumber(100 + 2 * this.pollingInterval);
-                blockNumber += blockTag;
-                if (blockNumber < 0) {
-                    blockNumber = 0;
-                }
-                return this.formatter.blockTag(blockNumber);
-            }
-            return this.formatter.blockTag(blockTag);
-        });
-    }
-    _getResolver(name) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            // Get the resolver from the blockchain
-            const network = yield this.getNetwork();
-            // No ENS...
-            if (!network.ensAddress) {
-                logger$s.throwError('network does not support ENS', Logger.errors.UNSUPPORTED_OPERATION, { operation: 'ENS', network: network.name });
-            }
-            // keccak256('resolver(bytes32)')
-            const transaction = {
-                to: network.ensAddress,
-                data: ('0x0178b8bf' + namehash(name).substring(2))
-            };
-            return this.formatter.callAddress(yield this.call(transaction));
-        });
-    }
-    resolveName(name) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            name = yield name;
-            // If it is already an address, nothing to resolve
-            try {
-                return Promise.resolve(this.formatter.address(name));
-            }
-            catch (error) {
-                // If is is a hexstring, the address is bad (See #694)
-                if (isHexString$6(name)) {
-                    throw error;
-                }
-            }
-            if (typeof (name) !== 'string') {
-                logger$s.throwArgumentError('invalid ENS name', 'name', name);
-            }
-            // Get the addr from the resovler
-            const resolverAddress = yield this._getResolver(name);
-            if (!resolverAddress) {
-                return null;
-            }
-            // keccak256('addr(bytes32)')
-            const transaction = {
-                to: resolverAddress,
-                data: ('0x3b3b57de' + namehash(name).substring(2))
-            };
-            return this.formatter.callAddress(yield this.call(transaction));
-        });
-    }
-    lookupAddress(address) {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            address = yield address;
-            address = this.formatter.address(address);
-            const reverseName = address.substring(2).toLowerCase() + '.addr.reverse';
-            const resolverAddress = yield this._getResolver(reverseName);
-            if (!resolverAddress) {
-                return null;
-            }
-            // keccak('name(bytes32)')
-            let bytes = arrayify$6(yield this.call({
-                to: resolverAddress,
-                data: ('0x691f3431' + namehash(reverseName).substring(2))
-            }));
-            // Strip off the dynamic string pointer (0x20)
-            if (bytes.length < 32 || !BigNumber.from(bytes.slice(0, 32)).eq(32)) {
-                return null;
-            }
-            bytes = bytes.slice(32);
-            // Not a length-prefixed string
-            if (bytes.length < 32) {
-                return null;
-            }
-            // Get the length of the string (from the length-prefix)
-            const length = BigNumber.from(bytes.slice(0, 32)).toNumber();
-            bytes = bytes.slice(32);
-            // Length longer than available data
-            if (length > bytes.length) {
-                return null;
-            }
-            const name = toUtf8String(bytes.slice(0, length));
-            // Make sure the reverse record matches the foward record
-            const addr = yield this.resolveName(name);
-            if (addr != address) {
-                return null;
-            }
-            return name;
-        });
-    }
-    perform(method, params) {
-        return logger$s.throwError(method + ' not implemented', Logger.errors.NOT_IMPLEMENTED, { operation: method });
-    }
-    _startEvent(event) {
-        this.polling = (this._events.filter((e) => e.pollable()).length > 0);
-    }
-    _stopEvent(event) {
-        this.polling = (this._events.filter((e) => e.pollable()).length > 0);
-    }
-    _addEventListener(eventName, listener, once) {
-        const event = new Event(getEventTag(eventName), listener, once);
-        this._events.push(event);
-        this._startEvent(event);
-        return this;
-    }
-    on(eventName, listener) {
-        return this._addEventListener(eventName, listener, false);
-    }
-    once(eventName, listener) {
-        return this._addEventListener(eventName, listener, true);
-    }
-    emit(eventName, ...args) {
-        let result = false;
-        let stopped = [];
-        let eventTag = getEventTag(eventName);
-        this._events = this._events.filter((event) => {
-            if (event.tag !== eventTag) {
-                return true;
-            }
-            setTimeout(() => {
-                event.listener.apply(this, args);
-            }, 0);
-            result = true;
-            if (event.once) {
-                stopped.push(event);
-                return false;
-            }
-            return true;
-        });
-        stopped.forEach((event) => { this._stopEvent(event); });
-        return result;
-    }
-    listenerCount(eventName) {
-        if (!eventName) {
-            return this._events.length;
-        }
-        let eventTag = getEventTag(eventName);
-        return this._events.filter((event) => {
-            return (event.tag === eventTag);
-        }).length;
-    }
-    listeners(eventName) {
-        if (eventName == null) {
-            return this._events.map((event) => event.listener);
-        }
-        let eventTag = getEventTag(eventName);
-        return this._events
-            .filter((event) => (event.tag === eventTag))
-            .map((event) => event.listener);
-    }
-    off(eventName, listener) {
-        if (listener == null) {
-            return this.removeAllListeners(eventName);
-        }
-        const stopped = [];
-        let found = false;
-        let eventTag = getEventTag(eventName);
-        this._events = this._events.filter((event) => {
-            if (event.tag !== eventTag || event.listener != listener) {
-                return true;
-            }
-            if (found) {
-                return true;
-            }
-            found = true;
-            stopped.push(event);
-            return false;
-        });
-        stopped.forEach((event) => { this._stopEvent(event); });
-        return this;
-    }
-    removeAllListeners(eventName) {
-        let stopped = [];
-        if (eventName == null) {
-            stopped = this._events;
-            this._events = [];
-        }
-        else {
-            const eventTag = getEventTag(eventName);
-            this._events = this._events.filter((event) => {
-                if (event.tag !== eventTag) {
-                    return true;
-                }
-                stopped.push(event);
-                return false;
-            });
-        }
-        stopped.forEach((event) => { this._stopEvent(event); });
-        return this;
-    }
-}
-
-/*
- This file is part of crypu.js.
-
- crypu.js is free software: you can redistribute it and/or modify
- it under the terms of the GNU Lesser General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- crypu.js is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU Lesser General Public License for more details.
-
- You should have received a copy of the GNU Lesser General Public License
- along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
- */
-/**
- * @file json-rpc-provider.ts
- * @author Youtao Xing <youtao.xing@icloud.com>
- * @date 2020
- */
-'use strict';
-var __awaiter$4 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-const logger$t = new Logger('provider');
-const defaultUrl = 'http://localhost:8545';
-const defaultNetwork = {
-    chainId: 1,
-    name: 'ethers',
-};
-let defaultFormatter$1;
-class JsonRpcProvider extends BaseProvider {
-    constructor(chain, url, network, groupId) {
-        super(network || getStatic((new.target), 'defaultNetwork')(), groupId || 1);
-        logger$t.checkNew(new.target, JsonRpcProvider);
-        if (!url) {
-            url = getStatic((new.target), 'defaultUrl')();
-        }
-        defineReadOnly(this, 'connection', { url: url });
-        defineReadOnly(this, 'getChainId', getStatic((new.target), 'getChainId')(chain, this.send.bind(this)));
-        defineReadOnly(this, 'prepareRequest', getStatic((new.target), 'prepareRequest')(chain, this.network, this.groupId));
-        this._nextId = 42;
-    }
-    static getFormatter() {
-        if (defaultFormatter$1 == null) {
-            defaultFormatter$1 = new Formatter();
-        }
-        return defaultFormatter$1;
-    }
-    static defaultUrl() {
-        return defaultUrl;
-    }
-    static defaultNetwork() {
-        return Promise.resolve(defaultNetwork);
-    }
-    static getNetwork(network) {
-        return getNetwork((network == null) ? defaultNetwork : network);
-    }
-    static getChainId(chain, send) {
-        switch (chain) {
-            case Chain.ETHERS:
-                return () => send('eth_chainId', []);
-            case Chain.FISCO:
-                return () => send('getClientVersion', []).then((clientVersion) => Number(clientVersion['Chain Id']));
-        }
-        return logger$t.throwArgumentError('invalid chain', 'chain', chain);
-    }
-    static prepareRequest(chain, _, groupId) {
-        switch (chain) {
-            case Chain.ETHERS:
-                return (method, params) => {
-                    switch (method) {
-                        case 'getBlockNumber':
-                            return ['eth_blockNumber', []];
-                        case 'getGasPrice':
-                            return ['eth_gasPrice', []];
-                        case 'getBalance':
-                            return ['eth_getBalance', [params.address.toLowerCase(), params.blockTag]];
-                        case 'getTransactionCount':
-                            return ['eth_getTransactionCount', [params.address.toLowerCase(), params.blockTag]];
-                        case 'getCode':
-                            return ['eth_getCode', [params.address.toLowerCase(), params.blockTag]];
-                        case 'getStorageAt':
-                            return ['eth_getStorageAt', [params.address.toLowerCase(), params.position, params.blockTag]];
-                        case 'sendTransaction':
-                            return ['eth_sendRawTransaction', [params.signedTransaction]];
-                        case 'getBlock':
-                            if (params.blockTag) {
-                                return ['eth_getBlockByNumber', [params.blockTag, !!params.includeTransactions]];
-                            }
-                            else if (params.blockHash) {
-                                return ['eth_getBlockByHash', [params.blockHash, !!params.includeTransactions]];
-                            }
-                            return null;
-                        case 'getTransaction':
-                            return ['eth_getTransactionByHash', [params.transactionHash]];
-                        case 'getTransactionReceipt':
-                            return ['eth_getTransactionReceipt', [params.transactionHash]];
-                        case 'call': {
-                            return ['eth_call', [params.transaction, params.blockTag]];
-                        }
-                        case 'estimateGas': {
-                            return ['eth_estimateGas', [params.transaction]];
-                        }
-                        case 'getLogs':
-                            if (params.filter && params.filter.address != null) {
-                                params.filter.address = params.filter.address.toLowerCase();
-                            }
-                            return ['eth_getLogs', [params.filter]];
-                    }
-                    return null;
-                };
-            case Chain.FISCO:
-                return (method, params) => {
-                    switch (method) {
-                        case 'getClientVersion':
-                            return ['getClientVersion', []];
-                        case 'getPbftView':
-                            return ['getPbftView', [groupId]];
-                        case 'getSealerList':
-                            return ['getSealerList', [groupId]];
-                        case 'getObserverList':
-                            return ['getObserverList', [groupId]];
-                        case 'getSyncStatus':
-                            return ['getSyncStatus', [groupId]];
-                        case 'getPeers':
-                            return ['getPeers', [groupId]];
-                        case 'getNodeIdList':
-                            return ['getNodeIDList', [groupId]];
-                        case 'getGroupList':
-                            return ['getGroupList', [groupId]];
-                        case 'getBlockNumber':
-                            return ['getBlockNumber', [groupId]];
-                        case 'getBlock':
-                            if (params.blockTag) {
-                                return ['getBlockByNumber', [groupId, params.blockTag, !!params.includeTransactions]];
-                            }
-                            else if (params.blockHash) {
-                                return ['getBlockByHash', [groupId, params.blockHash, !!params.includeTransactions]];
-                            }
-                            break;
-                        case 'sendTransaction':
-                            return ['sendRawTransaction', [groupId, params.signedTransaction]];
-                        case 'getTransaction':
-                            return ['getTransactionByHash', [groupId, params.transactionHash]];
-                        case 'getTransactionReceipt':
-                            return ['getTransactionReceipt', [groupId, params.transactionHash]];
-                        case 'call':
-                            return ['call', [groupId, params.transaction]];
-                    }
-                    return null;
-                };
-        }
-        return logger$t.throwArgumentError('invalid chain', 'chain', chain);
-    }
-    detectNetwork() {
-        return __awaiter$4(this, void 0, void 0, function* () {
-            let network = this.network;
-            try {
-                const chainId = yield this.getChainId();
-                if (chainId) {
-                    network.chainId = Number(chainId);
-                }
-                else {
-                    throw new Error('could not detect network');
-                }
-            }
-            catch (error) {
-                return logger$t.throwError('could not detect network', Logger.errors.NETWORK_ERROR, {
-                    event: 'noNetwork',
-                    serverError: error,
-                });
-            }
-            finally {
-                return getStatic(this.constructor, 'getNetwork')(network);
-            }
-        });
-    }
-    result(payload) {
-        return payload.result;
-    }
-    send(method, params) {
-        return __awaiter$4(this, void 0, void 0, function* () {
-            const request = {
-                id: (this._nextId++),
-                jsonrpc: '2.0',
-                method: method,
-                params: params,
-            };
-            this.emit('debug', {
-                action: 'request',
-                request: deepCopy(request),
-                provider: this,
-            });
-            return fetchJson(this.connection, JSON.stringify(request), this.result).then((result) => {
-                this.emit('debug', {
-                    action: 'response',
-                    request: request,
-                    response: result,
-                    provider: this,
-                });
-                return result;
-            }, (error) => {
-                this.emit('debug', {
-                    action: 'response',
-                    request: request,
-                    error: error,
-                    provider: this,
-                });
-                return error;
-            });
-        });
-    }
-    perform(method, params) {
-        return __awaiter$4(this, void 0, void 0, function* () {
-            let args = this.prepareRequest(method, params);
-            if (!args) {
-                return null;
-            }
-            return this.send(args[0], args[1]);
-        });
-    }
-}
-
-/*
- This file is part of crypu.js.
-
- crypu.js is free software: you can redistribute it and/or modify
- it under the terms of the GNU Lesser General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- crypu.js is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU Lesser General Public License for more details.
-
- You should have received a copy of the GNU Lesser General Public License
- along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
- */
-/**
- * @file index.ts
- * @author Youtao Xing <youtao.xing@icloud.com>
- * @date 2020
- */
-'use strict';
-
-/*
- This file is part of crypu.js.
-
- crypu.js is free software: you can redistribute it and/or modify
- it under the terms of the GNU Lesser General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- crypu.js is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU Lesser General Public License for more details.
-
- You should have received a copy of the GNU Lesser General Public License
- along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
- */
-/**
- * @file index.ts
- * @author Youtao Xing <youtao.xing@icloud.com>
- * @date 2020
- */
-'use strict';
-var __awaiter$5 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-const _privateKeyFake = '0x';
-const logger$u = new Logger('signing-trust');
-class SigningEscrow {
-    constructor(connection, address) {
-        this._nextId = 927;
-        defineReadOnly(this, 'connection', connection);
-        defineReadOnly(this, "curve", "secp256k1");
-        defineReadOnly(this, 'address', getAddress(address));
-        defineReadOnly(this, 'privateKey', _privateKeyFake);
-        const json = {
-            id: (this._nextId++),
-            jsonrpc: '2.0',
-            method: 'getEoa',
-            params: [this.address],
-        };
-        fetchJson(this.connection, JSON.stringify(json), this.getResult).then((result) => {
-            defineReadOnly(this, 'publicKey', result.publicKey);
-            defineReadOnly(this, 'compressedPublicKey', result.compressedPublicKey);
-        }).catch((error) => {
-            logger$u.throwError('processing response error', Logger.errors.SERVER_ERROR, {
-                body: json,
-                error: error,
-                url: this.connection.url,
-            });
-        });
-        defineReadOnly(this, '_isSigningEscrow', true);
-    }
-    signDigest(digest) {
-        return __awaiter$5(this, void 0, void 0, function* () {
-            const json = {
-                id: (this._nextId++),
-                jsonrpc: '2.0',
-                method: 'signDigest',
-                params: [this.address, arrayify$6(digest)],
-            };
-            const { signature } = yield fetchJson(this.connection, JSON.stringify(json), this.getResult);
-            return signature;
-        });
-    }
-    getResult(payload) {
-        return payload.result;
-    }
-    static isSigningEscrow(value) {
-        return !!(value && value._isSigningEscrow);
-    }
-}
-
 const version$u = "logger/5.0.5";
 
 "use strict";
@@ -20793,7 +19365,7 @@ var lib_esm$3 = /*#__PURE__*/Object.freeze({
 const version$v = "bytes/5.0.4";
 
 "use strict";
-const logger$v = new Logger$b(version$v);
+const logger$s = new Logger$b(version$v);
 ///////////////////////////////
 function isHexable$9(value) {
     return !!(value.toHexString);
@@ -20837,7 +19409,7 @@ function arrayify$9(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$v.checkSafeUint53(value, "invalid arrayify value");
+        logger$s.checkSafeUint53(value, "invalid arrayify value");
         const result = [];
         while (value) {
             result.unshift(value & 0xff);
@@ -20864,7 +19436,7 @@ function arrayify$9(value, options) {
                 hex += "0";
             }
             else {
-                logger$v.throwArgumentError("hex data is odd-length", "value", value);
+                logger$s.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         const result = [];
@@ -20876,7 +19448,7 @@ function arrayify$9(value, options) {
     if (isBytes$9(value)) {
         return addSlice$9(new Uint8Array(value));
     }
-    return logger$v.throwArgumentError("invalid arrayify value", "value", value);
+    return logger$s.throwArgumentError("invalid arrayify value", "value", value);
 }
 function concat$9(items) {
     const objects = items.map(item => arrayify$9(item));
@@ -20907,7 +19479,7 @@ function stripZeros$9(value) {
 function zeroPad$9(value, length) {
     value = arrayify$9(value);
     if (value.length > length) {
-        logger$v.throwArgumentError("value out of range", "value", arguments[0]);
+        logger$s.throwArgumentError("value out of range", "value", arguments[0]);
     }
     const result = new Uint8Array(length);
     result.set(value, length - value.length);
@@ -20928,7 +19500,7 @@ function hexlify$9(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$v.checkSafeUint53(value, "invalid hexlify value");
+        logger$s.checkSafeUint53(value, "invalid hexlify value");
         let hex = "";
         while (value) {
             hex = HexCharacters$9[value & 0x0f] + hex;
@@ -20957,7 +19529,7 @@ function hexlify$9(value, options) {
                 value += "0";
             }
             else {
-                logger$v.throwArgumentError("hex data is odd-length", "value", value);
+                logger$s.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         return value.toLowerCase();
@@ -20970,7 +19542,7 @@ function hexlify$9(value, options) {
         }
         return result;
     }
-    return logger$v.throwArgumentError("invalid hexlify value", "value", value);
+    return logger$s.throwArgumentError("invalid hexlify value", "value", value);
 }
 /*
 function unoddify(value: BytesLike | Hexable | number): BytesLike | Hexable | number {
@@ -20994,7 +19566,7 @@ function hexDataSlice$9(data, offset, endOffset) {
         data = hexlify$9(data);
     }
     else if (!isHexString$9(data) || (data.length % 2)) {
-        logger$v.throwArgumentError("invalid hexData", "value", data);
+        logger$s.throwArgumentError("invalid hexData", "value", data);
     }
     offset = 2 + 2 * offset;
     if (endOffset != null) {
@@ -21021,7 +19593,7 @@ function hexStripZeros$9(value) {
         value = hexlify$9(value);
     }
     if (!isHexString$9(value)) {
-        logger$v.throwArgumentError("invalid hex string", "value", value);
+        logger$s.throwArgumentError("invalid hex string", "value", value);
     }
     value = value.substring(2);
     let offset = 0;
@@ -21035,10 +19607,10 @@ function hexZeroPad$9(value, length) {
         value = hexlify$9(value);
     }
     else if (!isHexString$9(value)) {
-        logger$v.throwArgumentError("invalid hex string", "value", value);
+        logger$s.throwArgumentError("invalid hex string", "value", value);
     }
     if (value.length > 2 * length + 2) {
-        logger$v.throwArgumentError("value out of range", "value", arguments[1]);
+        logger$s.throwArgumentError("value out of range", "value", arguments[1]);
     }
     while (value.length < 2 * length + 2) {
         value = "0x0" + value.substring(2);
@@ -21056,7 +19628,7 @@ function splitSignature$9(signature) {
     if (isBytesLike$9(signature)) {
         const bytes = arrayify$9(signature);
         if (bytes.length !== 65) {
-            logger$v.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
+            logger$s.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
         }
         // Get the r, s and v
         result.r = hexlify$9(bytes.slice(0, 32));
@@ -21068,7 +19640,7 @@ function splitSignature$9(signature) {
                 result.v += 27;
             }
             else {
-                logger$v.throwArgumentError("signature invalid v byte", "signature", signature);
+                logger$s.throwArgumentError("signature invalid v byte", "signature", signature);
             }
         }
         // Compute recoveryParam from v
@@ -21096,7 +19668,7 @@ function splitSignature$9(signature) {
                 result.recoveryParam = recoveryParam;
             }
             else if (result.recoveryParam !== recoveryParam) {
-                logger$v.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
+                logger$s.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
             }
             // Set or check the s
             vs[0] &= 0x7f;
@@ -21105,13 +19677,13 @@ function splitSignature$9(signature) {
                 result.s = s;
             }
             else if (result.s !== s) {
-                logger$v.throwArgumentError("signature v mismatch _vs", "signature", signature);
+                logger$s.throwArgumentError("signature v mismatch _vs", "signature", signature);
             }
         }
         // Use recid and v to populate each other
         if (result.recoveryParam == null) {
             if (result.v == null) {
-                logger$v.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
+                logger$s.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
             }
             else {
                 result.recoveryParam = 1 - (result.v % 2);
@@ -21122,24 +19694,24 @@ function splitSignature$9(signature) {
                 result.v = 27 + result.recoveryParam;
             }
             else if (result.recoveryParam !== (1 - (result.v % 2))) {
-                logger$v.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
+                logger$s.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
             }
         }
         if (result.r == null || !isHexString$9(result.r)) {
-            logger$v.throwArgumentError("signature missing or invalid r", "signature", signature);
+            logger$s.throwArgumentError("signature missing or invalid r", "signature", signature);
         }
         else {
             result.r = hexZeroPad$9(result.r, 32);
         }
         if (result.s == null || !isHexString$9(result.s)) {
-            logger$v.throwArgumentError("signature missing or invalid s", "signature", signature);
+            logger$s.throwArgumentError("signature missing or invalid s", "signature", signature);
         }
         else {
             result.s = hexZeroPad$9(result.s, 32);
         }
         const vs = arrayify$9(result.s);
         if (vs[0] >= 128) {
-            logger$v.throwArgumentError("signature s out of range", "signature", signature);
+            logger$s.throwArgumentError("signature s out of range", "signature", signature);
         }
         if (result.recoveryParam) {
             vs[0] |= 0x80;
@@ -21147,7 +19719,7 @@ function splitSignature$9(signature) {
         const _vs = hexlify$9(vs);
         if (result._vs) {
             if (!isHexString$9(result._vs)) {
-                logger$v.throwArgumentError("signature invalid _vs", "signature", signature);
+                logger$s.throwArgumentError("signature invalid _vs", "signature", signature);
             }
             result._vs = hexZeroPad$9(result._vs, 32);
         }
@@ -21156,7 +19728,7 @@ function splitSignature$9(signature) {
             result._vs = _vs;
         }
         else if (result._vs !== _vs) {
-            logger$v.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
+            logger$s.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
         }
     }
     return result;
@@ -21273,6 +19845,1565 @@ exports.randomBytes = randomBytes;
 var browser$3 = unwrapExports(browser$2);
 var browser_1$1 = browser$2.shuffled;
 var browser_2$1 = browser$2.randomBytes;
+
+/*
+ This file is part of crypu.js.
+
+ crypu.js is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ crypu.js is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/**
+ * @file base-provider.ts
+ * @author Youtao Xing <youtao.xing@icloud.com>
+ * @date 2020
+ */
+'use strict';
+var __awaiter$3 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+const logger$t = new Logger('providers');
+//////////////////////////////
+// Event Serializeing
+function checkTopic(topic) {
+    if (topic == null) {
+        return 'null';
+    }
+    if (hexDataLength$6(topic) !== 32) {
+        logger$t.throwArgumentError('invalid topic', 'topic', topic);
+    }
+    return topic.toLowerCase();
+}
+function serializeTopics(topics) {
+    // Remove trailing null AND-topics; they are redundant
+    topics = topics.slice();
+    while (topics.length > 0 && topics[topics.length - 1] == null) {
+        topics.pop();
+    }
+    return topics.map((topic) => {
+        if (Array.isArray(topic)) {
+            // Only track unique OR-topics
+            const unique = {};
+            topic.forEach((topic) => {
+                unique[checkTopic(topic)] = true;
+            });
+            // The order of OR-topics does not matter
+            const sorted = Object.keys(unique);
+            sorted.sort();
+            return sorted.join('|');
+        }
+        else {
+            return checkTopic(topic);
+        }
+    }).join('&');
+}
+function deserializeTopics(data) {
+    if (data === '') {
+        return [];
+    }
+    return data.split(/&/g).map((topic) => {
+        if (topic === '') {
+            return [];
+        }
+        const comps = topic.split('|').map((topic) => {
+            return ((topic === 'null') ? null : topic);
+        });
+        return ((comps.length === 1) ? comps[0] : comps);
+    });
+}
+function getEventTag(eventName) {
+    if (typeof (eventName) === 'string') {
+        eventName = eventName.toLowerCase();
+        if (hexDataLength$6(eventName) === 32) {
+            return 'tx:' + eventName;
+        }
+        if (eventName.indexOf(':') === -1) {
+            return eventName;
+        }
+    }
+    else if (Array.isArray(eventName)) {
+        return 'filter:*:' + serializeTopics(eventName);
+    }
+    else if (ForkEvent.isForkEvent(eventName)) {
+        logger$t.warn('not implemented');
+        throw new Error('not implemented');
+    }
+    else if (eventName && typeof (eventName) === 'object') {
+        return 'filter:' + (eventName.address || '*') + ':' + serializeTopics(eventName.topics || []);
+    }
+    throw new Error('invalid event - ' + eventName);
+}
+//////////////////////////////
+// Helper Object
+function getTime() {
+    return (new Date()).getTime();
+}
+function stall(duration) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, duration);
+    });
+}
+//////////////////////////////
+// Provider Object
+/**
+ *  EventType
+ *   - 'block'
+ *   - 'poll'
+ *   - 'didPoll'
+ *   - 'pending'
+ *   - 'error'
+ *   - 'network'
+ *   - filter
+ *   - topics array
+ *   - transaction hash
+ */
+const PollableEvents = ['block', 'network', 'pending', 'poll'];
+class Event {
+    constructor(tag, listener, once) {
+        defineReadOnly(this, 'tag', tag);
+        defineReadOnly(this, 'listener', listener);
+        defineReadOnly(this, 'once', once);
+    }
+    get event() {
+        switch (this.type) {
+            case 'tx':
+                return this.hash;
+            case 'filter':
+                return this.filter;
+        }
+        return this.tag;
+    }
+    get type() {
+        return this.tag.split(':')[0];
+    }
+    get hash() {
+        const comps = this.tag.split(':');
+        if (comps[0] !== 'tx') {
+            return null;
+        }
+        return comps[1];
+    }
+    get filter() {
+        const comps = this.tag.split(':');
+        if (comps[0] !== 'filter') {
+            return null;
+        }
+        const address = comps[1];
+        const topics = deserializeTopics(comps[2]);
+        const filter = {};
+        if (topics.length > 0) {
+            filter.topics = topics;
+        }
+        if (address && address !== '*') {
+            filter.address = address;
+        }
+        return filter;
+    }
+    pollable() {
+        return (this.tag.indexOf(':') >= 0 || PollableEvents.indexOf(this.tag) >= 0);
+    }
+}
+let defaultFormatter = null;
+let nextPollId = 1;
+class BaseProvider extends Provider {
+    /**
+     *  ready
+     *
+     *  A Promise<Network> that resolves only once the provider is ready.
+     *
+     *  Sub-classes that call the super with a network without a chainId
+     *  MUST set this. Standard named networks have a known chainId.
+     *
+     */
+    constructor(chain, network, groupId) {
+        logger$t.checkNew(new.target, Provider);
+        super();
+        this.formatter = new.target.getFormatter();
+        // Events being listened to
+        this._emitted = { block: -2 };
+        this._events = [];
+        this._pollingInterval = 4000;
+        this._lastBlockNumber = -2;
+        this._fastQueryDate = 0;
+        this._maxInternalBlockNumber = -1024;
+        // If network is any, this Provider allows the underlying
+        // network to change dynamically, and we auto-detect the
+        // current network
+        defineReadOnly(this, 'anyNetwork', (network === 'any'));
+        if (this.anyNetwork) {
+            network = this.detectNetwork();
+        }
+        if (network instanceof Promise) {
+            this._networkPromise = network;
+            // Squash any 'unhandled promise' errors; that do not need to be handled
+            network.catch((_) => { });
+            // Trigger initial network setting (async)
+            this._ready().catch((_) => { });
+        }
+        else {
+            const knownNetwork = getStatic((new.target), 'getNetwork')(network);
+            if (knownNetwork) {
+                defineReadOnly(this, '_network', knownNetwork);
+                this.emit('network', knownNetwork, null);
+            }
+            else {
+                logger$t.throwArgumentError('invalid network', 'network', network);
+            }
+        }
+        this._groupId = groupId;
+        defineReadOnly(this, 'getChainId', getStatic((new.target), 'getChainId')(chain, this.perform.bind(this)));
+        defineReadOnly(this, 'populateTransaction', getStatic((new.target), 'populateTransaction')(chain, this));
+        defineReadOnly(this, 'serializeTransaction', getStatic((new.target), 'serializeTransaction')(chain));
+    }
+    _ready() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            if (this._network == null) {
+                let network = null;
+                if (this._networkPromise) {
+                    try {
+                        network = yield this._networkPromise;
+                    }
+                    catch (error) { }
+                }
+                // Try the Provider's network detection (this MUST throw if it cannot)
+                if (network == null) {
+                    network = yield this.detectNetwork();
+                }
+                // This should never happen; every Provider sub-class should have
+                // suggested a network by here (or have thrown).
+                if (!network) {
+                    logger$t.throwError('no network detected', Logger.errors.UNKNOWN_ERROR, {});
+                }
+                // Possible this call stacked so do not call defineReadOnly again
+                if (this._network == null) {
+                    if (this.anyNetwork) {
+                        this._network = network;
+                    }
+                    else {
+                        defineReadOnly(this, '_network', network);
+                    }
+                    this.emit('network', network, null);
+                }
+            }
+            return this._network;
+        });
+    }
+    // This will always return the most recently established network.
+    // For 'any', this can change (a 'network' event is emitted before
+    // any change is refelcted); otherwise this cannot change
+    get ready() {
+        return poll(() => {
+            return this._ready().then((network) => {
+                return network;
+            }, (error) => {
+                // If the network isn't running yet, we will wait
+                if (error.code === Logger.errors.NETWORK_ERROR && error.event === 'noNetwork') {
+                    return undefined;
+                }
+                throw error;
+            });
+        });
+    }
+    // @TODO: Remove this and just create a singleton formatter
+    static getFormatter() {
+        if (defaultFormatter == null) {
+            defaultFormatter = new Formatter();
+        }
+        return defaultFormatter;
+    }
+    // @TODO: Remove this and just use getNetwork
+    static getNetwork(network) {
+        return getNetwork((network == null) ? 'homestead' : network);
+    }
+    static getChainId(chain, perform) {
+        switch (chain) {
+            case Chain.ETHERS:
+                return () => perform('eth_chainId', {});
+            case Chain.FISCO:
+                return () => perform('getClientVersion', {}).then((clientVersion) => Number(clientVersion['Chain Id']));
+        }
+        return logger$t.throwArgumentError('invalid chain', 'chain', chain);
+    }
+    static populateTransaction(chain, self) {
+        switch (chain) {
+            case Chain.ETHERS:
+            case Chain.FISCO:
+                return (transaction) => __awaiter$3(this, void 0, void 0, function* () {
+                    const tx = yield resolveProperties(transaction);
+                    if (tx.nonce == null) {
+                        tx.nonce = hexlify$6(browser_2$1(32));
+                    }
+                    if (tx.blockLimit == null) {
+                        tx.blockLimit = yield self.getBlockNumber().then((blockNumber) => blockNumber + 100);
+                    }
+                    if (tx.to != null) {
+                        tx.to = Promise.resolve(tx.to).then((to) => self.resolveName(to));
+                    }
+                    if (tx.chainId == null) {
+                        tx.chainId = self.getChainId();
+                    }
+                    if (tx.groupId == null) {
+                        tx.groupId = self.getGroupId();
+                    }
+                    if (tx.gasPrice == null) {
+                        tx.gasPrice = yield self.getGasPrice();
+                    }
+                    if (tx.gasLimit == null) {
+                        tx.gasLimit = yield self.estimateGas(tx);
+                    }
+                    return yield resolveProperties(tx);
+                });
+        }
+        return logger$t.throwArgumentError('invalid chain', 'chain', chain);
+    }
+    static serializeTransaction(chain) {
+        switch (chain) {
+            case Chain.ETHERS:
+                return serializeEthers;
+            case Chain.FISCO:
+                return serializeRc2;
+        }
+        return logger$t.throwArgumentError('invalid chain', 'chain', chain);
+    }
+    // Fetches the blockNumber, but will reuse any result that is less
+    // than maxAge old or has been requested since the last request
+    _getInternalBlockNumber(maxAge) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this._ready();
+            const internalBlockNumber = this._internalBlockNumber;
+            if (maxAge > 0 && this._internalBlockNumber) {
+                const result = yield internalBlockNumber;
+                if ((getTime() - result.respTime) <= maxAge) {
+                    return result.blockNumber;
+                }
+            }
+            const reqTime = getTime();
+            const checkInternalBlockNumber = resolveProperties({
+                blockNumber: this.perform('getBlockNumber', {}),
+                networkError: this.getNetwork().then((_) => (null), (error) => (error))
+            }).then(({ blockNumber, networkError }) => {
+                if (networkError) {
+                    // Unremember this bad internal block number
+                    if (this._internalBlockNumber === checkInternalBlockNumber) {
+                        this._internalBlockNumber = null;
+                    }
+                    throw networkError;
+                }
+                const respTime = getTime();
+                blockNumber = BigNumber.from(blockNumber).toNumber();
+                if (blockNumber < this._maxInternalBlockNumber) {
+                    blockNumber = this._maxInternalBlockNumber;
+                }
+                this._maxInternalBlockNumber = blockNumber;
+                this._setFastBlockNumber(blockNumber); // @TODO: Still need this?
+                return { blockNumber, reqTime, respTime };
+            });
+            this._internalBlockNumber = checkInternalBlockNumber;
+            return (yield checkInternalBlockNumber).blockNumber;
+        });
+    }
+    poll() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            const pollId = nextPollId++;
+            // Track all running promises, so we can trigger a post-poll once they are complete
+            const runners = [];
+            const blockNumber = yield this._getInternalBlockNumber(100 + this.pollingInterval / 2);
+            this._setFastBlockNumber(blockNumber);
+            // Emit a poll event after we have the latest (fast) block number
+            this.emit('poll', pollId, blockNumber);
+            // If the block has not changed, meh.
+            if (blockNumber === this._lastBlockNumber) {
+                this.emit('didPoll', pollId);
+                return;
+            }
+            // First polling cycle, trigger a 'block' events
+            if (this._emitted.block === -2) {
+                this._emitted.block = blockNumber - 1;
+            }
+            if (Math.abs((this._emitted.block) - blockNumber) > 1000) {
+                logger$t.warn('network block skew detected; skipping block events');
+                this.emit('error', logger$t.makeError('network block skew detected', Logger.errors.NETWORK_ERROR, {
+                    blockNumber: blockNumber,
+                    event: 'blockSkew',
+                    previousBlockNumber: this._emitted.block
+                }));
+                this.emit('block', blockNumber);
+            }
+            else {
+                // Notify all listener for each block that has passed
+                for (let i = this._emitted.block + 1; i <= blockNumber; i++) {
+                    this.emit('block', i);
+                }
+            }
+            // The emitted block was updated, check for obsolete events
+            if (this._emitted.block !== blockNumber) {
+                this._emitted.block = blockNumber;
+                Object.keys(this._emitted).forEach((key) => {
+                    // The block event does not expire
+                    if (key === 'block') {
+                        return;
+                    }
+                    // The block we were at when we emitted this event
+                    const eventBlockNumber = this._emitted[key];
+                    // We cannot garbage collect pending transactions or blocks here
+                    // They should be garbage collected by the Provider when setting
+                    // 'pending' events
+                    if (eventBlockNumber === 'pending') {
+                        return;
+                    }
+                    // Evict any transaction hashes or block hashes over 12 blocks
+                    // old, since they should not return null anyways
+                    if (blockNumber - eventBlockNumber > 12) {
+                        delete this._emitted[key];
+                    }
+                });
+            }
+            // First polling cycle
+            if (this._lastBlockNumber === -2) {
+                this._lastBlockNumber = blockNumber - 1;
+            }
+            // Find all transaction hashes we are waiting on
+            this._events.forEach((event) => {
+                switch (event.type) {
+                    case 'tx': {
+                        const hash = event.hash;
+                        let runner = this.getTransactionReceipt(hash).then((receipt) => {
+                            if (!receipt || receipt.blockNumber == null) {
+                                return null;
+                            }
+                            this._emitted['t:' + hash] = receipt.blockNumber;
+                            this.emit(hash, receipt);
+                            return null;
+                        }).catch((error) => { this.emit('error', error); });
+                        runners.push(runner);
+                        break;
+                    }
+                    case 'filter': {
+                        const filter = event.filter;
+                        filter.fromBlock = this._lastBlockNumber + 1;
+                        filter.toBlock = blockNumber;
+                        const runner = this.getLogs(filter).then((logs) => {
+                            if (logs.length === 0) {
+                                return;
+                            }
+                            logs.forEach((log) => {
+                                this._emitted['b:' + log.blockHash] = log.blockNumber;
+                                this._emitted['t:' + log.transactionHash] = log.blockNumber;
+                                this.emit(filter, log);
+                            });
+                        }).catch((error) => { this.emit('error', error); });
+                        runners.push(runner);
+                        break;
+                    }
+                }
+            });
+            this._lastBlockNumber = blockNumber;
+            // Once all events for this loop have been processed, emit 'didPoll'
+            Promise.all(runners).then(() => {
+                this.emit('didPoll', pollId);
+            });
+            return null;
+        });
+    }
+    // Deprecated; do not use this
+    resetEventsBlock(blockNumber) {
+        this._lastBlockNumber = blockNumber - 1;
+        if (this.polling) {
+            this.poll();
+        }
+    }
+    get network() {
+        return this._network;
+    }
+    get groupId() {
+        return this._groupId;
+    }
+    // This method should query the network if the underlying network
+    // can change, such as when connected to a JSON-RPC backend
+    detectNetwork() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            return logger$t.throwError('provider does not support network detection', Logger.errors.UNSUPPORTED_OPERATION, {
+                operation: 'provider.detectNetwork'
+            });
+        });
+    }
+    getNetwork() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            const network = yield this._ready();
+            // Make sure we are still connected to the same network; this is
+            // only an external call for backends which can have the underlying
+            // network change spontaneously
+            const currentNetwork = yield this.detectNetwork();
+            if (network.chainId !== currentNetwork.chainId) {
+                // We are allowing network changes, things can get complex fast;
+                // make sure you know what you are doing if you use 'any'
+                if (this.anyNetwork) {
+                    this._network = currentNetwork;
+                    // Reset all internal block number guards and caches
+                    this._lastBlockNumber = -2;
+                    this._fastBlockNumber = null;
+                    this._fastBlockNumberPromise = null;
+                    this._fastQueryDate = 0;
+                    this._emitted.block = -2;
+                    this._maxInternalBlockNumber = -1024;
+                    this._internalBlockNumber = null;
+                    // The 'network' event MUST happen before this method resolves
+                    // so any events have a chance to unregister, so we stall an
+                    // additional event loop before returning from /this/ call
+                    this.emit('network', currentNetwork, network);
+                    yield stall(0);
+                    return this._network;
+                }
+                const error = logger$t.makeError('underlying network changed', Logger.errors.NETWORK_ERROR, {
+                    event: 'changed',
+                    network: network,
+                    detectedNetwork: currentNetwork
+                });
+                this.emit('error', error);
+                throw error;
+            }
+            return network;
+        });
+    }
+    getGroupId() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            return this.groupId;
+        });
+    }
+    get blockNumber() {
+        this._getInternalBlockNumber(100 + this.pollingInterval / 2).then((blockNumber) => {
+            this._setFastBlockNumber(blockNumber);
+        });
+        return (this._fastBlockNumber != null) ? this._fastBlockNumber : -1;
+    }
+    get polling() {
+        return (this._poller != null);
+    }
+    set polling(value) {
+        if (value && !this._poller) {
+            this._poller = setInterval(this.poll.bind(this), this.pollingInterval);
+            if (!this._bootstrapPoll) {
+                this._bootstrapPoll = setTimeout(() => {
+                    this.poll();
+                    // We block additional polls until the polling interval
+                    // is done, to prevent overwhelming the poll function
+                    this._bootstrapPoll = setTimeout(() => {
+                        // If polling was disabled, something may require a poke
+                        // since starting the bootstrap poll and it was disabled
+                        if (!this._poller) {
+                            this.poll();
+                        }
+                        // Clear out the bootstrap so we can do another
+                        this._bootstrapPoll = null;
+                    }, this.pollingInterval);
+                }, 0);
+            }
+        }
+        else if (!value && this._poller) {
+            clearInterval(this._poller);
+            this._poller = null;
+        }
+    }
+    get pollingInterval() {
+        return this._pollingInterval;
+    }
+    set pollingInterval(value) {
+        if (typeof (value) !== 'number' || value <= 0 || parseInt(String(value)) != value) {
+            throw new Error('invalid polling interval');
+        }
+        this._pollingInterval = value;
+        if (this._poller) {
+            clearInterval(this._poller);
+            this._poller = setInterval(() => { this.poll(); }, this._pollingInterval);
+        }
+    }
+    _getFastBlockNumber() {
+        const now = getTime();
+        // Stale block number, request a newer value
+        if ((now - this._fastQueryDate) > 2 * this._pollingInterval) {
+            this._fastQueryDate = now;
+            this._fastBlockNumberPromise = this.getBlockNumber().then((blockNumber) => {
+                if (this._fastBlockNumber == null || blockNumber > this._fastBlockNumber) {
+                    this._fastBlockNumber = blockNumber;
+                }
+                return this._fastBlockNumber;
+            });
+        }
+        return this._fastBlockNumberPromise;
+    }
+    _setFastBlockNumber(blockNumber) {
+        // Older block, maybe a stale request
+        if (this._fastBlockNumber != null && blockNumber < this._fastBlockNumber) {
+            return;
+        }
+        // Update the time we updated the blocknumber
+        this._fastQueryDate = getTime();
+        // Newer block number, use  it
+        if (this._fastBlockNumber == null || blockNumber > this._fastBlockNumber) {
+            this._fastBlockNumber = blockNumber;
+            this._fastBlockNumberPromise = Promise.resolve(blockNumber);
+        }
+    }
+    waitForTransaction(transactionHash, confirmations, timeout) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            if (confirmations == null) {
+                confirmations = 1;
+            }
+            const receipt = yield this.getTransactionReceipt(transactionHash);
+            // Receipt is already good
+            if ((receipt ? receipt.confirmations : 0) >= confirmations) {
+                return receipt;
+            }
+            // Poll until the receipt is good...
+            return new Promise((resolve, reject) => {
+                let timer = null;
+                let done = false;
+                const handler = (receipt) => {
+                    if (receipt.confirmations < confirmations) {
+                        return;
+                    }
+                    if (timer) {
+                        clearTimeout(timer);
+                    }
+                    if (done) {
+                        return;
+                    }
+                    done = true;
+                    this.removeListener(transactionHash, handler);
+                    resolve(receipt);
+                };
+                this.on(transactionHash, handler);
+                if (typeof (timeout) === 'number' && timeout > 0) {
+                    timer = setTimeout(() => {
+                        if (done) {
+                            return;
+                        }
+                        timer = null;
+                        done = true;
+                        this.removeListener(transactionHash, handler);
+                        reject(logger$t.makeError('timeout exceeded', Logger.errors.TIMEOUT, { timeout: timeout }));
+                    }, timeout);
+                    if (timer.unref) {
+                        timer.unref();
+                    }
+                }
+            });
+        });
+    }
+    getBlockNumber() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            return this._getInternalBlockNumber(0);
+        });
+    }
+    getGasPrice() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            return BigNumber.from((yield this.perform('getGasPrice', {})) || 300000000);
+        });
+    }
+    getClientVersion() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            return this.perform('getClientVersion', {});
+        });
+    }
+    getPbftView() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            return this.perform('getPbftView', {});
+        });
+    }
+    getSealerList() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            return this.perform('getSealerList', {});
+        });
+    }
+    getObserverList() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            return this.perform('getObserverList', {});
+        });
+    }
+    getSyncStatus() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            return this.perform('getSyncStatus', {});
+        });
+    }
+    getPeers() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            return this.perform('getPeers', {});
+        });
+    }
+    getNodeIdList() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            return this.perform('getNodeIdList', {});
+        });
+    }
+    getGroupList() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            return this.perform('getGroupList', {});
+        });
+    }
+    getBalance(addressOrName, blockTag) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            const params = yield resolveProperties({
+                address: this._getAddress(addressOrName),
+                blockTag: this._getBlockTag(blockTag)
+            });
+            return BigNumber.from(yield this.perform('getBalance', params));
+        });
+    }
+    getTransactionCount(addressOrName, blockTag) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            const params = yield resolveProperties({
+                address: this._getAddress(addressOrName),
+                blockTag: this._getBlockTag(blockTag)
+            });
+            return BigNumber.from(yield this.perform('getTransactionCount', params)).toNumber();
+        });
+    }
+    getCode(addressOrName, blockTag) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            const params = yield resolveProperties({
+                address: this._getAddress(addressOrName),
+                blockTag: this._getBlockTag(blockTag)
+            });
+            return hexlify$6(yield this.perform('getCode', params));
+        });
+    }
+    // This should be called by any subclass wrapping a TransactionResponse
+    _wrapTransaction(tx, hash) {
+        if (hash != null && hexDataLength$6(hash) !== 32) {
+            throw new Error('invalid response - sendTransaction');
+        }
+        const result = tx;
+        // Check the hash we expect is the same as the hash the server reported
+        if (hash != null && tx.hash !== hash) {
+            logger$t.throwError('Transaction hash mismatch from Provider.sendTransaction.', Logger.errors.UNKNOWN_ERROR, { expectedHash: tx.hash, returnedHash: hash });
+        }
+        // @TODO: (confirmations? number, timeout? number)
+        result.wait = (confirmations) => __awaiter$3(this, void 0, void 0, function* () {
+            // We know this transaction *must* exist (whether it gets mined is
+            // another story), so setting an emitted value forces us to
+            // wait even if the node returns null for the receipt
+            if (confirmations !== 0) {
+                this._emitted['t:' + tx.hash] = 'pending';
+            }
+            const receipt = yield this.waitForTransaction(tx.hash, confirmations);
+            if (receipt == null && confirmations === 0) {
+                return null;
+            }
+            // No longer pending, allow the polling loop to garbage collect this
+            this._emitted['t:' + tx.hash] = receipt.blockNumber;
+            return receipt;
+        });
+        return result;
+    }
+    sendTransaction(signedTransaction) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            const hexTx = yield Promise.resolve(signedTransaction).then(t => hexlify$6(t));
+            const tx = this.formatter.transaction(signedTransaction);
+            try {
+                const hash = yield this.perform('sendTransaction', { signedTransaction: hexTx });
+                return this._wrapTransaction(tx, hash);
+            }
+            catch (error) {
+                error.transaction = tx;
+                error.transactionHash = tx.hash;
+                throw error;
+            }
+        });
+    }
+    _getTransactionRequest(transaction) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            const values = transaction;
+            const tx = {};
+            ['from', 'to'].forEach((key) => {
+                if (values[key] == null) {
+                    return;
+                }
+                tx[key] = Promise.resolve(values[key]).then((v) => (v ? this._getAddress(v) : null));
+            });
+            ['gasLimit', 'gasPrice', 'value'].forEach((key) => {
+                if (values[key] == null) {
+                    return;
+                }
+                tx[key] = Promise.resolve(values[key]).then((v) => (v ? BigNumber.from(v) : null));
+            });
+            ['data'].forEach((key) => {
+                if (values[key] == null) {
+                    return;
+                }
+                tx[key] = Promise.resolve(values[key]).then((v) => (v ? hexlify$6(v) : null));
+            });
+            return this.formatter.transactionRequest(yield resolveProperties(tx));
+        });
+    }
+    _getFilter(filter) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            filter = yield filter;
+            const result = {};
+            if (filter.address != null) {
+                result.address = this._getAddress(filter.address);
+            }
+            ['blockHash', 'topics'].forEach((key) => {
+                if (filter[key] == null) {
+                    return;
+                }
+                result[key] = filter[key];
+            });
+            ['fromBlock', 'toBlock'].forEach((key) => {
+                if (filter[key] == null) {
+                    return;
+                }
+                result[key] = this._getBlockTag(filter[key]);
+            });
+            return this.formatter.filter(yield resolveProperties(result));
+        });
+    }
+    call(transaction, blockTag) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            const params = yield resolveProperties({
+                transaction: this._getTransactionRequest(transaction),
+                blockTag: this._getBlockTag(blockTag)
+            });
+            return hexlify$6((yield this.perform('call', params).then(result => result.output || result)));
+        });
+    }
+    estimateGas(transaction) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            const params = yield resolveProperties({
+                transaction: this._getTransactionRequest(transaction)
+            });
+            return BigNumber.from((yield this.perform('estimateGas', params)) || 1000000);
+        });
+    }
+    _getAddress(addressOrName) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            const address = yield this.resolveName(addressOrName);
+            if (address == null) {
+                logger$t.throwError('ENS name not configured', Logger.errors.UNSUPPORTED_OPERATION, {
+                    operation: `resolveName(${JSON.stringify(addressOrName)})`
+                });
+            }
+            return address;
+        });
+    }
+    _getBlock(blockHashOrBlockTag, includeTransactions) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            blockHashOrBlockTag = yield blockHashOrBlockTag;
+            // If blockTag is a number (not 'latest', etc), this is the block number
+            let blockNumber = -128;
+            const params = {
+                includeTransactions: !!includeTransactions
+            };
+            if (isHexString$6(blockHashOrBlockTag, 32)) {
+                params.blockHash = blockHashOrBlockTag;
+            }
+            else {
+                try {
+                    params.blockTag = this.formatter.blockTag(yield this._getBlockTag(blockHashOrBlockTag));
+                    if (isHexString$6(params.blockTag)) {
+                        blockNumber = parseInt(params.blockTag.substring(2), 16);
+                    }
+                }
+                catch (error) {
+                    logger$t.throwArgumentError('invalid block hash or block tag', 'blockHashOrBlockTag', blockHashOrBlockTag);
+                }
+            }
+            return poll(() => __awaiter$3(this, void 0, void 0, function* () {
+                const block = yield this.perform('getBlock', params);
+                // Block was not found
+                if (block == null) {
+                    // For blockhashes, if we didn't say it existed, that blockhash may
+                    // not exist. If we did see it though, perhaps from a log, we know
+                    // it exists, and this node is just not caught up yet.
+                    if (params.blockHash != null) {
+                        if (this._emitted['b:' + params.blockHash] == null) {
+                            return null;
+                        }
+                    }
+                    // For block tags, if we are asking for a future block, we return null
+                    if (params.blockTag != null) {
+                        if (blockNumber > this._emitted.block) {
+                            return null;
+                        }
+                    }
+                    // Retry on the next block
+                    return undefined;
+                }
+                // Add transactions
+                if (includeTransactions) {
+                    let blockNumber = null;
+                    for (let i = 0; i < block.transactions.length; i++) {
+                        const tx = block.transactions[i];
+                        if (tx.blockNumber == null) {
+                            tx.confirmations = 0;
+                        }
+                        else if (tx.confirmations == null) {
+                            if (blockNumber == null) {
+                                blockNumber = yield this._getInternalBlockNumber(100 + 2 * this.pollingInterval);
+                            }
+                            // Add the confirmations using the fast block number (pessimistic)
+                            let confirmations = (blockNumber - tx.blockNumber) + 1;
+                            if (confirmations <= 0) {
+                                confirmations = 1;
+                            }
+                            tx.confirmations = confirmations;
+                        }
+                    }
+                    return this.formatter.blockWithTransactions(block);
+                }
+                return this.formatter.block(block);
+            }), { oncePoll: this });
+        });
+    }
+    getBlock(blockHashOrBlockTag) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            return (this._getBlock(blockHashOrBlockTag, false));
+        });
+    }
+    getBlockWithTransactions(blockHashOrBlockTag) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            return (this._getBlock(blockHashOrBlockTag, true));
+        });
+    }
+    getTransaction(transactionHash) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            transactionHash = yield transactionHash;
+            const params = { transactionHash: this.formatter.hash(transactionHash, true) };
+            return poll(() => __awaiter$3(this, void 0, void 0, function* () {
+                const result = yield this.perform('getTransaction', params);
+                if (result == null) {
+                    if (this._emitted['t:' + transactionHash] == null) {
+                        return null;
+                    }
+                    return undefined;
+                }
+                const tx = this.formatter.transactionResponse(result);
+                if (tx.blockNumber == null) {
+                    tx.confirmations = 0;
+                }
+                else if (tx.confirmations == null) {
+                    const blockNumber = yield this._getInternalBlockNumber(100 + 2 * this.pollingInterval);
+                    // Add the confirmations using the fast block number (pessimistic)
+                    let confirmations = (blockNumber - tx.blockNumber) + 1;
+                    if (confirmations <= 0) {
+                        confirmations = 1;
+                    }
+                    tx.confirmations = confirmations;
+                }
+                return this._wrapTransaction(tx);
+            }), { oncePoll: this });
+        });
+    }
+    getTransactionReceipt(transactionHash) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            transactionHash = yield transactionHash;
+            const params = { transactionHash: this.formatter.hash(transactionHash, true) };
+            return poll(() => __awaiter$3(this, void 0, void 0, function* () {
+                const result = yield this.perform('getTransactionReceipt', params);
+                if (result == null) {
+                    if (this._emitted['t:' + transactionHash] == null) {
+                        return null;
+                    }
+                    return undefined;
+                }
+                // 'geth-etc' returns receipts before they are ready
+                if (result.blockHash == null) {
+                    return undefined;
+                }
+                const receipt = this.formatter.receipt(result);
+                if (receipt.blockNumber == null) {
+                    receipt.confirmations = 0;
+                }
+                else if (receipt.confirmations == null) {
+                    const blockNumber = yield this._getInternalBlockNumber(100 + 2 * this.pollingInterval);
+                    // Add the confirmations using the fast block number (pessimistic)
+                    let confirmations = (blockNumber - receipt.blockNumber) + 1;
+                    if (confirmations <= 0) {
+                        confirmations = 1;
+                    }
+                    receipt.confirmations = confirmations;
+                }
+                return receipt;
+            }), { oncePoll: this });
+        });
+    }
+    getLogs(filter) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            const params = yield resolveProperties({ filter: this._getFilter(filter) });
+            const logs = yield this.perform('getLogs', params);
+            logs.forEach((log) => {
+                if (log.removed == null) {
+                    log.removed = false;
+                }
+            });
+            return Formatter.arrayOf(this.formatter.filterLog.bind(this.formatter))(logs);
+        });
+    }
+    getEtherPrice() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            yield this.getNetwork();
+            return this.perform('getEtherPrice', {});
+        });
+    }
+    _getBlockTag(blockTag) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            blockTag = yield blockTag;
+            if (typeof (blockTag) === 'number' && blockTag < 0) {
+                if (blockTag % 1) {
+                    logger$t.throwArgumentError('invalid BlockTag', 'blockTag', blockTag);
+                }
+                let blockNumber = yield this._getInternalBlockNumber(100 + 2 * this.pollingInterval);
+                blockNumber += blockTag;
+                if (blockNumber < 0) {
+                    blockNumber = 0;
+                }
+                return this.formatter.blockTag(blockNumber);
+            }
+            return this.formatter.blockTag(blockTag);
+        });
+    }
+    _getResolver(name) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            // Get the resolver from the blockchain
+            const network = yield this.getNetwork();
+            // No ENS...
+            if (!network.ensAddress) {
+                logger$t.throwError('network does not support ENS', Logger.errors.UNSUPPORTED_OPERATION, { operation: 'ENS', network: network.name });
+            }
+            // keccak256('resolver(bytes32)')
+            const transaction = {
+                to: network.ensAddress,
+                data: ('0x0178b8bf' + namehash(name).substring(2))
+            };
+            return this.formatter.callAddress(yield this.call(transaction));
+        });
+    }
+    resolveName(name) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            name = yield name;
+            // If it is already an address, nothing to resolve
+            try {
+                return Promise.resolve(this.formatter.address(name));
+            }
+            catch (error) {
+                // If is is a hexstring, the address is bad (See #694)
+                if (isHexString$6(name)) {
+                    throw error;
+                }
+            }
+            if (typeof (name) !== 'string') {
+                logger$t.throwArgumentError('invalid ENS name', 'name', name);
+            }
+            // Get the addr from the resovler
+            const resolverAddress = yield this._getResolver(name);
+            if (!resolverAddress) {
+                return null;
+            }
+            // keccak256('addr(bytes32)')
+            const transaction = {
+                to: resolverAddress,
+                data: ('0x3b3b57de' + namehash(name).substring(2))
+            };
+            return this.formatter.callAddress(yield this.call(transaction));
+        });
+    }
+    lookupAddress(address) {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            address = yield address;
+            address = this.formatter.address(address);
+            const reverseName = address.substring(2).toLowerCase() + '.addr.reverse';
+            const resolverAddress = yield this._getResolver(reverseName);
+            if (!resolverAddress) {
+                return null;
+            }
+            // keccak('name(bytes32)')
+            let bytes = arrayify$6(yield this.call({
+                to: resolverAddress,
+                data: ('0x691f3431' + namehash(reverseName).substring(2))
+            }));
+            // Strip off the dynamic string pointer (0x20)
+            if (bytes.length < 32 || !BigNumber.from(bytes.slice(0, 32)).eq(32)) {
+                return null;
+            }
+            bytes = bytes.slice(32);
+            // Not a length-prefixed string
+            if (bytes.length < 32) {
+                return null;
+            }
+            // Get the length of the string (from the length-prefix)
+            const length = BigNumber.from(bytes.slice(0, 32)).toNumber();
+            bytes = bytes.slice(32);
+            // Length longer than available data
+            if (length > bytes.length) {
+                return null;
+            }
+            const name = toUtf8String(bytes.slice(0, length));
+            // Make sure the reverse record matches the foward record
+            const addr = yield this.resolveName(name);
+            if (addr != address) {
+                return null;
+            }
+            return name;
+        });
+    }
+    perform(method, params) {
+        return logger$t.throwError(method + ' not implemented', Logger.errors.NOT_IMPLEMENTED, { operation: method });
+    }
+    _startEvent(event) {
+        this.polling = (this._events.filter((e) => e.pollable()).length > 0);
+    }
+    _stopEvent(event) {
+        this.polling = (this._events.filter((e) => e.pollable()).length > 0);
+    }
+    _addEventListener(eventName, listener, once) {
+        const event = new Event(getEventTag(eventName), listener, once);
+        this._events.push(event);
+        this._startEvent(event);
+        return this;
+    }
+    on(eventName, listener) {
+        return this._addEventListener(eventName, listener, false);
+    }
+    once(eventName, listener) {
+        return this._addEventListener(eventName, listener, true);
+    }
+    emit(eventName, ...args) {
+        let result = false;
+        let stopped = [];
+        let eventTag = getEventTag(eventName);
+        this._events = this._events.filter((event) => {
+            if (event.tag !== eventTag) {
+                return true;
+            }
+            setTimeout(() => {
+                event.listener.apply(this, args);
+            }, 0);
+            result = true;
+            if (event.once) {
+                stopped.push(event);
+                return false;
+            }
+            return true;
+        });
+        stopped.forEach((event) => { this._stopEvent(event); });
+        return result;
+    }
+    listenerCount(eventName) {
+        if (!eventName) {
+            return this._events.length;
+        }
+        let eventTag = getEventTag(eventName);
+        return this._events.filter((event) => {
+            return (event.tag === eventTag);
+        }).length;
+    }
+    listeners(eventName) {
+        if (eventName == null) {
+            return this._events.map((event) => event.listener);
+        }
+        let eventTag = getEventTag(eventName);
+        return this._events
+            .filter((event) => (event.tag === eventTag))
+            .map((event) => event.listener);
+    }
+    off(eventName, listener) {
+        if (listener == null) {
+            return this.removeAllListeners(eventName);
+        }
+        const stopped = [];
+        let found = false;
+        let eventTag = getEventTag(eventName);
+        this._events = this._events.filter((event) => {
+            if (event.tag !== eventTag || event.listener != listener) {
+                return true;
+            }
+            if (found) {
+                return true;
+            }
+            found = true;
+            stopped.push(event);
+            return false;
+        });
+        stopped.forEach((event) => { this._stopEvent(event); });
+        return this;
+    }
+    removeAllListeners(eventName) {
+        let stopped = [];
+        if (eventName == null) {
+            stopped = this._events;
+            this._events = [];
+        }
+        else {
+            const eventTag = getEventTag(eventName);
+            this._events = this._events.filter((event) => {
+                if (event.tag !== eventTag) {
+                    return true;
+                }
+                stopped.push(event);
+                return false;
+            });
+        }
+        stopped.forEach((event) => { this._stopEvent(event); });
+        return this;
+    }
+}
+
+/*
+ This file is part of crypu.js.
+
+ crypu.js is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ crypu.js is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/**
+ * @file json-rpc-provider.ts
+ * @author Youtao Xing <youtao.xing@icloud.com>
+ * @date 2020
+ */
+'use strict';
+var __awaiter$4 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+const logger$u = new Logger('provider');
+const defaultUrl = 'http://localhost:8545';
+const defaultNetwork = {
+    chainId: 1,
+    name: 'ethers',
+};
+let defaultFormatter$1;
+class JsonRpcProvider extends BaseProvider {
+    constructor(chain, url, network, groupId) {
+        super(chain, network || getStatic((new.target), 'defaultNetwork')(), groupId || 1);
+        logger$u.checkNew(new.target, JsonRpcProvider);
+        if (!url) {
+            url = getStatic((new.target), 'defaultUrl')();
+        }
+        defineReadOnly(this, 'connection', { url: url });
+        defineReadOnly(this, 'prepareRequest', getStatic((new.target), 'prepareRequest')(chain, this.network, this.groupId));
+        this._nextId = 42;
+    }
+    static getFormatter() {
+        if (defaultFormatter$1 == null) {
+            defaultFormatter$1 = new Formatter();
+        }
+        return defaultFormatter$1;
+    }
+    static defaultUrl() {
+        return defaultUrl;
+    }
+    static defaultNetwork() {
+        return Promise.resolve(defaultNetwork);
+    }
+    static getNetwork(network) {
+        return getNetwork((network == null) ? defaultNetwork : network);
+    }
+    static prepareRequest(chain, _, groupId) {
+        switch (chain) {
+            case Chain.ETHERS:
+                return (method, params) => {
+                    switch (method) {
+                        case 'getChainId':
+                            return ['eth_chainId', []];
+                        case 'getBlockNumber':
+                            return ['eth_blockNumber', []];
+                        case 'getGasPrice':
+                            return ['eth_gasPrice', []];
+                        case 'getBalance':
+                            return ['eth_getBalance', [params.address.toLowerCase(), params.blockTag]];
+                        case 'getTransactionCount':
+                            return ['eth_getTransactionCount', [params.address.toLowerCase(), params.blockTag]];
+                        case 'getCode':
+                            return ['eth_getCode', [params.address.toLowerCase(), params.blockTag]];
+                        case 'getStorageAt':
+                            return ['eth_getStorageAt', [params.address.toLowerCase(), params.position, params.blockTag]];
+                        case 'sendTransaction':
+                            return ['eth_sendRawTransaction', [params.signedTransaction]];
+                        case 'getBlock':
+                            if (params.blockTag) {
+                                return ['eth_getBlockByNumber', [params.blockTag, !!params.includeTransactions]];
+                            }
+                            else if (params.blockHash) {
+                                return ['eth_getBlockByHash', [params.blockHash, !!params.includeTransactions]];
+                            }
+                            return null;
+                        case 'getTransaction':
+                            return ['eth_getTransactionByHash', [params.transactionHash]];
+                        case 'getTransactionReceipt':
+                            return ['eth_getTransactionReceipt', [params.transactionHash]];
+                        case 'call': {
+                            return ['eth_call', [params.transaction, params.blockTag]];
+                        }
+                        case 'estimateGas': {
+                            return ['eth_estimateGas', [params.transaction]];
+                        }
+                        case 'getLogs':
+                            if (params.filter && params.filter.address != null) {
+                                params.filter.address = params.filter.address.toLowerCase();
+                            }
+                            return ['eth_getLogs', [params.filter]];
+                    }
+                    return null;
+                };
+            case Chain.FISCO:
+                return (method, params) => {
+                    switch (method) {
+                        case 'getClientVersion':
+                            return ['getClientVersion', []];
+                        case 'getPbftView':
+                            return ['getPbftView', [groupId]];
+                        case 'getSealerList':
+                            return ['getSealerList', [groupId]];
+                        case 'getObserverList':
+                            return ['getObserverList', [groupId]];
+                        case 'getSyncStatus':
+                            return ['getSyncStatus', [groupId]];
+                        case 'getPeers':
+                            return ['getPeers', [groupId]];
+                        case 'getNodeIdList':
+                            return ['getNodeIDList', [groupId]];
+                        case 'getGroupList':
+                            return ['getGroupList', [groupId]];
+                        case 'getBlockNumber':
+                            return ['getBlockNumber', [groupId]];
+                        case 'getBlock':
+                            if (params.blockTag) {
+                                return ['getBlockByNumber', [groupId, params.blockTag, !!params.includeTransactions]];
+                            }
+                            else if (params.blockHash) {
+                                return ['getBlockByHash', [groupId, params.blockHash, !!params.includeTransactions]];
+                            }
+                            break;
+                        case 'sendTransaction':
+                            return ['sendRawTransaction', [groupId, params.signedTransaction]];
+                        case 'getTransaction':
+                            return ['getTransactionByHash', [groupId, params.transactionHash]];
+                        case 'getTransactionReceipt':
+                            return ['getTransactionReceipt', [groupId, params.transactionHash]];
+                        case 'call':
+                            return ['call', [groupId, params.transaction]];
+                    }
+                    return null;
+                };
+        }
+        return logger$u.throwArgumentError('invalid chain', 'chain', chain);
+    }
+    detectNetwork() {
+        return __awaiter$4(this, void 0, void 0, function* () {
+            let network = this.network;
+            try {
+                const chainId = yield this.getChainId();
+                if (chainId) {
+                    network.chainId = Number(chainId);
+                }
+                else {
+                    throw new Error('could not detect network');
+                }
+            }
+            catch (error) {
+                return logger$u.throwError('could not detect network', Logger.errors.NETWORK_ERROR, {
+                    event: 'noNetwork',
+                    serverError: error,
+                });
+            }
+            finally {
+                return getStatic(this.constructor, 'getNetwork')(network);
+            }
+        });
+    }
+    result(payload) {
+        return payload.result;
+    }
+    send(method, params) {
+        return __awaiter$4(this, void 0, void 0, function* () {
+            const request = {
+                id: (this._nextId++),
+                jsonrpc: '2.0',
+                method: method,
+                params: params,
+            };
+            this.emit('debug', {
+                action: 'request',
+                request: deepCopy(request),
+                provider: this,
+            });
+            return fetchJson(this.connection, JSON.stringify(request), this.result).then((result) => {
+                this.emit('debug', {
+                    action: 'response',
+                    request: request,
+                    response: result,
+                    provider: this,
+                });
+                return result;
+            }, (error) => {
+                this.emit('debug', {
+                    action: 'response',
+                    request: request,
+                    error: error,
+                    provider: this,
+                });
+                return error;
+            });
+        });
+    }
+    perform(method, params) {
+        return __awaiter$4(this, void 0, void 0, function* () {
+            let args = this.prepareRequest(method, params);
+            if (!args) {
+                return null;
+            }
+            return this.send(args[0], args[1]);
+        });
+    }
+}
+
+/*
+ This file is part of crypu.js.
+
+ crypu.js is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ crypu.js is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/**
+ * @file index.ts
+ * @author Youtao Xing <youtao.xing@icloud.com>
+ * @date 2020
+ */
+'use strict';
+
+/*
+ This file is part of crypu.js.
+
+ crypu.js is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ crypu.js is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/**
+ * @file index.ts
+ * @author Youtao Xing <youtao.xing@icloud.com>
+ * @date 2020
+ */
+'use strict';
+var __awaiter$5 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+const _privateKeyFake = '0x';
+const logger$v = new Logger('signing-trust');
+class SigningEscrow {
+    constructor(connection, address) {
+        this._nextId = 927;
+        defineReadOnly(this, 'connection', connection);
+        defineReadOnly(this, "curve", "secp256k1");
+        defineReadOnly(this, 'address', getAddress(address));
+        defineReadOnly(this, 'privateKey', _privateKeyFake);
+        const json = {
+            id: (this._nextId++),
+            jsonrpc: '2.0',
+            method: 'getEoa',
+            params: [this.address],
+        };
+        fetchJson(this.connection, JSON.stringify(json), this.getResult).then((result) => {
+            defineReadOnly(this, 'publicKey', result.publicKey);
+            defineReadOnly(this, 'compressedPublicKey', result.compressedPublicKey);
+        }).catch((error) => {
+            logger$v.throwError('processing response error', Logger.errors.SERVER_ERROR, {
+                body: json,
+                error: error,
+                url: this.connection.url,
+            });
+        });
+        defineReadOnly(this, '_isSigningEscrow', true);
+    }
+    signDigest(digest) {
+        return __awaiter$5(this, void 0, void 0, function* () {
+            const json = {
+                id: (this._nextId++),
+                jsonrpc: '2.0',
+                method: 'signDigest',
+                params: [this.address, arrayify$6(digest)],
+            };
+            const { signature } = yield fetchJson(this.connection, JSON.stringify(json), this.getResult);
+            return signature;
+        });
+    }
+    getResult(payload) {
+        return payload.result;
+    }
+    static isSigningEscrow(value) {
+        return !!(value && value._isSigningEscrow);
+    }
+}
 
 const version$w = "logger/5.0.5";
 
@@ -26063,7 +26194,7 @@ function handleNumber$1(value) {
     }
     return BigNumber.from(value);
 }
-const transactionFields$1 = [
+const transactionFields = [
     { name: "nonce", maxLength: 32, numeric: true },
     { name: "gasPrice", maxLength: 32, numeric: true },
     { name: "gasLimit", maxLength: 32, numeric: true },
@@ -26071,7 +26202,7 @@ const transactionFields$1 = [
     { name: "value", maxLength: 32, numeric: true },
     { name: "data" },
 ];
-const allowedTransactionKeys$1 = {
+const allowedTransactionKeys = {
     chainId: true, data: true, gasLimit: true, gasPrice: true, nonce: true, to: true, value: true
 };
 function computeAddress$1(key) {
@@ -26081,10 +26212,10 @@ function computeAddress$1(key) {
 function recoverAddress$1(digest, signature) {
     return computeAddress$1(recoverPublicKey(arrayify$e(digest), signature));
 }
-function serialize$1(transaction, signature) {
-    checkProperties(transaction, allowedTransactionKeys$1);
+function serialize(transaction, signature) {
+    checkProperties(transaction, allowedTransactionKeys);
     const raw = [];
-    transactionFields$1.forEach(function (fieldInfo) {
+    transactionFields.forEach(function (fieldInfo) {
         let value = transaction[fieldInfo.name] || ([]);
         const options = {};
         if (fieldInfo.numeric) {
@@ -29453,7 +29584,7 @@ var __awaiter$7 = (window && window.__awaiter) || function (thisArg, _arguments,
     });
 };
 const logger$G = new Logger('abstract-signer');
-const allowedTransactionKeys$2 = [
+const allowedTransactionKeys$1 = [
     'nonce',
     'gasPrice',
     'gasLimit',
@@ -29499,7 +29630,7 @@ class Signer {
     sendTransaction(transaction) {
         return __awaiter$7(this, void 0, void 0, function* () {
             this._checkProvider('sendTransaction');
-            return this.populateTransaction(transaction).then((tx) => __awaiter$7(this, void 0, void 0, function* () {
+            return this.provider.populateTransaction(transaction).then((tx) => __awaiter$7(this, void 0, void 0, function* () {
                 const signedTx = yield this.signTransaction(tx);
                 return this.provider.sendTransaction(signedTx);
             }));
@@ -29554,7 +29685,7 @@ class Signer {
     //   - populateTransaction (and therefor sendTransaction)
     checkTransaction(transaction) {
         for (const key in transaction) {
-            if (allowedTransactionKeys$2.indexOf(key) === -1) {
+            if (allowedTransactionKeys$1.indexOf(key) === -1) {
                 logger$G.throwArgumentError('invalid transaction key: ' + key, 'transaction', transaction);
             }
         }
@@ -29575,37 +29706,6 @@ class Signer {
             });
         }
         return tx;
-    }
-    // Populates ALL keys for a transaction and checks that 'from' matches
-    // this Signer. Should be used by sendTransaction but NOT by signTransaction.
-    // By default called from: (overriding these prevents it)
-    //   - sendTransaction
-    populateTransaction(transaction) {
-        return __awaiter$7(this, void 0, void 0, function* () {
-            const tx = yield resolveProperties(this.checkTransaction(transaction));
-            if (tx.nonce == null) {
-                tx.nonce = hexlify$6(browser_2$1(16));
-            }
-            if (tx.blockLimit == null) {
-                tx.blockLimit = yield this.getBlockNumber().then((blockNumber) => blockNumber + 100);
-            }
-            if (tx.to != null) {
-                tx.to = Promise.resolve(tx.to).then((to) => this.resolveName(to));
-            }
-            if (tx.chainId == null) {
-                tx.chainId = this.getChainId();
-            }
-            if (tx.groupId == null) {
-                tx.groupId = this.getGroupId();
-            }
-            if (tx.gasPrice == null) {
-                tx.gasPrice = yield this.getGasPrice();
-            }
-            if (tx.gasLimit == null) {
-                tx.gasLimit = yield this.estimateGas(tx);
-            }
-            return yield resolveProperties(tx);
-        });
     }
     ///////////////////
     // Sub-classes SHOULD leave these alone
@@ -29765,8 +29865,8 @@ class Wallet extends Signer {
                     }
                     delete tx.from;
                 }
-                const signature = yield this.signDigest(keccak256$3(serialize(tx)));
-                return serialize(tx, signature);
+                const signature = yield this.signDigest(keccak256$3(this.provider.serializeTransaction(tx)));
+                return this.provider.serializeTransaction(tx, signature);
             }));
         });
     }

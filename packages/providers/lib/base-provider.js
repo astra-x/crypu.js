@@ -76,10 +76,13 @@ var bytes_1 = require("@ethersproject/bytes");
 var networks_1 = require("@ethersproject/networks");
 var properties_1 = require("@ethersproject/properties");
 var bignumber_1 = require("@ethersproject/bignumber");
+var random_1 = require("@ethersproject/random");
 var strings_1 = require("@ethersproject/strings");
 var hash_1 = require("@ethersproject/hash");
+var transactions_1 = require("@crypujs/transactions");
 var web_1 = require("@crypujs/web");
 var abstract_provider_1 = require("@crypujs/abstract-provider");
+var constants_1 = require("./constants");
 var formatter_1 = require("./formatter");
 var logger = new logger_1.Logger('providers');
 //////////////////////////////
@@ -253,15 +256,19 @@ var BaseProvider = /** @class */ (function (_super) {
      *  MUST set this. Standard named networks have a known chainId.
      *
      */
-    function BaseProvider(network, groupId) {
+    function BaseProvider(chain, network, groupId) {
         var _newTarget = this.constructor;
         var _this = this;
         logger.checkNew(_newTarget, abstract_provider_1.Provider);
         _this = _super.call(this) || this;
-        // Events being listened to
-        _this._events = [];
-        _this._emitted = { block: -2 };
         _this.formatter = _newTarget.getFormatter();
+        // Events being listened to
+        _this._emitted = { block: -2 };
+        _this._events = [];
+        _this._pollingInterval = 4000;
+        _this._lastBlockNumber = -2;
+        _this._fastQueryDate = 0;
+        _this._maxInternalBlockNumber = -1024;
         // If network is any, this Provider allows the underlying
         // network to change dynamically, and we auto-detect the
         // current network
@@ -287,10 +294,9 @@ var BaseProvider = /** @class */ (function (_super) {
             }
         }
         _this._groupId = groupId;
-        _this._maxInternalBlockNumber = -1024;
-        _this._lastBlockNumber = -2;
-        _this._pollingInterval = 4000;
-        _this._fastQueryDate = 0;
+        properties_1.defineReadOnly(_this, 'getChainId', properties_1.getStatic((_newTarget), 'getChainId')(chain, _this.perform.bind(_this)));
+        properties_1.defineReadOnly(_this, 'populateTransaction', properties_1.getStatic((_newTarget), 'populateTransaction')(chain, _this));
+        properties_1.defineReadOnly(_this, 'serializeTransaction', properties_1.getStatic((_newTarget), 'serializeTransaction')(chain));
         return _this;
     }
     BaseProvider.prototype._ready = function () {
@@ -371,6 +377,78 @@ var BaseProvider = /** @class */ (function (_super) {
     // @TODO: Remove this and just use getNetwork
     BaseProvider.getNetwork = function (network) {
         return networks_1.getNetwork((network == null) ? 'homestead' : network);
+    };
+    BaseProvider.getChainId = function (chain, perform) {
+        switch (chain) {
+            case constants_1.Chain.ETHERS:
+                return function () { return perform('eth_chainId', {}); };
+            case constants_1.Chain.FISCO:
+                return function () {
+                    return perform('getClientVersion', {}).then(function (clientVersion) { return Number(clientVersion['Chain Id']); });
+                };
+        }
+        return logger.throwArgumentError('invalid chain', 'chain', chain);
+    };
+    BaseProvider.populateTransaction = function (chain, self) {
+        var _this = this;
+        switch (chain) {
+            case constants_1.Chain.ETHERS:
+            case constants_1.Chain.FISCO:
+                return function (transaction) { return __awaiter(_this, void 0, void 0, function () {
+                    var tx, _a, _b, _c;
+                    return __generator(this, function (_d) {
+                        switch (_d.label) {
+                            case 0: return [4 /*yield*/, properties_1.resolveProperties(transaction)];
+                            case 1:
+                                tx = _d.sent();
+                                if (tx.nonce == null) {
+                                    tx.nonce = bytes_1.hexlify(random_1.randomBytes(32));
+                                }
+                                if (!(tx.blockLimit == null)) return [3 /*break*/, 3];
+                                _a = tx;
+                                return [4 /*yield*/, self.getBlockNumber().then(function (blockNumber) { return blockNumber + 100; })];
+                            case 2:
+                                _a.blockLimit = _d.sent();
+                                _d.label = 3;
+                            case 3:
+                                if (tx.to != null) {
+                                    tx.to = Promise.resolve(tx.to).then(function (to) { return self.resolveName(to); });
+                                }
+                                if (tx.chainId == null) {
+                                    tx.chainId = self.getChainId();
+                                }
+                                if (tx.groupId == null) {
+                                    tx.groupId = self.getGroupId();
+                                }
+                                if (!(tx.gasPrice == null)) return [3 /*break*/, 5];
+                                _b = tx;
+                                return [4 /*yield*/, self.getGasPrice()];
+                            case 4:
+                                _b.gasPrice = _d.sent();
+                                _d.label = 5;
+                            case 5:
+                                if (!(tx.gasLimit == null)) return [3 /*break*/, 7];
+                                _c = tx;
+                                return [4 /*yield*/, self.estimateGas(tx)];
+                            case 6:
+                                _c.gasLimit = _d.sent();
+                                _d.label = 7;
+                            case 7: return [4 /*yield*/, properties_1.resolveProperties(tx)];
+                            case 8: return [2 /*return*/, _d.sent()];
+                        }
+                    });
+                }); };
+        }
+        return logger.throwArgumentError('invalid chain', 'chain', chain);
+    };
+    BaseProvider.serializeTransaction = function (chain) {
+        switch (chain) {
+            case constants_1.Chain.ETHERS:
+                return transactions_1.serializeEthers;
+            case constants_1.Chain.FISCO:
+                return transactions_1.serializeRc2;
+        }
+        return logger.throwArgumentError('invalid chain', 'chain', chain);
     };
     // Fetches the blockNumber, but will reuse any result that is less
     // than maxAge old or has been requested since the last request
@@ -789,7 +867,7 @@ var BaseProvider = /** @class */ (function (_super) {
                     case 0: return [4 /*yield*/, this.getNetwork()];
                     case 1:
                         _a.sent();
-                        return [2 /*return*/, this.perform('getClientVersion', [])];
+                        return [2 /*return*/, this.perform('getClientVersion', {})];
                 }
             });
         });
@@ -801,7 +879,7 @@ var BaseProvider = /** @class */ (function (_super) {
                     case 0: return [4 /*yield*/, this.getNetwork()];
                     case 1:
                         _a.sent();
-                        return [2 /*return*/, this.perform('getPbftView', [])];
+                        return [2 /*return*/, this.perform('getPbftView', {})];
                 }
             });
         });
@@ -813,7 +891,7 @@ var BaseProvider = /** @class */ (function (_super) {
                     case 0: return [4 /*yield*/, this.getNetwork()];
                     case 1:
                         _a.sent();
-                        return [2 /*return*/, this.perform('getSealerList', [])];
+                        return [2 /*return*/, this.perform('getSealerList', {})];
                 }
             });
         });
@@ -825,7 +903,7 @@ var BaseProvider = /** @class */ (function (_super) {
                     case 0: return [4 /*yield*/, this.getNetwork()];
                     case 1:
                         _a.sent();
-                        return [2 /*return*/, this.perform('getObserverList', [])];
+                        return [2 /*return*/, this.perform('getObserverList', {})];
                 }
             });
         });
@@ -837,7 +915,7 @@ var BaseProvider = /** @class */ (function (_super) {
                     case 0: return [4 /*yield*/, this.getNetwork()];
                     case 1:
                         _a.sent();
-                        return [2 /*return*/, this.perform('getSyncStatus', [])];
+                        return [2 /*return*/, this.perform('getSyncStatus', {})];
                 }
             });
         });
@@ -849,7 +927,7 @@ var BaseProvider = /** @class */ (function (_super) {
                     case 0: return [4 /*yield*/, this.getNetwork()];
                     case 1:
                         _a.sent();
-                        return [2 /*return*/, this.perform('getPeers', [])];
+                        return [2 /*return*/, this.perform('getPeers', {})];
                 }
             });
         });
@@ -861,7 +939,7 @@ var BaseProvider = /** @class */ (function (_super) {
                     case 0: return [4 /*yield*/, this.getNetwork()];
                     case 1:
                         _a.sent();
-                        return [2 /*return*/, this.perform('getNodeIdList', [])];
+                        return [2 /*return*/, this.perform('getNodeIdList', {})];
                 }
             });
         });
@@ -873,7 +951,7 @@ var BaseProvider = /** @class */ (function (_super) {
                     case 0: return [4 /*yield*/, this.getNetwork()];
                     case 1:
                         _a.sent();
-                        return [2 /*return*/, this.perform('getGroupList', [])];
+                        return [2 /*return*/, this.perform('getGroupList', {})];
                 }
             });
         });

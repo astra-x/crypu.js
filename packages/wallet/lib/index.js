@@ -199,10 +199,10 @@ var Wallet = /** @class */ (function (_super) {
                                         }
                                         delete tx.from;
                                     }
-                                    return [4 /*yield*/, this.signDigest(keccak256_1.keccak256(transactions_1.serialize(tx)))];
+                                    return [4 /*yield*/, this.signDigest(keccak256_1.keccak256(this.provider.serializeTransaction(tx)))];
                                 case 1:
                                     signature = _a.sent();
-                                    return [2 /*return*/, transactions_1.serialize(tx, signature)];
+                                    return [2 /*return*/, this.provider.serializeTransaction(tx, signature)];
                             }
                         });
                     }); })];

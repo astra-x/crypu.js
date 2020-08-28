@@ -45,13 +45,12 @@ const defaultNetwork = {
 let defaultFormatter;
 export class JsonRpcProvider extends BaseProvider {
     constructor(chain, url, network, groupId) {
-        super(network || getStatic((new.target), 'defaultNetwork')(), groupId || 1);
+        super(chain, network || getStatic((new.target), 'defaultNetwork')(), groupId || 1);
         logger.checkNew(new.target, JsonRpcProvider);
         if (!url) {
             url = getStatic((new.target), 'defaultUrl')();
         }
         defineReadOnly(this, 'connection', { url: url });
-        defineReadOnly(this, 'getChainId', getStatic((new.target), 'getChainId')(chain, this.send.bind(this)));
         defineReadOnly(this, 'prepareRequest', getStatic((new.target), 'prepareRequest')(chain, this.network, this.groupId));
         this._nextId = 42;
     }
@@ -70,20 +69,13 @@ export class JsonRpcProvider extends BaseProvider {
     static getNetwork(network) {
         return getNetwork((network == null) ? defaultNetwork : network);
     }
-    static getChainId(chain, send) {
-        switch (chain) {
-            case Chain.ETHERS:
-                return () => send('eth_chainId', []);
-            case Chain.FISCO:
-                return () => send('getClientVersion', []).then((clientVersion) => Number(clientVersion['Chain Id']));
-        }
-        return logger.throwArgumentError('invalid chain', 'chain', chain);
-    }
     static prepareRequest(chain, _, groupId) {
         switch (chain) {
             case Chain.ETHERS:
                 return (method, params) => {
                     switch (method) {
+                        case 'getChainId':
+                            return ['eth_chainId', []];
                         case 'getBlockNumber':
                             return ['eth_blockNumber', []];
                         case 'getGasPrice':

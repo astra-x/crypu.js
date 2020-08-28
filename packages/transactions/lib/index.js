@@ -40,7 +40,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parse = exports.serialize = exports.recoverAddress = exports.computeAddress = void 0;
+exports.parse = exports.serializeRc2 = exports.serializeEthers = exports.recoverAddress = exports.computeAddress = void 0;
 var logger_1 = require("@ethersproject/logger");
 var bytes_1 = require("@ethersproject/bytes");
 var keccak256_1 = require("@ethersproject/keccak256");
@@ -52,8 +52,24 @@ var address_1 = require("@ethersproject/address");
 var signing_key_1 = require("@ethersproject/signing-key");
 ///////////////////////////////
 var logger = new logger_1.Logger('transactions');
-var transactionFields = [
-    { name: 'nonce', maxLength: 16, numeric: true },
+var transactionFieldsEthers = [
+    { name: 'nonce', maxLength: 32, numeric: true },
+    { name: 'gasPrice', maxLength: 32, numeric: true },
+    { name: 'gasLimit', maxLength: 32, numeric: true },
+    { name: 'to', length: 20 },
+    { name: 'value', maxLength: 32, numeric: true },
+    { name: 'data' },
+];
+var allowedTransactionKeysEthers = {
+    nonce: true,
+    gasPrice: true,
+    gasLimit: true,
+    to: true,
+    value: true,
+    data: true,
+};
+var transactionFieldsRc2 = [
+    { name: 'nonce', maxLength: 32, numeric: true },
     { name: 'gasPrice', maxLength: 32, numeric: true },
     { name: 'gasLimit', maxLength: 32, numeric: true },
     { name: 'blockLimit', maxLength: 32, numeric: true },
@@ -64,7 +80,7 @@ var transactionFields = [
     { name: 'groupId', maxLength: 32 },
     { name: 'extraData' },
 ];
-var allowedTransactionKeys = {
+var allowedTransactionKeysRc2 = {
     nonce: true,
     gasPrice: true,
     gasLimit: true,
@@ -99,10 +115,81 @@ function recoverAddress(digest, signature) {
     return computeAddress(signing_key_1.recoverPublicKey(bytes_1.arrayify(digest), signature));
 }
 exports.recoverAddress = recoverAddress;
-function serialize(transaction, signature) {
-    properties_1.checkProperties(transaction, allowedTransactionKeys);
+function serializeEthers(transaction, signature) {
+    console.log('serializeEthers');
+    properties_1.checkProperties(transaction, allowedTransactionKeysEthers);
     var raw = [];
-    transactionFields.forEach(function (fieldInfo) {
+    transactionFieldsEthers.forEach(function (fieldInfo) {
+        var value = transaction[fieldInfo.name] || ([]);
+        var options = {};
+        if (fieldInfo.numeric) {
+            options.hexPad = 'left';
+        }
+        value = bytes_1.arrayify(bytes_1.hexlify(value, options));
+        // Fixed-width field
+        if (fieldInfo.length && value.length !== fieldInfo.length && value.length > 0) {
+            logger.throwArgumentError('invalid length for ' + fieldInfo.name, ('transaction:' + fieldInfo.name), value);
+        }
+        // Variable-width (with a maximum)
+        if (fieldInfo.maxLength) {
+            value = bytes_1.stripZeros(value);
+            if (value.length > fieldInfo.maxLength) {
+                logger.throwArgumentError('invalid length for ' + fieldInfo.name, ('transaction:' + fieldInfo.name), value);
+            }
+        }
+        raw.push(bytes_1.hexlify(value));
+    });
+    var chainId = 0;
+    if (transaction.chainId != null) {
+        // A chainId was provided; if non-zero we'll use EIP-155
+        chainId = transaction.chainId;
+        if (typeof (chainId) !== "number") {
+            logger.throwArgumentError("invalid transaction.chainId", "transaction", transaction);
+        }
+    }
+    else if (signature && !bytes_1.isBytesLike(signature) && signature.v > 28) {
+        // No chainId provided, but the signature is signing with EIP-155; derive chainId
+        chainId = Math.floor((signature.v - 35) / 2);
+    }
+    // We have an EIP-155 transaction (chainId was specified and non-zero)
+    if (chainId !== 0) {
+        raw.push(bytes_1.hexlify(chainId));
+        raw.push("0x");
+        raw.push("0x");
+    }
+    // Requesting an unsigned transation
+    if (!signature) {
+        return RLP.encode(raw);
+    }
+    // The splitSignature will ensure the transaction has a recoveryParam in the
+    // case that the signTransaction function only adds a v.
+    var sig = bytes_1.splitSignature(signature);
+    // We pushed a chainId and null r, s on for hashing only; remove those
+    var v = 27 + sig.recoveryParam;
+    if (chainId !== 0) {
+        raw.pop();
+        raw.pop();
+        raw.pop();
+        v += chainId * 2 + 8;
+        // If an EIP-155 v (directly or indirectly; maybe _vs) was provided, check it!
+        if (sig.v > 28 && sig.v !== v) {
+            logger.throwArgumentError("transaction.chainId/signature.v mismatch", "signature", signature);
+        }
+    }
+    else if (sig.v !== v) {
+        logger.throwArgumentError("transaction.chainId/signature.v mismatch", "signature", signature);
+    }
+    raw.push(bytes_1.hexlify(v));
+    raw.push(bytes_1.stripZeros(bytes_1.arrayify(sig.r)));
+    raw.push(bytes_1.stripZeros(bytes_1.arrayify(sig.s)));
+    return RLP.encode(raw);
+}
+exports.serializeEthers = serializeEthers;
+function serializeRc2(transaction, signature) {
+    console.log('serializeRc2');
+    properties_1.checkProperties(transaction, allowedTransactionKeysRc2);
+    var raw = [];
+    transactionFieldsRc2.forEach(function (fieldInfo) {
         var value = transaction[fieldInfo.name] || ([]);
         var options = {};
         if (fieldInfo.numeric) {
@@ -136,7 +223,7 @@ function serialize(transaction, signature) {
     raw.push(bytes_1.stripZeros(bytes_1.arrayify(sig.s)));
     return RLP.encode(raw);
 }
-exports.serialize = serialize;
+exports.serializeRc2 = serializeRc2;
 function parse(rawTransaction) {
     var transaction = RLP.decode(rawTransaction);
     if (transaction.length !== 13 && transaction.length !== 10) {

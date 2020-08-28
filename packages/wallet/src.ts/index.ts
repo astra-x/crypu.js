@@ -59,10 +59,8 @@ import {
 } from '@ethersproject/json-wallets';
 
 import {
-  UnsignedTransaction,
   computeAddress,
   recoverAddress,
-  serialize,
 } from '@crypujs/transactions';
 import {
   Provider,
@@ -188,8 +186,8 @@ export class Wallet extends Signer implements ExternallyOwnedAccount {
         delete tx.from;
       }
 
-      const signature = await this.signDigest(keccak256(serialize(<UnsignedTransaction>tx)));
-      return serialize(<UnsignedTransaction>tx, signature);
+      const signature = await this.signDigest(keccak256(this.provider.serializeTransaction(tx)));
+      return this.provider.serializeTransaction(tx, signature);
     });
   }
 

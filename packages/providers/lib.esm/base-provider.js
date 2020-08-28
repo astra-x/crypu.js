@@ -34,10 +34,13 @@ import { arrayify, hexDataLength, hexlify, isHexString, } from '@ethersproject/b
 import { getNetwork, } from '@ethersproject/networks';
 import { defineReadOnly, getStatic, resolveProperties, } from '@ethersproject/properties';
 import { BigNumber } from '@ethersproject/bignumber';
+import { randomBytes } from '@ethersproject/random';
 import { toUtf8String } from '@ethersproject/strings';
 import { namehash } from '@ethersproject/hash';
+import { serializeEthers, serializeRc2, } from '@crypujs/transactions';
 import { poll } from '@crypujs/web';
 import { ForkEvent, Provider, } from '@crypujs/abstract-provider';
+import { Chain } from './constants';
 import { Formatter } from './formatter';
 const logger = new Logger('providers');
 //////////////////////////////
@@ -192,13 +195,17 @@ export class BaseProvider extends Provider {
      *  MUST set this. Standard named networks have a known chainId.
      *
      */
-    constructor(network, groupId) {
+    constructor(chain, network, groupId) {
         logger.checkNew(new.target, Provider);
         super();
-        // Events being listened to
-        this._events = [];
-        this._emitted = { block: -2 };
         this.formatter = new.target.getFormatter();
+        // Events being listened to
+        this._emitted = { block: -2 };
+        this._events = [];
+        this._pollingInterval = 4000;
+        this._lastBlockNumber = -2;
+        this._fastQueryDate = 0;
+        this._maxInternalBlockNumber = -1024;
         // If network is any, this Provider allows the underlying
         // network to change dynamically, and we auto-detect the
         // current network
@@ -224,10 +231,9 @@ export class BaseProvider extends Provider {
             }
         }
         this._groupId = groupId;
-        this._maxInternalBlockNumber = -1024;
-        this._lastBlockNumber = -2;
-        this._pollingInterval = 4000;
-        this._fastQueryDate = 0;
+        defineReadOnly(this, 'getChainId', getStatic((new.target), 'getChainId')(chain, this.perform.bind(this)));
+        defineReadOnly(this, 'populateTransaction', getStatic((new.target), 'populateTransaction')(chain, this));
+        defineReadOnly(this, 'serializeTransaction', getStatic((new.target), 'serializeTransaction')(chain));
     }
     _ready() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -288,6 +294,56 @@ export class BaseProvider extends Provider {
     // @TODO: Remove this and just use getNetwork
     static getNetwork(network) {
         return getNetwork((network == null) ? 'homestead' : network);
+    }
+    static getChainId(chain, perform) {
+        switch (chain) {
+            case Chain.ETHERS:
+                return () => perform('eth_chainId', {});
+            case Chain.FISCO:
+                return () => perform('getClientVersion', {}).then((clientVersion) => Number(clientVersion['Chain Id']));
+        }
+        return logger.throwArgumentError('invalid chain', 'chain', chain);
+    }
+    static populateTransaction(chain, self) {
+        switch (chain) {
+            case Chain.ETHERS:
+            case Chain.FISCO:
+                return (transaction) => __awaiter(this, void 0, void 0, function* () {
+                    const tx = yield resolveProperties(transaction);
+                    if (tx.nonce == null) {
+                        tx.nonce = hexlify(randomBytes(32));
+                    }
+                    if (tx.blockLimit == null) {
+                        tx.blockLimit = yield self.getBlockNumber().then((blockNumber) => blockNumber + 100);
+                    }
+                    if (tx.to != null) {
+                        tx.to = Promise.resolve(tx.to).then((to) => self.resolveName(to));
+                    }
+                    if (tx.chainId == null) {
+                        tx.chainId = self.getChainId();
+                    }
+                    if (tx.groupId == null) {
+                        tx.groupId = self.getGroupId();
+                    }
+                    if (tx.gasPrice == null) {
+                        tx.gasPrice = yield self.getGasPrice();
+                    }
+                    if (tx.gasLimit == null) {
+                        tx.gasLimit = yield self.estimateGas(tx);
+                    }
+                    return yield resolveProperties(tx);
+                });
+        }
+        return logger.throwArgumentError('invalid chain', 'chain', chain);
+    }
+    static serializeTransaction(chain) {
+        switch (chain) {
+            case Chain.ETHERS:
+                return serializeEthers;
+            case Chain.FISCO:
+                return serializeRc2;
+        }
+        return logger.throwArgumentError('invalid chain', 'chain', chain);
     }
     // Fetches the blockNumber, but will reuse any result that is less
     // than maxAge old or has been requested since the last request
@@ -628,49 +684,49 @@ export class BaseProvider extends Provider {
     getClientVersion() {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.getNetwork();
-            return this.perform('getClientVersion', []);
+            return this.perform('getClientVersion', {});
         });
     }
     getPbftView() {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.getNetwork();
-            return this.perform('getPbftView', []);
+            return this.perform('getPbftView', {});
         });
     }
     getSealerList() {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.getNetwork();
-            return this.perform('getSealerList', []);
+            return this.perform('getSealerList', {});
         });
     }
     getObserverList() {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.getNetwork();
-            return this.perform('getObserverList', []);
+            return this.perform('getObserverList', {});
         });
     }
     getSyncStatus() {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.getNetwork();
-            return this.perform('getSyncStatus', []);
+            return this.perform('getSyncStatus', {});
         });
     }
     getPeers() {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.getNetwork();
-            return this.perform('getPeers', []);
+            return this.perform('getPeers', {});
         });
     }
     getNodeIdList() {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.getNetwork();
-            return this.perform('getNodeIdList', []);
+            return this.perform('getNodeIdList', {});
         });
     }
     getGroupList() {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.getNetwork();
-            return this.perform('getGroupList', []);
+            return this.perform('getGroupList', {});
         });
     }
     getBalance(addressOrName, blockTag) {

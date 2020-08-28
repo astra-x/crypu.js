@@ -35,7 +35,6 @@ import {
 } from '@ethersproject/properties'
 
 import { fetchJson } from '@crypujs/web';
-import { ClientVersion } from '@crypujs/abstract-provider';
 
 import { Chain } from './constants';
 import { Response } from './dto/response.dto';
@@ -59,11 +58,10 @@ export class JsonRpcProvider extends BaseProvider {
   readonly connection: Connection;
 
   // compatible for ethers and fisco
-  readonly getChainId: () => Promise<number>;
   readonly prepareRequest: (method: string, params: any) => [string, Array<any>];
 
   constructor(chain: Chain, url?: string, network?: Network | Promise<Network>, groupId?: number) {
-    super(network || getStatic<() => Promise<Network>>(new.target, 'defaultNetwork')(), groupId || 1);
+    super(chain, network || getStatic<() => Promise<Network>>(new.target, 'defaultNetwork')(), groupId || 1);
 
     logger.checkNew(new.target, JsonRpcProvider);
 
@@ -71,16 +69,6 @@ export class JsonRpcProvider extends BaseProvider {
       url = getStatic<() => string>(new.target, 'defaultUrl')();
     }
     defineReadOnly(this, 'connection', { url: url });
-    defineReadOnly(
-      this,
-      'getChainId',
-      getStatic<
-        (
-          chain: Chain,
-          send: (method: string, params: Array<any>) => Promise<any>,
-        ) => () => Promise<number>
-        >(new.target, 'getChainId')(chain, this.send.bind(this)),
-    );
     defineReadOnly(
       this,
       'prepareRequest',
@@ -115,24 +103,13 @@ export class JsonRpcProvider extends BaseProvider {
     return getNetwork((network == null) ? defaultNetwork : network);
   }
 
-  static getChainId(chain: Chain, send: (method: string, params: Array<any>) => Promise<any>): () => Promise<number> {
-    switch (chain) {
-      case Chain.ETHERS:
-        return (): Promise<number> => send('eth_chainId', []);
-      case Chain.FISCO:
-        return (): Promise<number> =>
-          send('getClientVersion', []).then(
-            (clientVersion: ClientVersion) => Number(clientVersion['Chain Id'])
-          );
-    }
-    return logger.throwArgumentError('invalid chain', 'chain', chain);
-  }
-
   static prepareRequest(chain: Chain, _: Network, groupId: number): (method: string, params: any) => [string, Array<any>] {
     switch (chain) {
       case Chain.ETHERS:
         return (method: string, params: any): [string, Array<any>] => {
           switch (method) {
+            case 'getChainId':
+              return ['eth_chainId', []];
             case 'getBlockNumber':
               return ['eth_blockNumber', []];
             case 'getGasPrice':
