@@ -23,9 +23,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Api = void 0;
 exports.Api = {
-    detectChainId: function (send) {
-        return function () { return send('eth_chainId', []); };
-    },
     prepareRequest: function (method, params) {
         switch (method) {
             case 'getBlockNumber':

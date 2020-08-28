@@ -34,15 +34,13 @@ import { getNetwork, } from '@ethersproject/networks';
 import { deepCopy, defineReadOnly, getStatic, } from '@ethersproject/properties';
 import { fetchJson } from '@crypujs/web';
 import { Chain } from './constants';
-import { Api as EthersApi } from './api/ethers.api';
-import { Api as FiscoApi } from './api/fisco.api';
 import { Formatter } from './formatter';
 import { BaseProvider } from './base-provider';
 const logger = new Logger('provider');
 const defaultUrl = 'http://localhost:8545';
 const defaultNetwork = {
     chainId: 1,
-    name: 'fisco',
+    name: 'ethers',
 };
 let defaultFormatter;
 export class JsonRpcProvider extends BaseProvider {
@@ -53,25 +51,9 @@ export class JsonRpcProvider extends BaseProvider {
             url = getStatic((new.target), 'defaultUrl')();
         }
         defineReadOnly(this, 'connection', { url: url });
-        switch (chain) {
-            case Chain.ETHERS: {
-                defineReadOnly(this, 'detectChainId', EthersApi.detectChainId(this.send.bind(this)));
-                defineReadOnly(this, 'prepareRequest', EthersApi.prepareRequest);
-                break;
-            }
-            case Chain.FISCO: {
-                defineReadOnly(this, 'detectChainId', FiscoApi.detectChainId(this.send.bind(this)));
-                defineReadOnly(this, 'prepareRequest', FiscoApi.prepareRequest(this.groupId));
-                break;
-            }
-        }
+        defineReadOnly(this, 'getChainId', getStatic((new.target), 'getChainId')(chain, this.send.bind(this)));
+        defineReadOnly(this, 'prepareRequest', getStatic((new.target), 'prepareRequest')(chain, this.network, this.groupId));
         this._nextId = 42;
-    }
-    static defaultUrl() {
-        return defaultUrl;
-    }
-    static defaultNetwork() {
-        return Promise.resolve(defaultNetwork);
     }
     static getFormatter() {
         if (defaultFormatter == null) {
@@ -79,14 +61,117 @@ export class JsonRpcProvider extends BaseProvider {
         }
         return defaultFormatter;
     }
+    static defaultUrl() {
+        return defaultUrl;
+    }
+    static defaultNetwork() {
+        return Promise.resolve(defaultNetwork);
+    }
     static getNetwork(network) {
         return getNetwork((network == null) ? defaultNetwork : network);
+    }
+    static getChainId(chain, send) {
+        switch (chain) {
+            case Chain.ETHERS:
+                return () => send('eth_chainId', []);
+            case Chain.FISCO:
+                return () => send('getClientVersion', []).then((clientVersion) => Number(clientVersion['Chain Id']));
+        }
+        return logger.throwArgumentError('invalid chain', 'chain', chain);
+    }
+    static prepareRequest(chain, _, groupId) {
+        switch (chain) {
+            case Chain.ETHERS:
+                return (method, params) => {
+                    switch (method) {
+                        case 'getBlockNumber':
+                            return ['eth_blockNumber', []];
+                        case 'getGasPrice':
+                            return ['eth_gasPrice', []];
+                        case 'getBalance':
+                            return ['eth_getBalance', [params.address.toLowerCase(), params.blockTag]];
+                        case 'getTransactionCount':
+                            return ['eth_getTransactionCount', [params.address.toLowerCase(), params.blockTag]];
+                        case 'getCode':
+                            return ['eth_getCode', [params.address.toLowerCase(), params.blockTag]];
+                        case 'getStorageAt':
+                            return ['eth_getStorageAt', [params.address.toLowerCase(), params.position, params.blockTag]];
+                        case 'sendTransaction':
+                            return ['eth_sendRawTransaction', [params.signedTransaction]];
+                        case 'getBlock':
+                            if (params.blockTag) {
+                                return ['eth_getBlockByNumber', [params.blockTag, !!params.includeTransactions]];
+                            }
+                            else if (params.blockHash) {
+                                return ['eth_getBlockByHash', [params.blockHash, !!params.includeTransactions]];
+                            }
+                            return null;
+                        case 'getTransaction':
+                            return ['eth_getTransactionByHash', [params.transactionHash]];
+                        case 'getTransactionReceipt':
+                            return ['eth_getTransactionReceipt', [params.transactionHash]];
+                        case 'call': {
+                            return ['eth_call', [params.transaction, params.blockTag]];
+                        }
+                        case 'estimateGas': {
+                            return ['eth_estimateGas', [params.transaction]];
+                        }
+                        case 'getLogs':
+                            if (params.filter && params.filter.address != null) {
+                                params.filter.address = params.filter.address.toLowerCase();
+                            }
+                            return ['eth_getLogs', [params.filter]];
+                    }
+                    return null;
+                };
+            case Chain.FISCO:
+                return (method, params) => {
+                    switch (method) {
+                        case 'getClientVersion':
+                            return ['getClientVersion', []];
+                        case 'getPbftView':
+                            return ['getPbftView', [groupId]];
+                        case 'getSealerList':
+                            return ['getSealerList', [groupId]];
+                        case 'getObserverList':
+                            return ['getObserverList', [groupId]];
+                        case 'getSyncStatus':
+                            return ['getSyncStatus', [groupId]];
+                        case 'getPeers':
+                            return ['getPeers', [groupId]];
+                        case 'getNodeIdList':
+                            return ['getNodeIDList', [groupId]];
+                        case 'getGroupList':
+                            return ['getGroupList', [groupId]];
+                        case 'getBlockNumber':
+                            return ['getBlockNumber', [groupId]];
+                        case 'getBlock':
+                            if (params.blockTag) {
+                                return ['getBlockByNumber', [groupId, params.blockTag, !!params.includeTransactions]];
+                            }
+                            else if (params.blockHash) {
+                                return ['getBlockByHash', [groupId, params.blockHash, !!params.includeTransactions]];
+                            }
+                            break;
+                        case 'sendTransaction':
+                            return ['sendRawTransaction', [groupId, params.signedTransaction]];
+                        case 'getTransaction':
+                            return ['getTransactionByHash', [groupId, params.transactionHash]];
+                        case 'getTransactionReceipt':
+                            return ['getTransactionReceipt', [groupId, params.transactionHash]];
+                        case 'call':
+                            return ['call', [groupId, params.transaction]];
+                    }
+                    return null;
+                };
+        }
+        return logger.throwArgumentError('invalid chain', 'chain', chain);
     }
     detectNetwork() {
         return __awaiter(this, void 0, void 0, function* () {
             let network = this.network;
             try {
-                const chainId = yield this.detectChainId();
+                const chainId = yield this.getChainId();
                 if (chainId) {
                     network.chainId = Number(chainId);
                 }
@@ -105,7 +190,7 @@ export class JsonRpcProvider extends BaseProvider {
             }
         });
     }
-    getResult(payload) {
+    result(payload) {
         return payload.result;
     }
     send(method, params) {
@@ -121,7 +206,7 @@ export class JsonRpcProvider extends BaseProvider {
                 request: deepCopy(request),
                 provider: this,
             });
-            return fetchJson(this.connection, JSON.stringify(request), this.getResult).then((result) => {
+            return fetchJson(this.connection, JSON.stringify(request), this.result).then((result) => {
                 this.emit('debug', {
                     action: 'response',
                     request: request,

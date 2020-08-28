@@ -23,11 +23,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Api = void 0;
 exports.Api = {
-    detectChainId: function (send) {
-        return function () {
-            return send('getClientVersion', []).then(function (clientVersion) { return Number(clientVersion['Chain Id']); });
-        };
-    },
     prepareRequest: function (groupId) {
         return function (method, params) {
             switch (method) {

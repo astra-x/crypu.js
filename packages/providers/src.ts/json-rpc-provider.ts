@@ -35,10 +35,9 @@ import {
 } from '@ethersproject/properties'
 
 import { fetchJson } from '@crypujs/web';
+import { ClientVersion } from '@crypujs/abstract-provider';
 
 import { Chain } from './constants';
-import { Api as EthersApi } from './api/ethers.api';
-import { Api as FiscoApi } from './api/fisco.api';
 import { Response } from './dto/response.dto';
 import { Formatter } from './formatter';
 import { BaseProvider } from './base-provider';
@@ -47,7 +46,7 @@ const logger = new Logger('provider');
 const defaultUrl: string = 'http://localhost:8545';
 const defaultNetwork: Network = {
   chainId: 1,
-  name: 'fisco',
+  name: 'ethers',
 };
 let defaultFormatter: Formatter;
 
@@ -60,7 +59,7 @@ export class JsonRpcProvider extends BaseProvider {
   readonly connection: Connection;
 
   // compatible for ethers and fisco
-  readonly detectChainId: () => Promise<number>;
+  readonly getChainId: () => Promise<number>;
   readonly prepareRequest: (method: string, params: any) => [string, Array<any>];
 
   constructor(chain: Chain, url?: string, network?: Network | Promise<Network>, groupId?: number) {
@@ -72,21 +71,36 @@ export class JsonRpcProvider extends BaseProvider {
       url = getStatic<() => string>(new.target, 'defaultUrl')();
     }
     defineReadOnly(this, 'connection', { url: url });
-
-    switch (chain) {
-      case Chain.ETHERS: {
-        defineReadOnly(this, 'detectChainId', EthersApi.detectChainId(this.send.bind(this)));
-        defineReadOnly(this, 'prepareRequest', EthersApi.prepareRequest);
-        break;
-      }
-      case Chain.FISCO: {
-        defineReadOnly(this, 'detectChainId', FiscoApi.detectChainId(this.send.bind(this)));
-        defineReadOnly(this, 'prepareRequest', FiscoApi.prepareRequest(this.groupId));
-        break;
-      }
-    }
+    defineReadOnly(
+      this,
+      'getChainId',
+      getStatic<
+        (
+          chain: Chain,
+          send: (method: string, params: Array<any>) => Promise<any>,
+        ) => () => Promise<number>
+        >(new.target, 'getChainId')(chain, this.send.bind(this)),
+    );
+    defineReadOnly(
+      this,
+      'prepareRequest',
+      getStatic<
+        (
+          chain: Chain,
+          network: Network,
+          groupId: number,
+        ) => (method: string, params: any) => [string, Array<any>]
+        >(new.target, 'prepareRequest')(chain, this.network, this.groupId),
+    )
 
     this._nextId = 42;
+  }
+
+  static getFormatter(): Formatter {
+    if (defaultFormatter == null) {
+      defaultFormatter = new Formatter();
+    }
+    return defaultFormatter;
   }
 
   static defaultUrl(): string {
@@ -97,21 +111,114 @@ export class JsonRpcProvider extends BaseProvider {
     return Promise.resolve(defaultNetwork);
   }
 
-  static getFormatter(): Formatter {
-    if (defaultFormatter == null) {
-      defaultFormatter = new Formatter();
-    }
-    return defaultFormatter;
-  }
-
   static getNetwork(network: Networkish): Network {
     return getNetwork((network == null) ? defaultNetwork : network);
+  }
+
+  static getChainId(chain: Chain, send: (method: string, params: Array<any>) => Promise<any>): () => Promise<number> {
+    switch (chain) {
+      case Chain.ETHERS:
+        return (): Promise<number> => send('eth_chainId', []);
+      case Chain.FISCO:
+        return (): Promise<number> =>
+          send('getClientVersion', []).then(
+            (clientVersion: ClientVersion) => Number(clientVersion['Chain Id'])
+          );
+    }
+    return logger.throwArgumentError('invalid chain', 'chain', chain);
+  }
+
+  static prepareRequest(chain: Chain, _: Network, groupId: number): (method: string, params: any) => [string, Array<any>] {
+    switch (chain) {
+      case Chain.ETHERS:
+        return (method: string, params: any): [string, Array<any>] => {
+          switch (method) {
+            case 'getBlockNumber':
+              return ['eth_blockNumber', []];
+            case 'getGasPrice':
+              return ['eth_gasPrice', []];
+            case 'getBalance':
+              return ['eth_getBalance', [params.address.toLowerCase(), params.blockTag]];
+            case 'getTransactionCount':
+              return ['eth_getTransactionCount', [params.address.toLowerCase(), params.blockTag]];
+            case 'getCode':
+              return ['eth_getCode', [params.address.toLowerCase(), params.blockTag]];
+            case 'getStorageAt':
+              return ['eth_getStorageAt', [params.address.toLowerCase(), params.position, params.blockTag]];
+            case 'sendTransaction':
+              return ['eth_sendRawTransaction', [params.signedTransaction]]
+            case 'getBlock':
+              if (params.blockTag) {
+                return ['eth_getBlockByNumber', [params.blockTag, !!params.includeTransactions]];
+              } else if (params.blockHash) {
+                return ['eth_getBlockByHash', [params.blockHash, !!params.includeTransactions]];
+              }
+              return null;
+            case 'getTransaction':
+              return ['eth_getTransactionByHash', [params.transactionHash]];
+            case 'getTransactionReceipt':
+              return ['eth_getTransactionReceipt', [params.transactionHash]];
+            case 'call': {
+              return ['eth_call', [params.transaction, params.blockTag]];
+            }
+            case 'estimateGas': {
+              return ['eth_estimateGas', [params.transaction]];
+            }
+            case 'getLogs':
+              if (params.filter && params.filter.address != null) {
+                params.filter.address = params.filter.address.toLowerCase();
+              }
+              return ['eth_getLogs', [params.filter]];
+          }
+          return null;
+        }
+      case Chain.FISCO:
+        return (method: string, params: any): [string, Array<any>] => {
+          switch (method) {
+            case 'getClientVersion':
+              return ['getClientVersion', []];
+            case 'getPbftView':
+              return ['getPbftView', [groupId]];
+            case 'getSealerList':
+              return ['getSealerList', [groupId]];
+            case 'getObserverList':
+              return ['getObserverList', [groupId]];
+            case 'getSyncStatus':
+              return ['getSyncStatus', [groupId]];
+            case 'getPeers':
+              return ['getPeers', [groupId]];
+            case 'getNodeIdList':
+              return ['getNodeIDList', [groupId]];
+            case 'getGroupList':
+              return ['getGroupList', [groupId]];
+            case 'getBlockNumber':
+              return ['getBlockNumber', [groupId]];
+            case 'getBlock':
+              if (params.blockTag) {
+                return ['getBlockByNumber', [groupId, params.blockTag, !!params.includeTransactions]];
+              } else if (params.blockHash) {
+                return ['getBlockByHash', [groupId, params.blockHash, !!params.includeTransactions]];
+              }
+              break;
+            case 'sendTransaction':
+              return ['sendRawTransaction', [groupId, params.signedTransaction]];
+            case 'getTransaction':
+              return ['getTransactionByHash', [groupId, params.transactionHash]];
+            case 'getTransactionReceipt':
+              return ['getTransactionReceipt', [groupId, params.transactionHash]];
+            case 'call':
+              return ['call', [groupId, params.transaction]];
+          }
+          return null;
+        }
+    }
+    return logger.throwArgumentError('invalid chain', 'chain', chain);
   }
 
   async detectNetwork(): Promise<Network> {
     let network: Network = this.network;
     try {
-      const chainId = await this.detectChainId();
+      const chainId = await this.getChainId();
       if (chainId) {
         network.chainId = Number(chainId);
       } else {
@@ -129,7 +236,7 @@ export class JsonRpcProvider extends BaseProvider {
     }
   }
 
-  getResult(payload: Response<any>): any {
+  result(payload: Response<any>): any {
     return payload.result;
   }
 
@@ -145,7 +252,7 @@ export class JsonRpcProvider extends BaseProvider {
       request: deepCopy(request),
       provider: this,
     });
-    return fetchJson(this.connection, JSON.stringify(request), this.getResult).then((result) => {
+    return fetchJson(this.connection, JSON.stringify(request), this.result).then((result) => {
       this.emit('debug', {
         action: 'response',
         request: request,

@@ -76,15 +76,13 @@ var networks_1 = require("@ethersproject/networks");
 var properties_1 = require("@ethersproject/properties");
 var web_1 = require("@crypujs/web");
 var constants_1 = require("./constants");
-var ethers_api_1 = require("./api/ethers.api");
-var fisco_api_1 = require("./api/fisco.api");
 var formatter_1 = require("./formatter");
 var base_provider_1 = require("./base-provider");
 var logger = new logger_1.Logger('provider');
 var defaultUrl = 'http://localhost:8545';
 var defaultNetwork = {
     chainId: 1,
-    name: 'fisco',
+    name: 'ethers',
 };
 var defaultFormatter;
 var JsonRpcProvider = /** @class */ (function (_super) {
@@ -97,35 +95,124 @@ var JsonRpcProvider = /** @class */ (function (_super) {
             url = properties_1.getStatic((_newTarget), 'defaultUrl')();
         }
         properties_1.defineReadOnly(_this, 'connection', { url: url });
-        switch (chain) {
-            case constants_1.Chain.ETHERS: {
-                properties_1.defineReadOnly(_this, 'detectChainId', ethers_api_1.Api.detectChainId(_this.send.bind(_this)));
-                properties_1.defineReadOnly(_this, 'prepareRequest', ethers_api_1.Api.prepareRequest);
-                break;
-            }
-            case constants_1.Chain.FISCO: {
-                properties_1.defineReadOnly(_this, 'detectChainId', fisco_api_1.Api.detectChainId(_this.send.bind(_this)));
-                properties_1.defineReadOnly(_this, 'prepareRequest', fisco_api_1.Api.prepareRequest(_this.groupId));
-                break;
-            }
-        }
+        properties_1.defineReadOnly(_this, 'getChainId', properties_1.getStatic((_newTarget), 'getChainId')(chain, _this.send.bind(_this)));
+        properties_1.defineReadOnly(_this, 'prepareRequest', properties_1.getStatic((_newTarget), 'prepareRequest')(chain, _this.network, _this.groupId));
         _this._nextId = 42;
         return _this;
     }
-    JsonRpcProvider.defaultUrl = function () {
-        return defaultUrl;
-    };
-    JsonRpcProvider.defaultNetwork = function () {
-        return Promise.resolve(defaultNetwork);
-    };
     JsonRpcProvider.getFormatter = function () {
         if (defaultFormatter == null) {
             defaultFormatter = new formatter_1.Formatter();
         }
         return defaultFormatter;
     };
+    JsonRpcProvider.defaultUrl = function () {
+        return defaultUrl;
+    };
+    JsonRpcProvider.defaultNetwork = function () {
+        return Promise.resolve(defaultNetwork);
+    };
     JsonRpcProvider.getNetwork = function (network) {
         return networks_1.getNetwork((network == null) ? defaultNetwork : network);
+    };
+    JsonRpcProvider.getChainId = function (chain, send) {
+        switch (chain) {
+            case constants_1.Chain.ETHERS:
+                return function () { return send('eth_chainId', []); };
+            case constants_1.Chain.FISCO:
+                return function () {
+                    return send('getClientVersion', []).then(function (clientVersion) { return Number(clientVersion['Chain Id']); });
+                };
+        }
+        return logger.throwArgumentError('invalid chain', 'chain', chain);
+    };
+    JsonRpcProvider.prepareRequest = function (chain, _, groupId) {
+        switch (chain) {
+            case constants_1.Chain.ETHERS:
+                return function (method, params) {
+                    switch (method) {
+                        case 'getBlockNumber':
+                            return ['eth_blockNumber', []];
+                        case 'getGasPrice':
+                            return ['eth_gasPrice', []];
+                        case 'getBalance':
+                            return ['eth_getBalance', [params.address.toLowerCase(), params.blockTag]];
+                        case 'getTransactionCount':
+                            return ['eth_getTransactionCount', [params.address.toLowerCase(), params.blockTag]];
+                        case 'getCode':
+                            return ['eth_getCode', [params.address.toLowerCase(), params.blockTag]];
+                        case 'getStorageAt':
+                            return ['eth_getStorageAt', [params.address.toLowerCase(), params.position, params.blockTag]];
+                        case 'sendTransaction':
+                            return ['eth_sendRawTransaction', [params.signedTransaction]];
+                        case 'getBlock':
+                            if (params.blockTag) {
+                                return ['eth_getBlockByNumber', [params.blockTag, !!params.includeTransactions]];
+                            }
+                            else if (params.blockHash) {
+                                return ['eth_getBlockByHash', [params.blockHash, !!params.includeTransactions]];
+                            }
+                            return null;
+                        case 'getTransaction':
+                            return ['eth_getTransactionByHash', [params.transactionHash]];
+                        case 'getTransactionReceipt':
+                            return ['eth_getTransactionReceipt', [params.transactionHash]];
+                        case 'call': {
+                            return ['eth_call', [params.transaction, params.blockTag]];
+                        }
+                        case 'estimateGas': {
+                            return ['eth_estimateGas', [params.transaction]];
+                        }
+                        case 'getLogs':
+                            if (params.filter && params.filter.address != null) {
+                                params.filter.address = params.filter.address.toLowerCase();
+                            }
+                            return ['eth_getLogs', [params.filter]];
+                    }
+                    return null;
+                };
+            case constants_1.Chain.FISCO:
+                return function (method, params) {
+                    switch (method) {
+                        case 'getClientVersion':
+                            return ['getClientVersion', []];
+                        case 'getPbftView':
+                            return ['getPbftView', [groupId]];
+                        case 'getSealerList':
+                            return ['getSealerList', [groupId]];
+                        case 'getObserverList':
+                            return ['getObserverList', [groupId]];
+                        case 'getSyncStatus':
+                            return ['getSyncStatus', [groupId]];
+                        case 'getPeers':
+                            return ['getPeers', [groupId]];
+                        case 'getNodeIdList':
+                            return ['getNodeIDList', [groupId]];
+                        case 'getGroupList':
+                            return ['getGroupList', [groupId]];
+                        case 'getBlockNumber':
+                            return ['getBlockNumber', [groupId]];
+                        case 'getBlock':
+                            if (params.blockTag) {
+                                return ['getBlockByNumber', [groupId, params.blockTag, !!params.includeTransactions]];
+                            }
+                            else if (params.blockHash) {
+                                return ['getBlockByHash', [groupId, params.blockHash, !!params.includeTransactions]];
+                            }
+                            break;
+                        case 'sendTransaction':
+                            return ['sendRawTransaction', [groupId, params.signedTransaction]];
+                        case 'getTransaction':
+                            return ['getTransactionByHash', [groupId, params.transactionHash]];
+                        case 'getTransactionReceipt':
+                            return ['getTransactionReceipt', [groupId, params.transactionHash]];
+                        case 'call':
+                            return ['call', [groupId, params.transaction]];
+                    }
+                    return null;
+                };
+        }
+        return logger.throwArgumentError('invalid chain', 'chain', chain);
     };
     JsonRpcProvider.prototype.detectNetwork = function () {
         return __awaiter(this, void 0, void 0, function () {
@@ -137,7 +224,7 @@ var JsonRpcProvider = /** @class */ (function (_super) {
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, 4, 5]);
-                        return [4 /*yield*/, this.detectChainId()];
+                        return [4 /*yield*/, this.getChainId()];
                     case 2:
                         chainId = _a.sent();
                         if (chainId) {
@@ -159,7 +246,7 @@ var JsonRpcProvider = /** @class */ (function (_super) {
             });
         });
     };
-    JsonRpcProvider.prototype.getResult = function (payload) {
+    JsonRpcProvider.prototype.result = function (payload) {
         return payload.result;
     };
     JsonRpcProvider.prototype.send = function (method, params) {
@@ -178,7 +265,7 @@ var JsonRpcProvider = /** @class */ (function (_super) {
                     request: properties_1.deepCopy(request),
                     provider: this,
                 });
-                return [2 /*return*/, web_1.fetchJson(this.connection, JSON.stringify(request), this.getResult).then(function (result) {
+                return [2 /*return*/, web_1.fetchJson(this.connection, JSON.stringify(request), this.result).then(function (result) {
                         _this.emit('debug', {
                             action: 'response',
                             request: request,

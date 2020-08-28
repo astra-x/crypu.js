@@ -15839,165 +15839,6 @@
 	var lib_1$w = lib$w.poll;
 	var lib_2$s = lib$w.fetchJson;
 
-	var ethers_api = createCommonjsModule(function (module, exports) {
-	"use strict";
-	/*
-	 This file is part of crypu.js.
-
-	 crypu.js is free software: you can redistribute it and/or modify
-	 it under the terms of the GNU Lesser General Public License as published by
-	 the Free Software Foundation, either version 3 of the License, or
-	 (at your option) any later version.
-
-	 crypu.js is distributed in the hope that it will be useful,
-	 but WITHOUT ANY WARRANTY; without even the implied warranty of
-	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	 GNU Lesser General Public License for more details.
-
-	 You should have received a copy of the GNU Lesser General Public License
-	 along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
-	 */
-	/**
-	 * @file ethers.api.ts
-	 * @author Youtao Xing <youtao.xing@icloud.com>
-	 * @date 2020
-	 */
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.Api = void 0;
-	exports.Api = {
-	    detectChainId: function (send) {
-	        return function () { return send('eth_chainId', []); };
-	    },
-	    prepareRequest: function (method, params) {
-	        switch (method) {
-	            case 'getBlockNumber':
-	                return ['eth_blockNumber', []];
-	            case 'getGasPrice':
-	                return ['eth_gasPrice', []];
-	            case 'getBalance':
-	                return ['eth_getBalance', [params.address.toLowerCase(), params.blockTag]];
-	            case 'getTransactionCount':
-	                return ['eth_getTransactionCount', [params.address.toLowerCase(), params.blockTag]];
-	            case 'getCode':
-	                return ['eth_getCode', [params.address.toLowerCase(), params.blockTag]];
-	            case 'getStorageAt':
-	                return ['eth_getStorageAt', [params.address.toLowerCase(), params.position, params.blockTag]];
-	            case 'sendTransaction':
-	                return ['eth_sendRawTransaction', [params.signedTransaction]];
-	            case 'getBlock':
-	                if (params.blockTag) {
-	                    return ['eth_getBlockByNumber', [params.blockTag, !!params.includeTransactions]];
-	                }
-	                else if (params.blockHash) {
-	                    return ['eth_getBlockByHash', [params.blockHash, !!params.includeTransactions]];
-	                }
-	                return null;
-	            case 'getTransaction':
-	                return ['eth_getTransactionByHash', [params.transactionHash]];
-	            case 'getTransactionReceipt':
-	                return ['eth_getTransactionReceipt', [params.transactionHash]];
-	            case 'call': {
-	                return ['eth_call', [params.transaction, params.blockTag]];
-	            }
-	            case 'estimateGas': {
-	                return ['eth_estimateGas', [params.transaction]];
-	            }
-	            case 'getLogs':
-	                if (params.filter && params.filter.address != null) {
-	                    params.filter.address = params.filter.address.toLowerCase();
-	                }
-	                return ['eth_getLogs', [params.filter]];
-	            default:
-	                break;
-	        }
-	        return null;
-	    },
-	};
-	});
-
-	var ethers_api$1 = unwrapExports(ethers_api);
-	var ethers_api_1 = ethers_api.Api;
-
-	var fisco_api = createCommonjsModule(function (module, exports) {
-	"use strict";
-	/*
-	 This file is part of crypu.js.
-
-	 crypu.js is free software: you can redistribute it and/or modify
-	 it under the terms of the GNU Lesser General Public License as published by
-	 the Free Software Foundation, either version 3 of the License, or
-	 (at your option) any later version.
-
-	 crypu.js is distributed in the hope that it will be useful,
-	 but WITHOUT ANY WARRANTY; without even the implied warranty of
-	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	 GNU Lesser General Public License for more details.
-
-	 You should have received a copy of the GNU Lesser General Public License
-	 along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
-	 */
-	/**
-	 * @file fisco.api.ts
-	 * @author Youtao Xing <youtao.xing@icloud.com>
-	 * @date 2020
-	 */
-	Object.defineProperty(exports, "__esModule", { value: true });
-	exports.Api = void 0;
-	exports.Api = {
-	    detectChainId: function (send) {
-	        return function () {
-	            return send('getClientVersion', []).then(function (clientVersion) { return Number(clientVersion['Chain Id']); });
-	        };
-	    },
-	    prepareRequest: function (groupId) {
-	        return function (method, params) {
-	            switch (method) {
-	                case 'getClientVersion':
-	                    return ['getClientVersion', []];
-	                case 'getPbftView':
-	                    return ['getPbftView', [groupId]];
-	                case 'getSealerList':
-	                    return ['getSealerList', [groupId]];
-	                case 'getObserverList':
-	                    return ['getObserverList', [groupId]];
-	                case 'getSyncStatus':
-	                    return ['getSyncStatus', [groupId]];
-	                case 'getPeers':
-	                    return ['getPeers', [groupId]];
-	                case 'getNodeIdList':
-	                    return ['getNodeIDList', [groupId]];
-	                case 'getGroupList':
-	                    return ['getGroupList', [groupId]];
-	                case 'getBlockNumber':
-	                    return ['getBlockNumber', [groupId]];
-	                case 'getBlock':
-	                    if (params.blockTag) {
-	                        return ['getBlockByNumber', [groupId, params.blockTag, !!params.includeTransactions]];
-	                    }
-	                    else if (params.blockHash) {
-	                        return ['getBlockByHash', [groupId, params.blockHash, !!params.includeTransactions]];
-	                    }
-	                    break;
-	                case 'sendTransaction':
-	                    return ['sendRawTransaction', [groupId, params.signedTransaction]];
-	                case 'getTransaction':
-	                    return ['getTransactionByHash', [groupId, params.transactionHash]];
-	                case 'getTransactionReceipt':
-	                    return ['getTransactionReceipt', [groupId, params.transactionHash]];
-	                case 'call':
-	                    return ['call', [groupId, params.transaction]];
-	                default:
-	                    break;
-	            }
-	            return null;
-	        };
-	    },
-	};
-	});
-
-	var fisco_api$1 = unwrapExports(fisco_api);
-	var fisco_api_1 = fisco_api.Api;
-
 	var lib$x = createCommonjsModule(function (module, exports) {
 	"use strict";
 	var __importDefault = (commonjsGlobal && commonjsGlobal.__importDefault) || function (mod) {
@@ -22788,13 +22629,11 @@
 
 
 
-
-
 	var logger = new lib.Logger('provider');
 	var defaultUrl = 'http://localhost:8545';
 	var defaultNetwork = {
 	    chainId: 1,
-	    name: 'fisco',
+	    name: 'ethers',
 	};
 	var defaultFormatter;
 	var JsonRpcProvider = /** @class */ (function (_super) {
@@ -22807,35 +22646,124 @@
 	            url = lib$5.getStatic((_newTarget), 'defaultUrl')();
 	        }
 	        lib$5.defineReadOnly(_this, 'connection', { url: url });
-	        switch (chain) {
-	            case constants.Chain.ETHERS: {
-	                lib$5.defineReadOnly(_this, 'detectChainId', ethers_api.Api.detectChainId(_this.send.bind(_this)));
-	                lib$5.defineReadOnly(_this, 'prepareRequest', ethers_api.Api.prepareRequest);
-	                break;
-	            }
-	            case constants.Chain.FISCO: {
-	                lib$5.defineReadOnly(_this, 'detectChainId', fisco_api.Api.detectChainId(_this.send.bind(_this)));
-	                lib$5.defineReadOnly(_this, 'prepareRequest', fisco_api.Api.prepareRequest(_this.groupId));
-	                break;
-	            }
-	        }
+	        lib$5.defineReadOnly(_this, 'getChainId', lib$5.getStatic((_newTarget), 'getChainId')(chain, _this.send.bind(_this)));
+	        lib$5.defineReadOnly(_this, 'prepareRequest', lib$5.getStatic((_newTarget), 'prepareRequest')(chain, _this.network, _this.groupId));
 	        _this._nextId = 42;
 	        return _this;
 	    }
-	    JsonRpcProvider.defaultUrl = function () {
-	        return defaultUrl;
-	    };
-	    JsonRpcProvider.defaultNetwork = function () {
-	        return Promise.resolve(defaultNetwork);
-	    };
 	    JsonRpcProvider.getFormatter = function () {
 	        if (defaultFormatter == null) {
 	            defaultFormatter = new formatter.Formatter();
 	        }
 	        return defaultFormatter;
 	    };
+	    JsonRpcProvider.defaultUrl = function () {
+	        return defaultUrl;
+	    };
+	    JsonRpcProvider.defaultNetwork = function () {
+	        return Promise.resolve(defaultNetwork);
+	    };
 	    JsonRpcProvider.getNetwork = function (network) {
 	        return lib$t.getNetwork((network == null) ? defaultNetwork : network);
+	    };
+	    JsonRpcProvider.getChainId = function (chain, send) {
+	        switch (chain) {
+	            case constants.Chain.ETHERS:
+	                return function () { return send('eth_chainId', []); };
+	            case constants.Chain.FISCO:
+	                return function () {
+	                    return send('getClientVersion', []).then(function (clientVersion) { return Number(clientVersion['Chain Id']); });
+	                };
+	        }
+	        return logger.throwArgumentError('invalid chain', 'chain', chain);
+	    };
+	    JsonRpcProvider.prepareRequest = function (chain, _, groupId) {
+	        switch (chain) {
+	            case constants.Chain.ETHERS:
+	                return function (method, params) {
+	                    switch (method) {
+	                        case 'getBlockNumber':
+	                            return ['eth_blockNumber', []];
+	                        case 'getGasPrice':
+	                            return ['eth_gasPrice', []];
+	                        case 'getBalance':
+	                            return ['eth_getBalance', [params.address.toLowerCase(), params.blockTag]];
+	                        case 'getTransactionCount':
+	                            return ['eth_getTransactionCount', [params.address.toLowerCase(), params.blockTag]];
+	                        case 'getCode':
+	                            return ['eth_getCode', [params.address.toLowerCase(), params.blockTag]];
+	                        case 'getStorageAt':
+	                            return ['eth_getStorageAt', [params.address.toLowerCase(), params.position, params.blockTag]];
+	                        case 'sendTransaction':
+	                            return ['eth_sendRawTransaction', [params.signedTransaction]];
+	                        case 'getBlock':
+	                            if (params.blockTag) {
+	                                return ['eth_getBlockByNumber', [params.blockTag, !!params.includeTransactions]];
+	                            }
+	                            else if (params.blockHash) {
+	                                return ['eth_getBlockByHash', [params.blockHash, !!params.includeTransactions]];
+	                            }
+	                            return null;
+	                        case 'getTransaction':
+	                            return ['eth_getTransactionByHash', [params.transactionHash]];
+	                        case 'getTransactionReceipt':
+	                            return ['eth_getTransactionReceipt', [params.transactionHash]];
+	                        case 'call': {
+	                            return ['eth_call', [params.transaction, params.blockTag]];
+	                        }
+	                        case 'estimateGas': {
+	                            return ['eth_estimateGas', [params.transaction]];
+	                        }
+	                        case 'getLogs':
+	                            if (params.filter && params.filter.address != null) {
+	                                params.filter.address = params.filter.address.toLowerCase();
+	                            }
+	                            return ['eth_getLogs', [params.filter]];
+	                    }
+	                    return null;
+	                };
+	            case constants.Chain.FISCO:
+	                return function (method, params) {
+	                    switch (method) {
+	                        case 'getClientVersion':
+	                            return ['getClientVersion', []];
+	                        case 'getPbftView':
+	                            return ['getPbftView', [groupId]];
+	                        case 'getSealerList':
+	                            return ['getSealerList', [groupId]];
+	                        case 'getObserverList':
+	                            return ['getObserverList', [groupId]];
+	                        case 'getSyncStatus':
+	                            return ['getSyncStatus', [groupId]];
+	                        case 'getPeers':
+	                            return ['getPeers', [groupId]];
+	                        case 'getNodeIdList':
+	                            return ['getNodeIDList', [groupId]];
+	                        case 'getGroupList':
+	                            return ['getGroupList', [groupId]];
+	                        case 'getBlockNumber':
+	                            return ['getBlockNumber', [groupId]];
+	                        case 'getBlock':
+	                            if (params.blockTag) {
+	                                return ['getBlockByNumber', [groupId, params.blockTag, !!params.includeTransactions]];
+	                            }
+	                            else if (params.blockHash) {
+	                                return ['getBlockByHash', [groupId, params.blockHash, !!params.includeTransactions]];
+	                            }
+	                            break;
+	                        case 'sendTransaction':
+	                            return ['sendRawTransaction', [groupId, params.signedTransaction]];
+	                        case 'getTransaction':
+	                            return ['getTransactionByHash', [groupId, params.transactionHash]];
+	                        case 'getTransactionReceipt':
+	                            return ['getTransactionReceipt', [groupId, params.transactionHash]];
+	                        case 'call':
+	                            return ['call', [groupId, params.transaction]];
+	                    }
+	                    return null;
+	                };
+	        }
+	        return logger.throwArgumentError('invalid chain', 'chain', chain);
 	    };
 	    JsonRpcProvider.prototype.detectNetwork = function () {
 	        return __awaiter(this, void 0, void 0, function () {
@@ -22847,7 +22775,7 @@
 	                        _a.label = 1;
 	                    case 1:
 	                        _a.trys.push([1, 3, 4, 5]);
-	                        return [4 /*yield*/, this.detectChainId()];
+	                        return [4 /*yield*/, this.getChainId()];
 	                    case 2:
 	                        chainId = _a.sent();
 	                        if (chainId) {
@@ -22869,7 +22797,7 @@
 	            });
 	        });
 	    };
-	    JsonRpcProvider.prototype.getResult = function (payload) {
+	    JsonRpcProvider.prototype.result = function (payload) {
 	        return payload.result;
 	    };
 	    JsonRpcProvider.prototype.send = function (method, params) {
@@ -22888,7 +22816,7 @@
 	                    request: lib$5.deepCopy(request),
 	                    provider: this,
 	                });
-	                return [2 /*return*/, lib$w.fetchJson(this.connection, JSON.stringify(request), this.getResult).then(function (result) {
+	                return [2 /*return*/, lib$w.fetchJson(this.connection, JSON.stringify(request), this.result).then(function (result) {
 	                        _this.emit('debug', {
 	                            action: 'response',
 	                            request: request,

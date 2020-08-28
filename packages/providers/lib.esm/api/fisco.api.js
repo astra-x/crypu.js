@@ -20,9 +20,6 @@
  * @date 2020
  */
 export var Api = {
-    detectChainId: (send) => {
-        return () => send('getClientVersion', []).then((clientVersion) => Number(clientVersion['Chain Id']));
-    },
     prepareRequest: (groupId) => {
         return (method, params) => {
             switch (method) {
