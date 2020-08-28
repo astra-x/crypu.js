@@ -18,7 +18,7 @@
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "noUnusedLocals": true,
-    "module": "es2015",
-    "target": "es2015"
+    "module": "commonjs",
+    "target": "es5"
   }
 }

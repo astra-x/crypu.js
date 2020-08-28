@@ -121,7 +121,9 @@ var Wallet = /** @class */ (function (_super) {
             }
             properties_1.defineReadOnly(_this, '_signing', function () { return privateKey; });
         }
-        properties_1.defineReadOnly(_this, 'address', transactions_1.computeAddress(_this.publicKey));
+        properties_1.defineReadOnly(_this, 'address', signing_escrow_1.SigningEscrow.isSigningEscrow(_this._signing())
+            ? _this._signing().address
+            : transactions_1.computeAddress(_this.publicKey));
         if (hasMnemonic(privateKey)) {
             var srcMnemonic_1 = privateKey.mnemonic;
             properties_1.defineReadOnly(_this, '_mnemonic', function () { return ({

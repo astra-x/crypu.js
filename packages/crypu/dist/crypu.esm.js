@@ -29765,7 +29765,9 @@ class Wallet extends Signer {
             }
             defineReadOnly(this, '_signing', () => privateKey);
         }
-        defineReadOnly(this, 'address', computeAddress(this.publicKey));
+        defineReadOnly(this, 'address', SigningEscrow.isSigningEscrow(this._signing())
+            ? this._signing().address
+            : computeAddress(this.publicKey));
         if (hasMnemonic$1(privateKey)) {
             const srcMnemonic = privateKey.mnemonic;
             defineReadOnly(this, '_mnemonic', () => ({

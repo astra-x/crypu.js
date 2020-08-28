@@ -33339,7 +33339,9 @@
 	            }
 	            lib$5.defineReadOnly(_this, '_signing', function () { return privateKey; });
 	        }
-	        lib$5.defineReadOnly(_this, 'address', lib$B.computeAddress(_this.publicKey));
+	        lib$5.defineReadOnly(_this, 'address', lib$D.SigningEscrow.isSigningEscrow(_this._signing())
+	            ? _this._signing().address
+	            : lib$B.computeAddress(_this.publicKey));
 	        if (hasMnemonic(privateKey)) {
 	            var srcMnemonic_1 = privateKey.mnemonic;
 	            lib$5.defineReadOnly(_this, '_mnemonic', function () { return ({
