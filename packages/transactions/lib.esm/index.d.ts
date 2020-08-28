@@ -36,5 +36,6 @@ export interface Transaction {
 }
 export declare function computeAddress(key: BytesLike | string): string;
 export declare function recoverAddress(digest: BytesLike, signature: SignatureLike): string;
-export declare function serialize(transaction: UnsignedTransaction, signature?: SignatureLike): string;
+export declare function serializeEthers(transaction: UnsignedTransaction, signature?: SignatureLike): string;
+export declare function serializeRc2(transaction: UnsignedTransaction, signature?: SignatureLike): string;
 export declare function parse(rawTransaction: BytesLike): Transaction;

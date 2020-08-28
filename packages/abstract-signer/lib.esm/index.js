@@ -30,9 +30,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { Logger } from '@ethersproject/logger';
-import { hexlify, } from '@ethersproject/bytes';
 import { defineReadOnly, resolveProperties, shallowCopy, } from '@ethersproject/properties';
-import { randomBytes } from '@ethersproject/random';
 const logger = new Logger('abstract-signer');
 const allowedTransactionKeys = [
     'nonce',
@@ -80,7 +78,7 @@ export class Signer {
     sendTransaction(transaction) {
         return __awaiter(this, void 0, void 0, function* () {
             this._checkProvider('sendTransaction');
-            return this.populateTransaction(transaction).then((tx) => __awaiter(this, void 0, void 0, function* () {
+            return this.provider.populateTransaction(transaction).then((tx) => __awaiter(this, void 0, void 0, function* () {
                 const signedTx = yield this.signTransaction(tx);
                 return this.provider.sendTransaction(signedTx);
             }));
@@ -156,37 +154,6 @@ export class Signer {
             });
         }
         return tx;
-    }
-    // Populates ALL keys for a transaction and checks that 'from' matches
-    // this Signer. Should be used by sendTransaction but NOT by signTransaction.
-    // By default called from: (overriding these prevents it)
-    //   - sendTransaction
-    populateTransaction(transaction) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const tx = yield resolveProperties(this.checkTransaction(transaction));
-            if (tx.nonce == null) {
-                tx.nonce = hexlify(randomBytes(16));
-            }
-            if (tx.blockLimit == null) {
-                tx.blockLimit = yield this.getBlockNumber().then((blockNumber) => blockNumber + 100);
-            }
-            if (tx.to != null) {
-                tx.to = Promise.resolve(tx.to).then((to) => this.resolveName(to));
-            }
-            if (tx.chainId == null) {
-                tx.chainId = this.getChainId();
-            }
-            if (tx.groupId == null) {
-                tx.groupId = this.getGroupId();
-            }
-            if (tx.gasPrice == null) {
-                tx.gasPrice = yield this.getGasPrice();
-            }
-            if (tx.gasLimit == null) {
-                tx.gasLimit = yield this.estimateGas(tx);
-            }
-            return yield resolveProperties(tx);
-        });
     }
     ///////////////////
     // Sub-classes SHOULD leave these alone

@@ -443,21 +443,6 @@ function Test(providerConf: ProviderConfig, example: Example) {
     });
   });
 
-  test('wallet.populateTransaction', (done) => {
-    wallet.populateTransaction(example.testTransaction).then((tx) => {
-      expect(tx.blockLimit).toBeDefined();
-      expect(tx.data).toBe(example.populateTransactionResult.data);
-      expect(tx.to).toBe(example.populateTransactionResult.to);
-      expect(tx.from).toBeDefined();
-      expect(tx.nonce).toBeDefined();
-      expect(tx.chainId).toBe(example.populateTransactionResult.chainId);
-      expect(tx.groupId).toBe(example.populateTransactionResult.groupId);
-      expect(tx.gasPrice).toEqual(example.populateTransactionResult.gasPrice);
-      expect(tx.gasLimit).toEqual(example.populateTransactionResult.gasLimit);
-      done();
-    });
-  });
-
   test('wallet.sendTransaction', (done) => {
     wallet.sendTransaction(example.testTransaction).then((tx) => {
       expect(tx.data).toBe(example.sendTransactionResult.data);

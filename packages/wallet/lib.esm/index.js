@@ -39,7 +39,7 @@ import { SigningKey } from '@ethersproject/signing-key';
 import { hashMessage } from '@ethersproject/hash';
 import { HDNode, defaultPath, entropyToMnemonic, } from '@ethersproject/hdnode';
 import { decryptJsonWallet, decryptJsonWalletSync, encryptKeystore, } from '@ethersproject/json-wallets';
-import { computeAddress, recoverAddress, serialize, } from '@crypujs/transactions';
+import { computeAddress, recoverAddress, } from '@crypujs/transactions';
 import { Provider, } from '@crypujs/abstract-provider';
 import { Signer, } from '@crypujs/abstract-signer';
 import { SigningEscrow, } from '@crypujs/signing-escrow';
@@ -130,8 +130,8 @@ export class Wallet extends Signer {
                     }
                     delete tx.from;
                 }
-                const signature = yield this.signDigest(keccak256(serialize(tx)));
-                return serialize(tx, signature);
+                const signature = yield this.signDigest(keccak256(this.provider.serializeTransaction(tx)));
+                return this.provider.serializeTransaction(tx, signature);
             }));
         });
     }

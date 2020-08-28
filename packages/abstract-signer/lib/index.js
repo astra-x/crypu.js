@@ -72,9 +72,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VoidSigner = exports.Signer = void 0;
 var logger_1 = require("@ethersproject/logger");
-var bytes_1 = require("@ethersproject/bytes");
 var properties_1 = require("@ethersproject/properties");
-var random_1 = require("@ethersproject/random");
 var logger = new logger_1.Logger('abstract-signer');
 var allowedTransactionKeys = [
     'nonce',
@@ -140,7 +138,7 @@ var Signer = /** @class */ (function () {
             var _this = this;
             return __generator(this, function (_a) {
                 this._checkProvider('sendTransaction');
-                return [2 /*return*/, this.populateTransaction(transaction).then(function (tx) { return __awaiter(_this, void 0, void 0, function () {
+                return [2 /*return*/, this.provider.populateTransaction(transaction).then(function (tx) { return __awaiter(_this, void 0, void 0, function () {
                         var signedTx;
                         return __generator(this, function (_a) {
                             switch (_a.label) {
@@ -242,57 +240,6 @@ var Signer = /** @class */ (function () {
             });
         }
         return tx;
-    };
-    // Populates ALL keys for a transaction and checks that 'from' matches
-    // this Signer. Should be used by sendTransaction but NOT by signTransaction.
-    // By default called from: (overriding these prevents it)
-    //   - sendTransaction
-    Signer.prototype.populateTransaction = function (transaction) {
-        return __awaiter(this, void 0, void 0, function () {
-            var tx, _a, _b, _c;
-            var _this = this;
-            return __generator(this, function (_d) {
-                switch (_d.label) {
-                    case 0: return [4 /*yield*/, properties_1.resolveProperties(this.checkTransaction(transaction))];
-                    case 1:
-                        tx = _d.sent();
-                        if (tx.nonce == null) {
-                            tx.nonce = bytes_1.hexlify(random_1.randomBytes(16));
-                        }
-                        if (!(tx.blockLimit == null)) return [3 /*break*/, 3];
-                        _a = tx;
-                        return [4 /*yield*/, this.getBlockNumber().then(function (blockNumber) { return blockNumber + 100; })];
-                    case 2:
-                        _a.blockLimit = _d.sent();
-                        _d.label = 3;
-                    case 3:
-                        if (tx.to != null) {
-                            tx.to = Promise.resolve(tx.to).then(function (to) { return _this.resolveName(to); });
-                        }
-                        if (tx.chainId == null) {
-                            tx.chainId = this.getChainId();
-                        }
-                        if (tx.groupId == null) {
-                            tx.groupId = this.getGroupId();
-                        }
-                        if (!(tx.gasPrice == null)) return [3 /*break*/, 5];
-                        _b = tx;
-                        return [4 /*yield*/, this.getGasPrice()];
-                    case 4:
-                        _b.gasPrice = _d.sent();
-                        _d.label = 5;
-                    case 5:
-                        if (!(tx.gasLimit == null)) return [3 /*break*/, 7];
-                        _c = tx;
-                        return [4 /*yield*/, this.estimateGas(tx)];
-                    case 6:
-                        _c.gasLimit = _d.sent();
-                        _d.label = 7;
-                    case 7: return [4 /*yield*/, properties_1.resolveProperties(tx)];
-                    case 8: return [2 /*return*/, _d.sent()];
-                }
-            });
-        });
     };
     ///////////////////
     // Sub-classes SHOULD leave these alone

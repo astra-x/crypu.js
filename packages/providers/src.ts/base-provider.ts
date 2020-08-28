@@ -24,6 +24,7 @@
 
 import { Logger } from '@ethersproject/logger';
 import {
+  SignatureLike,
   arrayify,
   hexDataLength,
   hexlify,
@@ -41,10 +42,15 @@ import {
   resolveProperties,
 } from '@ethersproject/properties';
 import { BigNumber } from '@ethersproject/bignumber';
+import { randomBytes } from '@ethersproject/random';
 import { toUtf8String } from '@ethersproject/strings';
 import { namehash } from '@ethersproject/hash';
 
-import { Transaction } from '@crypujs/transactions';
+import {
+  Transaction,
+  serializeEthers,
+  serializeRc2,
+} from '@crypujs/transactions';
 import { poll } from '@crypujs/web';
 import {
   ClientVersion,
@@ -65,6 +71,7 @@ import {
   Provider,
 } from '@crypujs/abstract-provider';
 
+import { Chain } from './constants';
 import { Formatter } from './formatter';
 
 const logger = new Logger('providers');
@@ -234,12 +241,6 @@ let nextPollId = 1;
 
 
 export class BaseProvider extends Provider {
-  _networkPromise: Promise<Network>;
-  _network: Network;
-  _groupId: number;
-
-  _events: Array<Event>;
-
   formatter: Formatter;
 
   // To help mitigate the eventually consistent nature of the blockchain
@@ -253,6 +254,7 @@ export class BaseProvider extends Provider {
   //   - b:{hash}    - BlockHash
   //   - block       - The most recent emitted block
   _emitted: { [eventName: string]: number | 'pending' };
+  _events: Array<Event>;
 
   _pollingInterval: number;
   _poller: NodeJS.Timer;
@@ -268,7 +270,14 @@ export class BaseProvider extends Provider {
   _internalBlockNumber: Promise<{ blockNumber: number, reqTime: number, respTime: number }>;
 
   readonly anyNetwork: boolean;
+  _networkPromise: Promise<Network>;
+  _network: Network;
+  _groupId: number;
 
+
+  readonly getChainId: () => Promise<number>;
+  readonly populateTransaction: (transaction: Deferrable<TransactionRequest>) => Promise<TransactionRequest>;
+  readonly serializeTransaction: (transaction: TransactionRequest) => string;
 
   /**
    *  ready
@@ -280,17 +289,21 @@ export class BaseProvider extends Provider {
    *
    */
 
-  constructor(network: Networkish | Promise<Network>, groupId: number) {
+  constructor(chain: Chain, network: Networkish | Promise<Network>, groupId: number) {
     logger.checkNew(new.target, Provider);
 
     super();
 
-    // Events being listened to
-    this._events = [];
-
-    this._emitted = { block: -2 };
-
     this.formatter = new.target.getFormatter();
+
+    // Events being listened to
+    this._emitted = { block: -2 };
+    this._events = [];
+    this._pollingInterval = 4000;
+
+    this._lastBlockNumber = -2;
+    this._fastQueryDate = 0;
+    this._maxInternalBlockNumber = -1024;
 
     // If network is any, this Provider allows the underlying
     // network to change dynamically, and we auto-detect the
@@ -317,16 +330,37 @@ export class BaseProvider extends Provider {
         logger.throwArgumentError('invalid network', 'network', network);
       }
     }
-
     this._groupId = groupId;
 
-    this._maxInternalBlockNumber = -1024;
-
-    this._lastBlockNumber = -2;
-
-    this._pollingInterval = 4000;
-
-    this._fastQueryDate = 0;
+    defineReadOnly(
+      this,
+      'getChainId',
+      getStatic<
+        (
+          chain: Chain,
+          perform: (method: string, params: any) => Promise<any>,
+        ) => () => Promise<number>
+        >(new.target, 'getChainId')(chain, this.perform.bind(this)),
+    );
+    defineReadOnly(
+      this,
+      'populateTransaction',
+      getStatic<
+        (
+          chain: Chain,
+          provider: Provider,
+        ) => (transaction: Deferrable<TransactionRequest>) => Promise<TransactionRequest>
+        >(new.target, 'populateTransaction')(chain, this),
+    );
+    defineReadOnly(
+      this,
+      'serializeTransaction',
+      getStatic<
+        (
+          chain: Chain,
+        ) => (transaction: TransactionRequest, signature?: SignatureLike) => string
+        >(new.target, 'serializeTransaction')(chain),
+    );
   }
 
   async _ready(): Promise<Network> {
@@ -391,6 +425,51 @@ export class BaseProvider extends Provider {
   // @TODO: Remove this and just use getNetwork
   static getNetwork(network: Networkish): Network {
     return getNetwork((network == null) ? 'homestead' : network);
+  }
+
+  static getChainId(chain: Chain, perform: (method: string, params: any) => Promise<any>): () => Promise<number> {
+    switch (chain) {
+      case Chain.ETHERS:
+        return (): Promise<number> => perform('eth_chainId', {});
+      case Chain.FISCO:
+        return (): Promise<number> =>
+          perform('getClientVersion', {}).then(
+            (clientVersion: ClientVersion) => Number(clientVersion['Chain Id'])
+          );
+    }
+    return logger.throwArgumentError('invalid chain', 'chain', chain);
+  }
+
+  static populateTransaction(chain: Chain, self: Provider): (transaction: Deferrable<TransactionRequest>) => Promise<TransactionRequest> {
+    switch (chain) {
+      case Chain.ETHERS:
+      case Chain.FISCO:
+        return async (transaction: Deferrable<TransactionRequest>): Promise<TransactionRequest> => {
+          const tx: Deferrable<TransactionRequest> = await resolveProperties(transaction)
+
+          if (tx.nonce == null) { tx.nonce = hexlify(randomBytes(32)); }
+          if (tx.blockLimit == null) { tx.blockLimit = await self.getBlockNumber().then((blockNumber) => blockNumber + 100); }
+          if (tx.to != null) { tx.to = Promise.resolve(tx.to).then((to) => self.resolveName(to)); }
+          if (tx.chainId == null) { tx.chainId = self.getChainId(); }
+          if (tx.groupId == null) { tx.groupId = self.getGroupId(); }
+
+          if (tx.gasPrice == null) { tx.gasPrice = await self.getGasPrice(); }
+          if (tx.gasLimit == null) { tx.gasLimit = await self.estimateGas(tx); }
+
+          return await resolveProperties(tx);
+        };
+    }
+    return logger.throwArgumentError('invalid chain', 'chain', chain);
+  }
+
+  static serializeTransaction(chain: Chain): (transaction: TransactionRequest, signature?: SignatureLike) => string {
+    switch (chain) {
+      case Chain.ETHERS:
+        return serializeEthers;
+      case Chain.FISCO:
+        return serializeRc2;
+    }
+    return logger.throwArgumentError('invalid chain', 'chain', chain);
   }
 
   // Fetches the blockNumber, but will reuse any result that is less
@@ -759,42 +838,42 @@ export class BaseProvider extends Provider {
 
   async getClientVersion(): Promise<ClientVersion> {
     await this.getNetwork();
-    return this.perform('getClientVersion', []);
+    return this.perform('getClientVersion', {});
   }
 
   async getPbftView(): Promise<number> {
     await this.getNetwork();
-    return this.perform('getPbftView', []);
+    return this.perform('getPbftView', {});
   }
 
   async getSealerList(): Promise<Array<string>> {
     await this.getNetwork();
-    return this.perform('getSealerList', []);
+    return this.perform('getSealerList', {});
   }
 
   async getObserverList(): Promise<Array<string>> {
     await this.getNetwork();
-    return this.perform('getObserverList', []);
+    return this.perform('getObserverList', {});
   }
 
   async getSyncStatus(): Promise<SyncStatus> {
     await this.getNetwork();
-    return this.perform('getSyncStatus', []);
+    return this.perform('getSyncStatus', {});
   }
 
   async getPeers(): Promise<Peer> {
     await this.getNetwork();
-    return this.perform('getPeers', []);
+    return this.perform('getPeers', {});
   }
 
   async getNodeIdList(): Promise<Array<string>> {
     await this.getNetwork();
-    return this.perform('getNodeIdList', []);
+    return this.perform('getNodeIdList', {});
   }
 
   async getGroupList(): Promise<Array<number>> {
     await this.getNetwork();
-    return this.perform('getGroupList', []);
+    return this.perform('getGroupList', {});
   }
 
   async getBalance(addressOrName: string | Promise<string>, blockTag?: BlockTag | Promise<BlockTag>): Promise<BigNumber> {

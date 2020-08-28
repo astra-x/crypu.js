@@ -14,14 +14,12 @@ interface Connection {
 export declare class JsonRpcProvider extends BaseProvider {
     _nextId: number;
     readonly connection: Connection;
-    readonly getChainId: () => Promise<number>;
     readonly prepareRequest: (method: string, params: any) => [string, Array<any>];
     constructor(chain: Chain, url?: string, network?: Network | Promise<Network>, groupId?: number);
     static getFormatter(): Formatter;
     static defaultUrl(): string;
     static defaultNetwork(): Promise<Network>;
     static getNetwork(network: Networkish): Network;
-    static getChainId(chain: Chain, send: (method: string, params: Array<any>) => Promise<any>): () => Promise<number>;
     static prepareRequest(chain: Chain, _: Network, groupId: number): (method: string, params: any) => [string, Array<any>];
     detectNetwork(): Promise<Network>;
     result(payload: Response<any>): any;

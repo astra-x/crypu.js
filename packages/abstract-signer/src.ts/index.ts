@@ -25,7 +25,6 @@
 import { Logger } from '@ethersproject/logger';
 import {
   Bytes,
-  hexlify,
 } from '@ethersproject/bytes';
 import {
   Deferrable,
@@ -34,7 +33,6 @@ import {
   shallowCopy,
 } from '@ethersproject/properties';
 import { BigNumber } from '@ethersproject/bignumber';
-import { randomBytes } from '@ethersproject/random';
 
 import {
   BlockTag,
@@ -127,7 +125,7 @@ export abstract class Signer {
   // Populates all fields in a transaction, signs it and sends it to the network
   async sendTransaction(transaction: Deferrable<TransactionRequest>): Promise<TransactionResponse> {
     this._checkProvider('sendTransaction');
-    return this.populateTransaction(transaction).then(async (tx) => {
+    return this.provider.populateTransaction(transaction).then(async (tx) => {
       const signedTx = await this.signTransaction(tx);
       return this.provider.sendTransaction(signedTx);
     });
@@ -199,26 +197,6 @@ export abstract class Signer {
     }
 
     return tx;
-  }
-
-  // Populates ALL keys for a transaction and checks that 'from' matches
-  // this Signer. Should be used by sendTransaction but NOT by signTransaction.
-  // By default called from: (overriding these prevents it)
-  //   - sendTransaction
-  async populateTransaction(transaction: Deferrable<TransactionRequest>): Promise<TransactionRequest> {
-
-    const tx: Deferrable<TransactionRequest> = await resolveProperties(this.checkTransaction(transaction))
-
-    if (tx.nonce == null) { tx.nonce = hexlify(randomBytes(16)); }
-    if (tx.blockLimit == null) { tx.blockLimit = await this.getBlockNumber().then((blockNumber) => blockNumber + 100); }
-    if (tx.to != null) { tx.to = Promise.resolve(tx.to).then((to) => this.resolveName(to)); }
-    if (tx.chainId == null) { tx.chainId = this.getChainId(); }
-    if (tx.groupId == null) { tx.groupId = this.getGroupId(); }
-
-    if (tx.gasPrice == null) { tx.gasPrice = await this.getGasPrice(); }
-    if (tx.gasLimit == null) { tx.gasLimit = await this.estimateGas(tx); }
-
-    return await resolveProperties(tx);
   }
 
   ///////////////////

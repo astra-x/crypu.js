@@ -37,6 +37,21 @@ var testData = [
         },
         examples: [
             {
+                testTransaction: {
+                    data: '0x643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000',
+                    to: '0x3a1c406f0af920f9371d3b75b8f8c1a14264fd37',
+                },
+                populateTransactionResult: {
+                    data: '0x643719770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000036162630000000000000000000000000000000000000000000000000000000000',
+                    to: '0x3A1C406F0Af920F9371d3B75B8f8C1A14264FD37',
+                    from: '0xc674ce8E3535455F0CA6643A248F53f97A923061',
+                    nonce: '0xb819f5906213b8c355b3ad9079e91ee2',
+                    blockLimit: 28636,
+                    chainId: 1,
+                    groupId: 1,
+                    gasPrice: bnify(0x11e1a300),
+                    gasLimit: bnify(0x0f4240),
+                },
                 clientVersion: {
                     'Build Time': '20200619 06:32:10',
                     'Build Type': 'Linux/clang/Release',
@@ -202,6 +217,19 @@ var testData = [
 ];
 function Test(providerConf, example) {
     var provider = new providers_1.JsonRpcProvider(providerConf.chain, providerConf.url, providerConf.network, providerConf.groupId);
+    test('provider.populateTransaction', function (done) {
+        provider.populateTransaction(example.testTransaction).then(function (tx) {
+            expect(tx.blockLimit).toBeDefined();
+            expect(tx.data).toBe(example.populateTransactionResult.data);
+            expect(tx.to).toBe(example.populateTransactionResult.to);
+            expect(tx.nonce).toBeDefined();
+            expect(tx.chainId).toBe(example.populateTransactionResult.chainId);
+            expect(tx.groupId).toBe(example.populateTransactionResult.groupId);
+            expect(tx.gasPrice).toEqual(example.populateTransactionResult.gasPrice);
+            expect(tx.gasLimit).toEqual(example.populateTransactionResult.gasLimit);
+            done();
+        });
+    });
     test('provider.getClientVersion', function () {
         provider.getClientVersion().then(function (result) {
             expect(result).toEqual(example.clientVersion);

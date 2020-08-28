@@ -29,7 +29,6 @@ export declare abstract class Signer {
     estimateGas(tx: Deferrable<TransactionRequest>): Promise<BigNumber>;
     resolveName(name: string): Promise<string>;
     checkTransaction(transaction: Deferrable<TransactionRequest>): Deferrable<TransactionRequest>;
-    populateTransaction(transaction: Deferrable<TransactionRequest>): Promise<TransactionRequest>;
     _checkProvider(operation?: string): void;
     static isSigner(value: any): value is Signer;
 }
