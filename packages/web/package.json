@@ -1,7 +1,7 @@
 {
   "author": "Youtao Xing <youtao.xing@icloud.com>",
   "browser": {
-    "./lib.esm/geturl": "./lib.esm/browser-geturl.js"
+    "./lib/geturl": "./lib/wechat-geturl.js"
   },
   "browser.esm": {
     "./lib.esm/geturl": "./lib.esm/browser-geturl.js"
