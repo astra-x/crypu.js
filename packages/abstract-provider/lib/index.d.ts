@@ -157,7 +157,7 @@ export declare abstract class Provider implements OnceBlockable {
     abstract getTransactionCount(addressOrName: string | Promise<string>, blockTag?: BlockTag | Promise<BlockTag>): Promise<number>;
     abstract getCode(addressOrName: string | Promise<string>, blockTag?: BlockTag | Promise<BlockTag>): Promise<string>;
     abstract getBalance(addressOrName: string | Promise<string>, blockTag?: BlockTag | Promise<BlockTag>): Promise<BigNumber>;
-    abstract sendTransaction(signedTransaction: string | Promise<string>): Promise<TransactionResponse>;
+    abstract sendTransaction(signedTransaction: string | Promise<string>, hook?: (transaction: TransactionResponse) => Promise<any>): Promise<TransactionResponse>;
     abstract call(transaction: Deferrable<TransactionRequest>, blockTag?: BlockTag | Promise<BlockTag>): Promise<string>;
     abstract estimateGas(transaction?: Deferrable<TransactionRequest>): Promise<BigNumber>;
     abstract getBlock(blockHashOrBlockTag: BlockTag | string | Promise<BlockTag | string>): Promise<Block>;

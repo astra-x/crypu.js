@@ -133,7 +133,7 @@ var Signer = /** @class */ (function () {
         });
     };
     // Populates all fields in a transaction, signs it and sends it to the network
-    Signer.prototype.sendTransaction = function (transaction) {
+    Signer.prototype.sendTransaction = function (transaction, hook) {
         return __awaiter(this, void 0, void 0, function () {
             var _this = this;
             return __generator(this, function (_a) {
@@ -145,7 +145,7 @@ var Signer = /** @class */ (function () {
                                 case 0: return [4 /*yield*/, this.signTransaction(tx)];
                                 case 1:
                                     signedTx = _a.sent();
-                                    return [2 /*return*/, this.provider.sendTransaction(signedTx)];
+                                    return [2 /*return*/, this.provider.sendTransaction(signedTx, hook)];
                             }
                         });
                     }); })];

@@ -20699,12 +20699,15 @@ class BaseProvider extends Provider {
         });
         return result;
     }
-    sendTransaction(signedTransaction) {
+    sendTransaction(signedTransaction, hook) {
         return __awaiter$3(this, void 0, void 0, function* () {
             yield this.getNetwork();
             const hexTx = yield Promise.resolve(signedTransaction).then(t => hexlify$6(t));
             const tx = this.formatter.transaction(signedTransaction);
             try {
+                if (hook) {
+                    yield hook(tx);
+                }
                 const hash = yield this.perform('sendTransaction', { signedTransaction: hexTx });
                 return this._wrapTransaction(tx, hash);
             }
@@ -29704,12 +29707,12 @@ class Signer {
         });
     }
     // Populates all fields in a transaction, signs it and sends it to the network
-    sendTransaction(transaction) {
+    sendTransaction(transaction, hook) {
         return __awaiter$7(this, void 0, void 0, function* () {
             this._checkProvider('sendTransaction');
             return this.provider.populateTransaction(this.checkTransaction(transaction)).then((tx) => __awaiter$7(this, void 0, void 0, function* () {
                 const signedTx = yield this.signTransaction(tx);
-                return this.provider.sendTransaction(signedTx);
+                return this.provider.sendTransaction(signedTx, hook);
             }));
         });
     }

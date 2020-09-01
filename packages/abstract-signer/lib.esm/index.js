@@ -75,12 +75,12 @@ export class Signer {
         });
     }
     // Populates all fields in a transaction, signs it and sends it to the network
-    sendTransaction(transaction) {
+    sendTransaction(transaction, hook) {
         return __awaiter(this, void 0, void 0, function* () {
             this._checkProvider('sendTransaction');
             return this.provider.populateTransaction(this.checkTransaction(transaction)).then((tx) => __awaiter(this, void 0, void 0, function* () {
                 const signedTx = yield this.signTransaction(tx);
-                return this.provider.sendTransaction(signedTx);
+                return this.provider.sendTransaction(signedTx, hook);
             }));
         });
     }

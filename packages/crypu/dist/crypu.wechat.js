@@ -23006,7 +23006,7 @@
 	        }); };
 	        return result;
 	    };
-	    BaseProvider.prototype.sendTransaction = function (signedTransaction) {
+	    BaseProvider.prototype.sendTransaction = function (signedTransaction, hook) {
 	        return __awaiter(this, void 0, void 0, function () {
 	            var hexTx, tx, hash, error_2;
 	            return __generator(this, function (_a) {
@@ -23020,17 +23020,22 @@
 	                        tx = this.formatter.transaction(signedTransaction);
 	                        _a.label = 3;
 	                    case 3:
-	                        _a.trys.push([3, 5, , 6]);
-	                        return [4 /*yield*/, this.perform('sendTransaction', { signedTransaction: hexTx })];
+	                        _a.trys.push([3, 7, , 8]);
+	                        if (!hook) return [3 /*break*/, 5];
+	                        return [4 /*yield*/, hook(tx)];
 	                    case 4:
+	                        _a.sent();
+	                        _a.label = 5;
+	                    case 5: return [4 /*yield*/, this.perform('sendTransaction', { signedTransaction: hexTx })];
+	                    case 6:
 	                        hash = _a.sent();
 	                        return [2 /*return*/, this._wrapTransaction(tx, hash)];
-	                    case 5:
+	                    case 7:
 	                        error_2 = _a.sent();
 	                        error_2.transaction = tx;
 	                        error_2.transactionHash = tx.hash;
 	                        throw error_2;
-	                    case 6: return [2 /*return*/];
+	                    case 8: return [2 /*return*/];
 	                }
 	            });
 	        });
@@ -33184,7 +33189,7 @@
 	        });
 	    };
 	    // Populates all fields in a transaction, signs it and sends it to the network
-	    Signer.prototype.sendTransaction = function (transaction) {
+	    Signer.prototype.sendTransaction = function (transaction, hook) {
 	        return __awaiter(this, void 0, void 0, function () {
 	            var _this = this;
 	            return __generator(this, function (_a) {
@@ -33196,7 +33201,7 @@
 	                                case 0: return [4 /*yield*/, this.signTransaction(tx)];
 	                                case 1:
 	                                    signedTx = _a.sent();
-	                                    return [2 /*return*/, this.provider.sendTransaction(signedTx)];
+	                                    return [2 /*return*/, this.provider.sendTransaction(signedTx, hook)];
 	                            }
 	                        });
 	                    }); })];

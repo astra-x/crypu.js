@@ -956,11 +956,12 @@ export class BaseProvider extends Provider {
     return result;
   }
 
-  async sendTransaction(signedTransaction: string | Promise<string>): Promise<TransactionResponse> {
+  async sendTransaction(signedTransaction: string | Promise<string>, hook?: (transaction: TransactionResponse) => Promise<any>): Promise<TransactionResponse> {
     await this.getNetwork();
     const hexTx = await Promise.resolve(signedTransaction).then(t => hexlify(t));
     const tx = this.formatter.transaction(signedTransaction);
     try {
+      if (hook) { await hook(tx); }
       const hash = await this.perform('sendTransaction', { signedTransaction: hexTx });
       return this._wrapTransaction(tx, hash);
     } catch (error) {
