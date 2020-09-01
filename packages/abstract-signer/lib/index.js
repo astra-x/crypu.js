@@ -138,7 +138,7 @@ var Signer = /** @class */ (function () {
             var _this = this;
             return __generator(this, function (_a) {
                 this._checkProvider('sendTransaction');
-                return [2 /*return*/, this.provider.populateTransaction(transaction).then(function (tx) { return __awaiter(_this, void 0, void 0, function () {
+                return [2 /*return*/, this.provider.populateTransaction(this.checkTransaction(transaction)).then(function (tx) { return __awaiter(_this, void 0, void 0, function () {
                         var signedTx;
                         return __generator(this, function (_a) {
                             switch (_a.label) {
@@ -154,16 +154,9 @@ var Signer = /** @class */ (function () {
     };
     Signer.prototype.getChainId = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var network;
             return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        this._checkProvider('getChainId');
-                        return [4 /*yield*/, this.provider.getNetwork()];
-                    case 1:
-                        network = _a.sent();
-                        return [2 /*return*/, network.chainId];
-                }
+                this._checkProvider('getChainId');
+                return [2 /*return*/, this.provider.getChainId()];
             });
         });
     };

@@ -20354,6 +20354,7 @@
 	    to: true,
 	    value: true,
 	    data: true,
+	    chainId: true,
 	};
 	var transactionFieldsRc2 = [
 	    { name: 'nonce', maxLength: 32, numeric: true },
@@ -20403,7 +20404,6 @@
 	}
 	exports.recoverAddress = recoverAddress;
 	function serializeEthers(transaction, signature) {
-	    console.log('serializeEthers');
 	    lib$5.checkProperties(transaction, allowedTransactionKeysEthers);
 	    var raw = [];
 	    transactionFieldsEthers.forEach(function (fieldInfo) {
@@ -20430,8 +20430,8 @@
 	    if (transaction.chainId != null) {
 	        // A chainId was provided; if non-zero we'll use EIP-155
 	        chainId = transaction.chainId;
-	        if (typeof (chainId) !== "number") {
-	            logger.throwArgumentError("invalid transaction.chainId", "transaction", transaction);
+	        if (typeof (chainId) !== 'number') {
+	            logger.throwArgumentError('invalid transaction.chainId', 'transaction', transaction);
 	        }
 	    }
 	    else if (signature && !lib$q.isBytesLike(signature) && signature.v > 28) {
@@ -20441,8 +20441,8 @@
 	    // We have an EIP-155 transaction (chainId was specified and non-zero)
 	    if (chainId !== 0) {
 	        raw.push(lib$q.hexlify(chainId));
-	        raw.push("0x");
-	        raw.push("0x");
+	        raw.push('0x');
+	        raw.push('0x');
 	    }
 	    // Requesting an unsigned transation
 	    if (!signature) {
@@ -20460,11 +20460,11 @@
 	        v += chainId * 2 + 8;
 	        // If an EIP-155 v (directly or indirectly; maybe _vs) was provided, check it!
 	        if (sig.v > 28 && sig.v !== v) {
-	            logger.throwArgumentError("transaction.chainId/signature.v mismatch", "signature", signature);
+	            logger.throwArgumentError('transaction.chainId/signature.v mismatch', 'signature', signature);
 	        }
 	    }
 	    else if (sig.v !== v) {
-	        logger.throwArgumentError("transaction.chainId/signature.v mismatch", "signature", signature);
+	        logger.throwArgumentError('transaction.chainId/signature.v mismatch', 'signature', signature);
 	    }
 	    raw.push(lib$q.hexlify(v));
 	    raw.push(lib$q.stripZeros(lib$q.arrayify(sig.r)));
@@ -20473,7 +20473,6 @@
 	}
 	exports.serializeEthers = serializeEthers;
 	function serializeRc2(transaction, signature) {
-	    console.log('serializeRc2');
 	    lib$5.checkProperties(transaction, allowedTransactionKeysRc2);
 	    var raw = [];
 	    transactionFieldsRc2.forEach(function (fieldInfo) {
@@ -20513,9 +20512,69 @@
 	exports.serializeRc2 = serializeRc2;
 	function parse(rawTransaction) {
 	    var transaction = RLP.decode(rawTransaction);
-	    if (transaction.length !== 13 && transaction.length !== 10) {
-	        logger.throwArgumentError('invalid raw transaction', 'rawTransaction', rawTransaction);
+	    if (transaction.length === 9 || transaction.length === 6) {
+	        return parseEthers(rawTransaction, transaction);
 	    }
+	    else if (transaction.length === 13 || transaction.length === 10) {
+	        return parseRc2(rawTransaction, transaction);
+	    }
+	    return logger.throwArgumentError('invalid raw transaction', 'rawTransaction', rawTransaction);
+	}
+	exports.parse = parse;
+	function parseEthers(rawTransaction, transaction) {
+	    var tx = {
+	        nonce: handleNumber(transaction[0]),
+	        gasPrice: handleNumber(transaction[1]),
+	        gasLimit: handleNumber(transaction[2]),
+	        to: handleAddress(transaction[3]),
+	        value: handleNumber(transaction[4]),
+	        data: transaction[5],
+	        chainId: 0
+	    };
+	    // Legacy unsigned transaction
+	    if (transaction.length === 6) {
+	        return tx;
+	    }
+	    try {
+	        tx.v = lib$3.BigNumber.from(transaction[6]).toNumber();
+	    }
+	    catch (error) {
+	        console.log(error);
+	        return tx;
+	    }
+	    tx.r = lib$q.hexZeroPad(transaction[7], 32);
+	    tx.s = lib$q.hexZeroPad(transaction[8], 32);
+	    if (lib$3.BigNumber.from(tx.r).isZero() && lib$3.BigNumber.from(tx.s).isZero()) {
+	        // EIP-155 unsigned transaction
+	        tx.chainId = tx.v;
+	        tx.v = 0;
+	    }
+	    else {
+	        // Signed Tranasaction
+	        tx.chainId = Math.floor((tx.v - 35) / 2);
+	        if (tx.chainId < 0) {
+	            tx.chainId = 0;
+	        }
+	        var recoveryParam = tx.v - 27;
+	        var raw = transaction.slice(0, 6);
+	        if (tx.chainId !== 0) {
+	            raw.push(lib$q.hexlify(tx.chainId));
+	            raw.push('0x');
+	            raw.push('0x');
+	            recoveryParam -= tx.chainId * 2 + 8;
+	        }
+	        var digest = lib$x.keccak256(RLP.encode(raw));
+	        try {
+	            tx.from = recoverAddress(digest, { r: lib$q.hexlify(tx.r), s: lib$q.hexlify(tx.s), recoveryParam: recoveryParam });
+	        }
+	        catch (error) {
+	            console.log(error);
+	        }
+	        tx.hash = lib$x.keccak256(rawTransaction);
+	    }
+	    return tx;
+	}
+	function parseRc2(rawTransaction, transaction) {
 	    var tx = {
 	        nonce: handleNumber(transaction[0]),
 	        gasPrice: handleNumber(transaction[1]),
@@ -20554,7 +20613,6 @@
 	    tx.hash = lib$x.keccak256(rawTransaction);
 	    return tx;
 	}
-	exports.parse = parse;
 	});
 
 	var index$B = unwrapExports(lib$B);
@@ -22095,12 +22153,12 @@
 	        _this = _super.call(this) || this;
 	        _this.formatter = _newTarget.getFormatter();
 	        // Events being listened to
-	        _this._emitted = { block: -2 };
 	        _this._events = [];
+	        _this._emitted = { block: -2 };
 	        _this._pollingInterval = 4000;
+	        _this._maxInternalBlockNumber = -1024;
 	        _this._lastBlockNumber = -2;
 	        _this._fastQueryDate = 0;
-	        _this._maxInternalBlockNumber = -1024;
 	        // If network is any, this Provider allows the underlying
 	        // network to change dynamically, and we auto-detect the
 	        // current network
@@ -22126,9 +22184,9 @@
 	            }
 	        }
 	        _this._groupId = groupId;
-	        lib$5.defineReadOnly(_this, 'getChainId', lib$5.getStatic((_newTarget), 'getChainId')(chain, _this.perform.bind(_this)));
-	        lib$5.defineReadOnly(_this, 'populateTransaction', lib$5.getStatic((_newTarget), 'populateTransaction')(chain, _this));
 	        lib$5.defineReadOnly(_this, 'serializeTransaction', lib$5.getStatic((_newTarget), 'serializeTransaction')(chain));
+	        lib$5.defineReadOnly(_this, 'populateTransaction', lib$5.getStatic((_newTarget), 'populateTransaction')(chain, _this));
+	        lib$5.defineReadOnly(_this, 'getChainId', lib$5.getStatic((_newTarget), 'getChainId')(chain, _this.perform.bind(_this)));
 	        return _this;
 	    }
 	    BaseProvider.prototype._ready = function () {
@@ -22206,18 +22264,12 @@
 	        }
 	        return defaultFormatter;
 	    };
-	    // @TODO: Remove this and just use getNetwork
-	    BaseProvider.getNetwork = function (network) {
-	        return lib$t.getNetwork((network == null) ? 'homestead' : network);
-	    };
-	    BaseProvider.getChainId = function (chain, perform) {
+	    BaseProvider.serializeTransaction = function (chain) {
 	        switch (chain) {
 	            case constants.Chain.ETHERS:
-	                return function () { return perform('eth_chainId', {}); };
+	                return lib$B.serializeEthers;
 	            case constants.Chain.FISCO:
-	                return function () {
-	                    return perform('getClientVersion', {}).then(function (clientVersion) { return Number(clientVersion['Chain Id']); });
-	                };
+	                return lib$B.serializeRc2;
 	        }
 	        return logger.throwArgumentError('invalid chain', 'chain', chain);
 	    };
@@ -22225,60 +22277,126 @@
 	        var _this = this;
 	        switch (chain) {
 	            case constants.Chain.ETHERS:
-	            case constants.Chain.FISCO:
 	                return function (transaction) { return __awaiter(_this, void 0, void 0, function () {
-	                    var tx, _a, _b, _c;
-	                    return __generator(this, function (_d) {
-	                        switch (_d.label) {
+	                    var tx, _a, _b, _c, _d, _e;
+	                    return __generator(this, function (_f) {
+	                        switch (_f.label) {
 	                            case 0: return [4 /*yield*/, lib$5.resolveProperties(transaction)];
 	                            case 1:
-	                                tx = _d.sent();
-	                                if (tx.nonce == null) {
-	                                    tx.nonce = lib$q.hexlify(browser$2.randomBytes(32));
-	                                }
-	                                if (!(tx.blockLimit == null)) return [3 /*break*/, 3];
+	                                tx = _f.sent();
+	                                if (!(tx.nonce == null)) return [3 /*break*/, 3];
 	                                _a = tx;
-	                                return [4 /*yield*/, self.getBlockNumber().then(function (blockNumber) { return blockNumber + 100; })];
+	                                return [4 /*yield*/, self.getTransactionCount(tx.from, 'pending')];
 	                            case 2:
-	                                _a.blockLimit = _d.sent();
-	                                _d.label = 3;
+	                                _a.nonce = _f.sent();
+	                                _f.label = 3;
 	                            case 3:
-	                                if (tx.to != null) {
-	                                    tx.to = Promise.resolve(tx.to).then(function (to) { return self.resolveName(to); });
-	                                }
-	                                if (tx.chainId == null) {
-	                                    tx.chainId = self.getChainId();
-	                                }
-	                                if (tx.groupId == null) {
-	                                    tx.groupId = self.getGroupId();
-	                                }
 	                                if (!(tx.gasPrice == null)) return [3 /*break*/, 5];
 	                                _b = tx;
 	                                return [4 /*yield*/, self.getGasPrice()];
 	                            case 4:
-	                                _b.gasPrice = _d.sent();
-	                                _d.label = 5;
+	                                _b.gasPrice = _f.sent();
+	                                _f.label = 5;
 	                            case 5:
 	                                if (!(tx.gasLimit == null)) return [3 /*break*/, 7];
 	                                _c = tx;
 	                                return [4 /*yield*/, self.estimateGas(tx)];
 	                            case 6:
-	                                _c.gasLimit = _d.sent();
-	                                _d.label = 7;
-	                            case 7: return [4 /*yield*/, lib$5.resolveProperties(tx)];
-	                            case 8: return [2 /*return*/, _d.sent()];
+	                                _c.gasLimit = _f.sent();
+	                                _f.label = 7;
+	                            case 7:
+	                                if (!(tx.to != null)) return [3 /*break*/, 9];
+	                                _d = tx;
+	                                return [4 /*yield*/, Promise.resolve(tx.to).then(function (to) { return self.resolveName(to); })];
+	                            case 8:
+	                                _d.to = _f.sent();
+	                                _f.label = 9;
+	                            case 9:
+	                                if (!(tx.chainId == null)) return [3 /*break*/, 11];
+	                                _e = tx;
+	                                return [4 /*yield*/, self.getChainId()];
+	                            case 10:
+	                                _e.chainId = _f.sent();
+	                                _f.label = 11;
+	                            case 11: return [4 /*yield*/, lib$5.resolveProperties(tx)];
+	                            case 12: return [2 /*return*/, _f.sent()];
+	                        }
+	                    });
+	                }); };
+	            case constants.Chain.FISCO:
+	                return function (transaction) { return __awaiter(_this, void 0, void 0, function () {
+	                    var tx, _a, _b, _c, _d, _e, _f;
+	                    return __generator(this, function (_g) {
+	                        switch (_g.label) {
+	                            case 0: return [4 /*yield*/, lib$5.resolveProperties(transaction)];
+	                            case 1:
+	                                tx = _g.sent();
+	                                if (tx.nonce == null) {
+	                                    tx.nonce = lib$q.hexlify(browser$2.randomBytes(32));
+	                                }
+	                                if (!(tx.gasPrice == null)) return [3 /*break*/, 3];
+	                                _a = tx;
+	                                return [4 /*yield*/, self.getGasPrice()];
+	                            case 2:
+	                                _a.gasPrice = _g.sent();
+	                                _g.label = 3;
+	                            case 3:
+	                                if (!(tx.gasLimit == null)) return [3 /*break*/, 5];
+	                                _b = tx;
+	                                return [4 /*yield*/, self.estimateGas(tx)];
+	                            case 4:
+	                                _b.gasLimit = _g.sent();
+	                                _g.label = 5;
+	                            case 5:
+	                                if (!(tx.blockLimit == null)) return [3 /*break*/, 7];
+	                                _c = tx;
+	                                return [4 /*yield*/, self.getBlockNumber().then(function (blockNumber) { return blockNumber + 100; })];
+	                            case 6:
+	                                _c.blockLimit = _g.sent();
+	                                _g.label = 7;
+	                            case 7:
+	                                if (!(tx.to != null)) return [3 /*break*/, 9];
+	                                _d = tx;
+	                                return [4 /*yield*/, Promise.resolve(tx.to).then(function (to) { return self.resolveName(to); })];
+	                            case 8:
+	                                _d.to = _g.sent();
+	                                _g.label = 9;
+	                            case 9:
+	                                if (!(tx.chainId == null)) return [3 /*break*/, 11];
+	                                _e = tx;
+	                                return [4 /*yield*/, self.getChainId()];
+	                            case 10:
+	                                _e.chainId = _g.sent();
+	                                _g.label = 11;
+	                            case 11:
+	                                if (!(tx.groupId == null)) return [3 /*break*/, 13];
+	                                _f = tx;
+	                                return [4 /*yield*/, self.getGroupId()];
+	                            case 12:
+	                                _f.groupId = _g.sent();
+	                                _g.label = 13;
+	                            case 13: return [4 /*yield*/, lib$5.resolveProperties(tx)];
+	                            case 14: return [2 /*return*/, _g.sent()];
 	                        }
 	                    });
 	                }); };
 	        }
 	        return logger.throwArgumentError('invalid chain', 'chain', chain);
 	    };
-	    BaseProvider.serializeTransaction = function (chain) {
+	    // @TODO: Remove this and just use getNetwork
+	    BaseProvider.getNetwork = function (network) {
+	        return lib$t.getNetwork((network == null) ? 'homestead' : network);
+	    };
+	    BaseProvider.getChainId = function (chain, perform) {
 	        switch (chain) {
 	            case constants.Chain.ETHERS:
-	                return lib$B.serializeEthers;
+	                return function () {
+	                    return perform('getChainId', {}).then(function (chainId) { return Number(chainId); });
+	                };
 	            case constants.Chain.FISCO:
-	                return lib$B.serializeRc2;
+	                return function () {
+	                    return perform('getClientVersion', {}).then(function (clientVersion) { return Number(clientVersion['Chain Id']); });
+	                };
 	        }
 	        return logger.throwArgumentError('invalid chain', 'chain', chain);
 	    };
@@ -33071,7 +33189,7 @@
 	            var _this = this;
 	            return __generator(this, function (_a) {
 	                this._checkProvider('sendTransaction');
-	                return [2 /*return*/, this.provider.populateTransaction(transaction).then(function (tx) { return __awaiter(_this, void 0, void 0, function () {
+	                return [2 /*return*/, this.provider.populateTransaction(this.checkTransaction(transaction)).then(function (tx) { return __awaiter(_this, void 0, void 0, function () {
 	                        var signedTx;
 	                        return __generator(this, function (_a) {
 	                            switch (_a.label) {
@@ -33087,16 +33205,9 @@
 	    };
 	    Signer.prototype.getChainId = function () {
 	        return __awaiter(this, void 0, void 0, function () {
-	            var network;
 	            return __generator(this, function (_a) {
-	                switch (_a.label) {
-	                    case 0:
-	                        this._checkProvider('getChainId');
-	                        return [4 /*yield*/, this.provider.getNetwork()];
-	                    case 1:
-	                        network = _a.sent();
-	                        return [2 /*return*/, network.chainId];
-	                }
+	                this._checkProvider('getChainId');
+	                return [2 /*return*/, this.provider.getChainId()];
 	            });
 	        });
 	    };

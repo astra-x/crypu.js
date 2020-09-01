@@ -7,7 +7,7 @@ import { BytesLike, SignatureLike } from '@ethersproject/bytes';
 import { Network } from '@ethersproject/networks';
 import { Deferrable, Description } from '@ethersproject/properties';
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
-import { Transaction } from '@crypujs/transactions';
+import { UnsignedTransaction, Transaction } from '@crypujs/transactions';
 import { OnceBlockable } from '@crypujs/web';
 export interface ClientVersion {
     'Build Time'?: string;
@@ -176,8 +176,8 @@ export declare abstract class Provider implements OnceBlockable {
     abstract removeAllListeners(eventName?: EventType): Provider;
     addListener(eventName: EventType, listener: Listener): Provider;
     removeListener(eventName: EventType, listener: Listener): Provider;
+    abstract serializeTransaction(transaction: UnsignedTransaction, signature?: SignatureLike): string;
     abstract populateTransaction(transaction: Deferrable<TransactionRequest>): Promise<TransactionRequest>;
-    abstract serializeTransaction(transaction: TransactionRequest, signature?: SignatureLike): string;
     abstract waitForTransaction(transactionHash: string, confirmations?: number, timeout?: number): Promise<TransactionReceipt>;
     readonly _isProvider: boolean;
     constructor();

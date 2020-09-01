@@ -39,7 +39,10 @@ import {
   BigNumberish,
 } from '@ethersproject/bignumber';
 
-import { Transaction } from '@crypujs/transactions';
+import {
+  UnsignedTransaction,
+  Transaction,
+} from '@crypujs/transactions';
 import { OnceBlockable } from '@crypujs/web';
 
 const logger = new Logger('abstract-provider');
@@ -339,8 +342,8 @@ export abstract class Provider implements OnceBlockable {
   }
 
   // @TODO: This *could* be implemented here, but would pull in events...
+  abstract serializeTransaction(transaction: UnsignedTransaction, signature?: SignatureLike): string;
   abstract populateTransaction(transaction: Deferrable<TransactionRequest>): Promise<TransactionRequest>;
-  abstract serializeTransaction(transaction: TransactionRequest, signature?: SignatureLike): string;
   abstract waitForTransaction(transactionHash: string, confirmations?: number, timeout?: number): Promise<TransactionReceipt>;
 
   readonly _isProvider: boolean;
