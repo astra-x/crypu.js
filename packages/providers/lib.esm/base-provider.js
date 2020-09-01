@@ -806,12 +806,15 @@ export class BaseProvider extends Provider {
         });
         return result;
     }
-    sendTransaction(signedTransaction) {
+    sendTransaction(signedTransaction, hook) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.getNetwork();
             const hexTx = yield Promise.resolve(signedTransaction).then(t => hexlify(t));
             const tx = this.formatter.transaction(signedTransaction);
             try {
+                if (hook) {
+                    yield hook(tx);
+                }
                 const hash = yield this.perform('sendTransaction', { signedTransaction: hexTx });
                 return this._wrapTransaction(tx, hash);
             }

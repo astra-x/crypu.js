@@ -21,7 +21,7 @@ export declare abstract class Signer {
     constructor();
     getTransactionCount(blockTag?: BlockTag): Promise<number>;
     call(transaction: Deferrable<TransactionRequest>, blockTag?: BlockTag): Promise<string>;
-    sendTransaction(transaction: Deferrable<TransactionRequest>): Promise<TransactionResponse>;
+    sendTransaction(transaction: Deferrable<TransactionRequest>, hook?: (transaction: TransactionResponse) => Promise<any>): Promise<TransactionResponse>;
     getChainId(): Promise<number>;
     getGroupId(): Promise<number>;
     getBlockNumber(): Promise<number>;

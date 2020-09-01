@@ -123,11 +123,11 @@ export abstract class Signer {
   }
 
   // Populates all fields in a transaction, signs it and sends it to the network
-  async sendTransaction(transaction: Deferrable<TransactionRequest>): Promise<TransactionResponse> {
+  async sendTransaction(transaction: Deferrable<TransactionRequest>, hook?: (transaction: TransactionResponse) => Promise<any>): Promise<TransactionResponse> {
     this._checkProvider('sendTransaction');
     return this.provider.populateTransaction(this.checkTransaction(transaction)).then(async (tx) => {
       const signedTx = await this.signTransaction(tx);
-      return this.provider.sendTransaction(signedTx);
+      return this.provider.sendTransaction(signedTx, hook);
     });
   }
 

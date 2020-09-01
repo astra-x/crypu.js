@@ -96,7 +96,7 @@ export declare class BaseProvider extends Provider {
     getTransactionCount(addressOrName: string | Promise<string>, blockTag?: BlockTag | Promise<BlockTag>): Promise<number>;
     getCode(addressOrName: string | Promise<string>, blockTag?: BlockTag | Promise<BlockTag>): Promise<string>;
     _wrapTransaction(tx: Transaction, hash?: string): TransactionResponse;
-    sendTransaction(signedTransaction: string | Promise<string>): Promise<TransactionResponse>;
+    sendTransaction(signedTransaction: string | Promise<string>, hook?: (transaction: TransactionResponse) => Promise<any>): Promise<TransactionResponse>;
     _getTransactionRequest(transaction: Deferrable<TransactionRequest>): Promise<Transaction>;
     _getFilter(filter: Filter | FilterByBlockHash | Promise<Filter | FilterByBlockHash>): Promise<Filter | FilterByBlockHash>;
     call(transaction: Deferrable<TransactionRequest>, blockTag?: BlockTag | Promise<BlockTag>): Promise<string>;
