@@ -18458,6 +18458,7 @@ const allowedTransactionKeysEthers = {
     to: true,
     value: true,
     data: true,
+    chainId: true,
 };
 const transactionFieldsRc2 = [
     { name: 'nonce', maxLength: 32, numeric: true },
@@ -18505,7 +18506,6 @@ function recoverAddress(digest, signature) {
     return computeAddress(recoverPublicKey(arrayify$6(digest), signature));
 }
 function serializeEthers(transaction, signature) {
-    console.log('serializeEthers');
     checkProperties(transaction, allowedTransactionKeysEthers);
     const raw = [];
     transactionFieldsEthers.forEach(function (fieldInfo) {
@@ -18532,8 +18532,8 @@ function serializeEthers(transaction, signature) {
     if (transaction.chainId != null) {
         // A chainId was provided; if non-zero we'll use EIP-155
         chainId = transaction.chainId;
-        if (typeof (chainId) !== "number") {
-            logger$q.throwArgumentError("invalid transaction.chainId", "transaction", transaction);
+        if (typeof (chainId) !== 'number') {
+            logger$q.throwArgumentError('invalid transaction.chainId', 'transaction', transaction);
         }
     }
     else if (signature && !isBytesLike$6(signature) && signature.v > 28) {
@@ -18543,8 +18543,8 @@ function serializeEthers(transaction, signature) {
     // We have an EIP-155 transaction (chainId was specified and non-zero)
     if (chainId !== 0) {
         raw.push(hexlify$6(chainId));
-        raw.push("0x");
-        raw.push("0x");
+        raw.push('0x');
+        raw.push('0x');
     }
     // Requesting an unsigned transation
     if (!signature) {
@@ -18562,11 +18562,11 @@ function serializeEthers(transaction, signature) {
         v += chainId * 2 + 8;
         // If an EIP-155 v (directly or indirectly; maybe _vs) was provided, check it!
         if (sig.v > 28 && sig.v !== v) {
-            logger$q.throwArgumentError("transaction.chainId/signature.v mismatch", "signature", signature);
+            logger$q.throwArgumentError('transaction.chainId/signature.v mismatch', 'signature', signature);
         }
     }
     else if (sig.v !== v) {
-        logger$q.throwArgumentError("transaction.chainId/signature.v mismatch", "signature", signature);
+        logger$q.throwArgumentError('transaction.chainId/signature.v mismatch', 'signature', signature);
     }
     raw.push(hexlify$6(v));
     raw.push(stripZeros$6(arrayify$6(sig.r)));
@@ -18574,7 +18574,6 @@ function serializeEthers(transaction, signature) {
     return encode(raw);
 }
 function serializeRc2(transaction, signature) {
-    console.log('serializeRc2');
     checkProperties(transaction, allowedTransactionKeysRc2);
     const raw = [];
     transactionFieldsRc2.forEach(function (fieldInfo) {
@@ -18613,9 +18612,68 @@ function serializeRc2(transaction, signature) {
 }
 function parse(rawTransaction) {
     const transaction = decode(rawTransaction);
-    if (transaction.length !== 13 && transaction.length !== 10) {
-        logger$q.throwArgumentError('invalid raw transaction', 'rawTransaction', rawTransaction);
+    if (transaction.length === 9 || transaction.length === 6) {
+        return parseEthers(rawTransaction, transaction);
     }
+    else if (transaction.length === 13 || transaction.length === 10) {
+        return parseRc2(rawTransaction, transaction);
+    }
+    return logger$q.throwArgumentError('invalid raw transaction', 'rawTransaction', rawTransaction);
+}
+function parseEthers(rawTransaction, transaction) {
+    const tx = {
+        nonce: handleNumber(transaction[0]),
+        gasPrice: handleNumber(transaction[1]),
+        gasLimit: handleNumber(transaction[2]),
+        to: handleAddress(transaction[3]),
+        value: handleNumber(transaction[4]),
+        data: transaction[5],
+        chainId: 0
+    };
+    // Legacy unsigned transaction
+    if (transaction.length === 6) {
+        return tx;
+    }
+    try {
+        tx.v = BigNumber.from(transaction[6]).toNumber();
+    }
+    catch (error) {
+        console.log(error);
+        return tx;
+    }
+    tx.r = hexZeroPad$6(transaction[7], 32);
+    tx.s = hexZeroPad$6(transaction[8], 32);
+    if (BigNumber.from(tx.r).isZero() && BigNumber.from(tx.s).isZero()) {
+        // EIP-155 unsigned transaction
+        tx.chainId = tx.v;
+        tx.v = 0;
+    }
+    else {
+        // Signed Tranasaction
+        tx.chainId = Math.floor((tx.v - 35) / 2);
+        if (tx.chainId < 0) {
+            tx.chainId = 0;
+        }
+        let recoveryParam = tx.v - 27;
+        const raw = transaction.slice(0, 6);
+        if (tx.chainId !== 0) {
+            raw.push(hexlify$6(tx.chainId));
+            raw.push('0x');
+            raw.push('0x');
+            recoveryParam -= tx.chainId * 2 + 8;
+        }
+        const digest = keccak256$3(encode(raw));
+        try {
+            tx.from = recoverAddress(digest, { r: hexlify$6(tx.r), s: hexlify$6(tx.s), recoveryParam: recoveryParam });
+        }
+        catch (error) {
+            console.log(error);
+        }
+        tx.hash = keccak256$3(rawTransaction);
+    }
+    return tx;
+}
+function parseRc2(rawTransaction, transaction) {
     const tx = {
         nonce: handleNumber(transaction[0]),
         gasPrice: handleNumber(transaction[1]),
@@ -20035,12 +20093,12 @@ class BaseProvider extends Provider {
         super();
         this.formatter = new.target.getFormatter();
         // Events being listened to
-        this._emitted = { block: -2 };
         this._events = [];
+        this._emitted = { block: -2 };
         this._pollingInterval = 4000;
+        this._maxInternalBlockNumber = -1024;
         this._lastBlockNumber = -2;
         this._fastQueryDate = 0;
-        this._maxInternalBlockNumber = -1024;
         // If network is any, this Provider allows the underlying
         // network to change dynamically, and we auto-detect the
         // current network
@@ -20066,9 +20124,9 @@ class BaseProvider extends Provider {
             }
         }
         this._groupId = groupId;
-        defineReadOnly(this, 'getChainId', getStatic((new.target), 'getChainId')(chain, this.perform.bind(this)));
-        defineReadOnly(this, 'populateTransaction', getStatic((new.target), 'populateTransaction')(chain, this));
         defineReadOnly(this, 'serializeTransaction', getStatic((new.target), 'serializeTransaction')(chain));
+        defineReadOnly(this, 'populateTransaction', getStatic((new.target), 'populateTransaction')(chain, this));
+        defineReadOnly(this, 'getChainId', getStatic((new.target), 'getChainId')(chain, this.perform.bind(this)));
     }
     _ready() {
         return __awaiter$3(this, void 0, void 0, function* () {
@@ -20126,39 +20184,22 @@ class BaseProvider extends Provider {
         }
         return defaultFormatter;
     }
-    // @TODO: Remove this and just use getNetwork
-    static getNetwork(network) {
-        return getNetwork((network == null) ? 'homestead' : network);
-    }
-    static getChainId(chain, perform) {
+    static serializeTransaction(chain) {
         switch (chain) {
             case Chain.ETHERS:
-                return () => perform('eth_chainId', {});
+                return serializeEthers;
             case Chain.FISCO:
-                return () => perform('getClientVersion', {}).then((clientVersion) => Number(clientVersion['Chain Id']));
+                return serializeRc2;
         }
         return logger$t.throwArgumentError('invalid chain', 'chain', chain);
     }
     static populateTransaction(chain, self) {
         switch (chain) {
             case Chain.ETHERS:
-            case Chain.FISCO:
                 return (transaction) => __awaiter$3(this, void 0, void 0, function* () {
                     const tx = yield resolveProperties(transaction);
                     if (tx.nonce == null) {
-                        tx.nonce = hexlify$6(browser_2$1(32));
-                    }
-                    if (tx.blockLimit == null) {
-                        tx.blockLimit = yield self.getBlockNumber().then((blockNumber) => blockNumber + 100);
-                    }
-                    if (tx.to != null) {
-                        tx.to = Promise.resolve(tx.to).then((to) => self.resolveName(to));
-                    }
-                    if (tx.chainId == null) {
-                        tx.chainId = self.getChainId();
-                    }
-                    if (tx.groupId == null) {
-                        tx.groupId = self.getGroupId();
+                        tx.nonce = yield self.getTransactionCount(tx.from, 'pending');
                     }
                     if (tx.gasPrice == null) {
                         tx.gasPrice = yield self.getGasPrice();
@@ -20166,17 +20207,53 @@ class BaseProvider extends Provider {
                     if (tx.gasLimit == null) {
                         tx.gasLimit = yield self.estimateGas(tx);
                     }
+                    if (tx.to != null) {
+                        tx.to = yield Promise.resolve(tx.to).then((to) => self.resolveName(to));
+                    }
+                    if (tx.chainId == null) {
+                        tx.chainId = yield self.getChainId();
+                    }
+                    return yield resolveProperties(tx);
+                });
+            case Chain.FISCO:
+                return (transaction) => __awaiter$3(this, void 0, void 0, function* () {
+                    const tx = yield resolveProperties(transaction);
+                    if (tx.nonce == null) {
+                        tx.nonce = hexlify$6(browser_2$1(32));
+                    }
+                    if (tx.gasPrice == null) {
+                        tx.gasPrice = yield self.getGasPrice();
+                    }
+                    if (tx.gasLimit == null) {
+                        tx.gasLimit = yield self.estimateGas(tx);
+                    }
+                    if (tx.blockLimit == null) {
+                        tx.blockLimit = yield self.getBlockNumber().then((blockNumber) => blockNumber + 100);
+                    }
+                    if (tx.to != null) {
+                        tx.to = yield Promise.resolve(tx.to).then((to) => self.resolveName(to));
+                    }
+                    if (tx.chainId == null) {
+                        tx.chainId = yield self.getChainId();
+                    }
+                    if (tx.groupId == null) {
+                        tx.groupId = yield self.getGroupId();
+                    }
                     return yield resolveProperties(tx);
                 });
         }
         return logger$t.throwArgumentError('invalid chain', 'chain', chain);
     }
-    static serializeTransaction(chain) {
+    // @TODO: Remove this and just use getNetwork
+    static getNetwork(network) {
+        return getNetwork((network == null) ? 'homestead' : network);
+    }
+    static getChainId(chain, perform) {
         switch (chain) {
             case Chain.ETHERS:
-                return serializeEthers;
+                return () => perform('getChainId', {}).then((chainId) => Number(chainId));
             case Chain.FISCO:
-                return serializeRc2;
+                return () => perform('getClientVersion', {}).then((clientVersion) => Number(clientVersion['Chain Id']));
         }
         return logger$t.throwArgumentError('invalid chain', 'chain', chain);
     }
@@ -29630,7 +29707,7 @@ class Signer {
     sendTransaction(transaction) {
         return __awaiter$7(this, void 0, void 0, function* () {
             this._checkProvider('sendTransaction');
-            return this.provider.populateTransaction(transaction).then((tx) => __awaiter$7(this, void 0, void 0, function* () {
+            return this.provider.populateTransaction(this.checkTransaction(transaction)).then((tx) => __awaiter$7(this, void 0, void 0, function* () {
                 const signedTx = yield this.signTransaction(tx);
                 return this.provider.sendTransaction(signedTx);
             }));
@@ -29639,8 +29716,7 @@ class Signer {
     getChainId() {
         return __awaiter$7(this, void 0, void 0, function* () {
             this._checkProvider('getChainId');
-            const network = yield this.provider.getNetwork();
-            return network.chainId;
+            return this.provider.getChainId();
         });
     }
     getGroupId() {

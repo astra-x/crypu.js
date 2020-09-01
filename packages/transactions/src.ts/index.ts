@@ -69,6 +69,7 @@ const allowedTransactionKeysEthers: { [key: string]: boolean } = {
   to: true,
   value: true,
   data: true,
+  chainId: true, // not in RLP
 }
 
 const transactionFieldsRc2 = [
@@ -124,7 +125,7 @@ export interface Transaction {
   gasLimit: BigNumber;
   gasPrice: BigNumber;
 
-  blockLimit: BigNumber;
+  blockLimit?: BigNumber;
 
   from?: string;
   to: string;
@@ -132,14 +133,14 @@ export interface Transaction {
 
   data: string;
 
-  chainId: number;
-  groupId: number;
+  chainId?: number;
+  groupId?: number;
 
-  extraData: string;
+  extraData?: string;
 
+  v?: number;
   r?: string;
   s?: string;
-  v?: number;
 
   hash?: string;
 }
@@ -168,7 +169,6 @@ export function recoverAddress(digest: BytesLike, signature: SignatureLike): str
 }
 
 export function serializeEthers(transaction: UnsignedTransaction, signature?: SignatureLike): string {
-  console.log('serializeEthers');
   checkProperties(transaction, allowedTransactionKeysEthers);
 
   const raw: Array<string | Uint8Array> = [];
@@ -200,8 +200,8 @@ export function serializeEthers(transaction: UnsignedTransaction, signature?: Si
     // A chainId was provided; if non-zero we'll use EIP-155
     chainId = transaction.chainId;
 
-    if (typeof (chainId) !== "number") {
-      logger.throwArgumentError("invalid transaction.chainId", "transaction", transaction);
+    if (typeof (chainId) !== 'number') {
+      logger.throwArgumentError('invalid transaction.chainId', 'transaction', transaction);
     }
 
   } else if (signature && !isBytesLike(signature) && signature.v > 28) {
@@ -212,8 +212,8 @@ export function serializeEthers(transaction: UnsignedTransaction, signature?: Si
   // We have an EIP-155 transaction (chainId was specified and non-zero)
   if (chainId !== 0) {
     raw.push(hexlify(chainId));
-    raw.push("0x");
-    raw.push("0x");
+    raw.push('0x');
+    raw.push('0x');
   }
 
   // Requesting an unsigned transation
@@ -235,10 +235,10 @@ export function serializeEthers(transaction: UnsignedTransaction, signature?: Si
 
     // If an EIP-155 v (directly or indirectly; maybe _vs) was provided, check it!
     if (sig.v > 28 && sig.v !== v) {
-      logger.throwArgumentError("transaction.chainId/signature.v mismatch", "signature", signature);
+      logger.throwArgumentError('transaction.chainId/signature.v mismatch', 'signature', signature);
     }
   } else if (sig.v !== v) {
-    logger.throwArgumentError("transaction.chainId/signature.v mismatch", "signature", signature);
+    logger.throwArgumentError('transaction.chainId/signature.v mismatch', 'signature', signature);
   }
 
   raw.push(hexlify(v));
@@ -249,7 +249,6 @@ export function serializeEthers(transaction: UnsignedTransaction, signature?: Si
 }
 
 export function serializeRc2(transaction: UnsignedTransaction, signature?: SignatureLike): string {
-  console.log('serializeRc2');
   checkProperties(transaction, allowedTransactionKeysRc2);
 
   const raw: Array<string | Uint8Array> = [];
@@ -295,11 +294,76 @@ export function serializeRc2(transaction: UnsignedTransaction, signature?: Signa
 }
 
 export function parse(rawTransaction: BytesLike): Transaction {
-  const transaction = <Array<string>>RLP.decode(rawTransaction);
-  if (transaction.length !== 13 && transaction.length !== 10) {
-    logger.throwArgumentError('invalid raw transaction', 'rawTransaction', rawTransaction);
+  const transaction = RLP.decode(rawTransaction);
+  if (transaction.length === 9 || transaction.length === 6) {
+    return parseEthers(rawTransaction, transaction);
+  } else if (transaction.length === 13 || transaction.length === 10) {
+    return parseRc2(rawTransaction, transaction);
+  }
+  return logger.throwArgumentError('invalid raw transaction', 'rawTransaction', rawTransaction);
+}
+
+function parseEthers(rawTransaction: BytesLike, transaction: any[]): Transaction {
+  const tx: Transaction = {
+    nonce: handleNumber(transaction[0]),
+    gasPrice: handleNumber(transaction[1]),
+    gasLimit: handleNumber(transaction[2]),
+    to: handleAddress(transaction[3]),
+    value: handleNumber(transaction[4]),
+    data: transaction[5],
+    chainId: 0
+  };
+
+  // Legacy unsigned transaction
+  if (transaction.length === 6) { return tx; }
+
+  try {
+    tx.v = BigNumber.from(transaction[6]).toNumber();
+
+  } catch (error) {
+    console.log(error);
+    return tx;
   }
 
+  tx.r = hexZeroPad(transaction[7], 32);
+  tx.s = hexZeroPad(transaction[8], 32);
+
+  if (BigNumber.from(tx.r).isZero() && BigNumber.from(tx.s).isZero()) {
+    // EIP-155 unsigned transaction
+    tx.chainId = tx.v;
+    tx.v = 0;
+
+  } else {
+    // Signed Tranasaction
+
+    tx.chainId = Math.floor((tx.v - 35) / 2);
+    if (tx.chainId < 0) { tx.chainId = 0; }
+
+    let recoveryParam = tx.v - 27;
+
+    const raw = transaction.slice(0, 6);
+
+    if (tx.chainId !== 0) {
+      raw.push(hexlify(tx.chainId));
+      raw.push('0x');
+      raw.push('0x');
+      recoveryParam -= tx.chainId * 2 + 8;
+    }
+
+    const digest = keccak256(RLP.encode(raw));
+    try {
+      tx.from = recoverAddress(digest, { r: hexlify(tx.r), s: hexlify(tx.s), recoveryParam: recoveryParam });
+    } catch (error) {
+      console.log(error);
+    }
+
+    tx.hash = keccak256(rawTransaction);
+  }
+
+  return tx;
+}
+
+function parseRc2(rawTransaction: BytesLike, transaction: any[]): Transaction {
   const tx: Transaction = {
     nonce: handleNumber(transaction[0]),
     gasPrice: handleNumber(transaction[1]),

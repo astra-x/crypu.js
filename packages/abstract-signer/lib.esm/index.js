@@ -78,7 +78,7 @@ export class Signer {
     sendTransaction(transaction) {
         return __awaiter(this, void 0, void 0, function* () {
             this._checkProvider('sendTransaction');
-            return this.provider.populateTransaction(transaction).then((tx) => __awaiter(this, void 0, void 0, function* () {
+            return this.provider.populateTransaction(this.checkTransaction(transaction)).then((tx) => __awaiter(this, void 0, void 0, function* () {
                 const signedTx = yield this.signTransaction(tx);
                 return this.provider.sendTransaction(signedTx);
             }));
@@ -87,8 +87,7 @@ export class Signer {
     getChainId() {
         return __awaiter(this, void 0, void 0, function* () {
             this._checkProvider('getChainId');
-            const network = yield this.provider.getNetwork();
-            return network.chainId;
+            return this.provider.getChainId();
         });
     }
     getGroupId() {

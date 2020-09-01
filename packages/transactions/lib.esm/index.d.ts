@@ -21,17 +21,17 @@ export interface Transaction {
     nonce: BigNumber;
     gasLimit: BigNumber;
     gasPrice: BigNumber;
-    blockLimit: BigNumber;
+    blockLimit?: BigNumber;
     from?: string;
     to: string;
     value: BigNumber;
     data: string;
-    chainId: number;
-    groupId: number;
-    extraData: string;
+    chainId?: number;
+    groupId?: number;
+    extraData?: string;
+    v?: number;
     r?: string;
     s?: string;
-    v?: number;
     hash?: string;
 }
 export declare function computeAddress(key: BytesLike | string): string;

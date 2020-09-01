@@ -263,12 +263,12 @@ var BaseProvider = /** @class */ (function (_super) {
         _this = _super.call(this) || this;
         _this.formatter = _newTarget.getFormatter();
         // Events being listened to
-        _this._emitted = { block: -2 };
         _this._events = [];
+        _this._emitted = { block: -2 };
         _this._pollingInterval = 4000;
+        _this._maxInternalBlockNumber = -1024;
         _this._lastBlockNumber = -2;
         _this._fastQueryDate = 0;
-        _this._maxInternalBlockNumber = -1024;
         // If network is any, this Provider allows the underlying
         // network to change dynamically, and we auto-detect the
         // current network
@@ -294,9 +294,9 @@ var BaseProvider = /** @class */ (function (_super) {
             }
         }
         _this._groupId = groupId;
-        properties_1.defineReadOnly(_this, 'getChainId', properties_1.getStatic((_newTarget), 'getChainId')(chain, _this.perform.bind(_this)));
-        properties_1.defineReadOnly(_this, 'populateTransaction', properties_1.getStatic((_newTarget), 'populateTransaction')(chain, _this));
         properties_1.defineReadOnly(_this, 'serializeTransaction', properties_1.getStatic((_newTarget), 'serializeTransaction')(chain));
+        properties_1.defineReadOnly(_this, 'populateTransaction', properties_1.getStatic((_newTarget), 'populateTransaction')(chain, _this));
+        properties_1.defineReadOnly(_this, 'getChainId', properties_1.getStatic((_newTarget), 'getChainId')(chain, _this.perform.bind(_this)));
         return _this;
     }
     BaseProvider.prototype._ready = function () {
@@ -374,18 +374,12 @@ var BaseProvider = /** @class */ (function (_super) {
         }
         return defaultFormatter;
     };
-    // @TODO: Remove this and just use getNetwork
-    BaseProvider.getNetwork = function (network) {
-        return networks_1.getNetwork((network == null) ? 'homestead' : network);
-    };
-    BaseProvider.getChainId = function (chain, perform) {
+    BaseProvider.serializeTransaction = function (chain) {
         switch (chain) {
             case constants_1.Chain.ETHERS:
-                return function () { return perform('eth_chainId', {}); };
+                return transactions_1.serializeEthers;
             case constants_1.Chain.FISCO:
-                return function () {
-                    return perform('getClientVersion', {}).then(function (clientVersion) { return Number(clientVersion['Chain Id']); });
-                };
+                return transactions_1.serializeRc2;
         }
         return logger.throwArgumentError('invalid chain', 'chain', chain);
     };
@@ -393,60 +387,126 @@ var BaseProvider = /** @class */ (function (_super) {
         var _this = this;
         switch (chain) {
             case constants_1.Chain.ETHERS:
-            case constants_1.Chain.FISCO:
                 return function (transaction) { return __awaiter(_this, void 0, void 0, function () {
-                    var tx, _a, _b, _c;
-                    return __generator(this, function (_d) {
-                        switch (_d.label) {
+                    var tx, _a, _b, _c, _d, _e;
+                    return __generator(this, function (_f) {
+                        switch (_f.label) {
                             case 0: return [4 /*yield*/, properties_1.resolveProperties(transaction)];
                             case 1:
-                                tx = _d.sent();
-                                if (tx.nonce == null) {
-                                    tx.nonce = bytes_1.hexlify(random_1.randomBytes(32));
-                                }
-                                if (!(tx.blockLimit == null)) return [3 /*break*/, 3];
+                                tx = _f.sent();
+                                if (!(tx.nonce == null)) return [3 /*break*/, 3];
                                 _a = tx;
-                                return [4 /*yield*/, self.getBlockNumber().then(function (blockNumber) { return blockNumber + 100; })];
+                                return [4 /*yield*/, self.getTransactionCount(tx.from, 'pending')];
                             case 2:
-                                _a.blockLimit = _d.sent();
-                                _d.label = 3;
+                                _a.nonce = _f.sent();
+                                _f.label = 3;
                             case 3:
-                                if (tx.to != null) {
-                                    tx.to = Promise.resolve(tx.to).then(function (to) { return self.resolveName(to); });
-                                }
-                                if (tx.chainId == null) {
-                                    tx.chainId = self.getChainId();
-                                }
-                                if (tx.groupId == null) {
-                                    tx.groupId = self.getGroupId();
-                                }
                                 if (!(tx.gasPrice == null)) return [3 /*break*/, 5];
                                 _b = tx;
                                 return [4 /*yield*/, self.getGasPrice()];
                             case 4:
-                                _b.gasPrice = _d.sent();
-                                _d.label = 5;
+                                _b.gasPrice = _f.sent();
+                                _f.label = 5;
                             case 5:
                                 if (!(tx.gasLimit == null)) return [3 /*break*/, 7];
                                 _c = tx;
                                 return [4 /*yield*/, self.estimateGas(tx)];
                             case 6:
-                                _c.gasLimit = _d.sent();
-                                _d.label = 7;
-                            case 7: return [4 /*yield*/, properties_1.resolveProperties(tx)];
-                            case 8: return [2 /*return*/, _d.sent()];
+                                _c.gasLimit = _f.sent();
+                                _f.label = 7;
+                            case 7:
+                                if (!(tx.to != null)) return [3 /*break*/, 9];
+                                _d = tx;
+                                return [4 /*yield*/, Promise.resolve(tx.to).then(function (to) { return self.resolveName(to); })];
+                            case 8:
+                                _d.to = _f.sent();
+                                _f.label = 9;
+                            case 9:
+                                if (!(tx.chainId == null)) return [3 /*break*/, 11];
+                                _e = tx;
+                                return [4 /*yield*/, self.getChainId()];
+                            case 10:
+                                _e.chainId = _f.sent();
+                                _f.label = 11;
+                            case 11: return [4 /*yield*/, properties_1.resolveProperties(tx)];
+                            case 12: return [2 /*return*/, _f.sent()];
+                        }
+                    });
+                }); };
+            case constants_1.Chain.FISCO:
+                return function (transaction) { return __awaiter(_this, void 0, void 0, function () {
+                    var tx, _a, _b, _c, _d, _e, _f;
+                    return __generator(this, function (_g) {
+                        switch (_g.label) {
+                            case 0: return [4 /*yield*/, properties_1.resolveProperties(transaction)];
+                            case 1:
+                                tx = _g.sent();
+                                if (tx.nonce == null) {
+                                    tx.nonce = bytes_1.hexlify(random_1.randomBytes(32));
+                                }
+                                if (!(tx.gasPrice == null)) return [3 /*break*/, 3];
+                                _a = tx;
+                                return [4 /*yield*/, self.getGasPrice()];
+                            case 2:
+                                _a.gasPrice = _g.sent();
+                                _g.label = 3;
+                            case 3:
+                                if (!(tx.gasLimit == null)) return [3 /*break*/, 5];
+                                _b = tx;
+                                return [4 /*yield*/, self.estimateGas(tx)];
+                            case 4:
+                                _b.gasLimit = _g.sent();
+                                _g.label = 5;
+                            case 5:
+                                if (!(tx.blockLimit == null)) return [3 /*break*/, 7];
+                                _c = tx;
+                                return [4 /*yield*/, self.getBlockNumber().then(function (blockNumber) { return blockNumber + 100; })];
+                            case 6:
+                                _c.blockLimit = _g.sent();
+                                _g.label = 7;
+                            case 7:
+                                if (!(tx.to != null)) return [3 /*break*/, 9];
+                                _d = tx;
+                                return [4 /*yield*/, Promise.resolve(tx.to).then(function (to) { return self.resolveName(to); })];
+                            case 8:
+                                _d.to = _g.sent();
+                                _g.label = 9;
+                            case 9:
+                                if (!(tx.chainId == null)) return [3 /*break*/, 11];
+                                _e = tx;
+                                return [4 /*yield*/, self.getChainId()];
+                            case 10:
+                                _e.chainId = _g.sent();
+                                _g.label = 11;
+                            case 11:
+                                if (!(tx.groupId == null)) return [3 /*break*/, 13];
+                                _f = tx;
+                                return [4 /*yield*/, self.getGroupId()];
+                            case 12:
+                                _f.groupId = _g.sent();
+                                _g.label = 13;
+                            case 13: return [4 /*yield*/, properties_1.resolveProperties(tx)];
+                            case 14: return [2 /*return*/, _g.sent()];
                         }
                     });
                 }); };
         }
         return logger.throwArgumentError('invalid chain', 'chain', chain);
     };
-    BaseProvider.serializeTransaction = function (chain) {
+    // @TODO: Remove this and just use getNetwork
+    BaseProvider.getNetwork = function (network) {
+        return networks_1.getNetwork((network == null) ? 'homestead' : network);
+    };
+    BaseProvider.getChainId = function (chain, perform) {
         switch (chain) {
             case constants_1.Chain.ETHERS:
-                return transactions_1.serializeEthers;
+                return function () {
+                    return perform('getChainId', {}).then(function (chainId) { return Number(chainId); });
+                };
             case constants_1.Chain.FISCO:
-                return transactions_1.serializeRc2;
+                return function () {
+                    return perform('getClientVersion', {}).then(function (clientVersion) { return Number(clientVersion['Chain Id']); });
+                };
         }
         return logger.throwArgumentError('invalid chain', 'chain', chain);
     };

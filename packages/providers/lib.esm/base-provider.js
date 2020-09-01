@@ -200,12 +200,12 @@ export class BaseProvider extends Provider {
         super();
         this.formatter = new.target.getFormatter();
         // Events being listened to
-        this._emitted = { block: -2 };
         this._events = [];
+        this._emitted = { block: -2 };
         this._pollingInterval = 4000;
+        this._maxInternalBlockNumber = -1024;
         this._lastBlockNumber = -2;
         this._fastQueryDate = 0;
-        this._maxInternalBlockNumber = -1024;
         // If network is any, this Provider allows the underlying
         // network to change dynamically, and we auto-detect the
         // current network
@@ -231,9 +231,9 @@ export class BaseProvider extends Provider {
             }
         }
         this._groupId = groupId;
-        defineReadOnly(this, 'getChainId', getStatic((new.target), 'getChainId')(chain, this.perform.bind(this)));
-        defineReadOnly(this, 'populateTransaction', getStatic((new.target), 'populateTransaction')(chain, this));
         defineReadOnly(this, 'serializeTransaction', getStatic((new.target), 'serializeTransaction')(chain));
+        defineReadOnly(this, 'populateTransaction', getStatic((new.target), 'populateTransaction')(chain, this));
+        defineReadOnly(this, 'getChainId', getStatic((new.target), 'getChainId')(chain, this.perform.bind(this)));
     }
     _ready() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -291,39 +291,22 @@ export class BaseProvider extends Provider {
         }
         return defaultFormatter;
     }
-    // @TODO: Remove this and just use getNetwork
-    static getNetwork(network) {
-        return getNetwork((network == null) ? 'homestead' : network);
-    }
-    static getChainId(chain, perform) {
+    static serializeTransaction(chain) {
         switch (chain) {
             case Chain.ETHERS:
-                return () => perform('eth_chainId', {});
+                return serializeEthers;
             case Chain.FISCO:
-                return () => perform('getClientVersion', {}).then((clientVersion) => Number(clientVersion['Chain Id']));
+                return serializeRc2;
         }
         return logger.throwArgumentError('invalid chain', 'chain', chain);
     }
     static populateTransaction(chain, self) {
         switch (chain) {
             case Chain.ETHERS:
-            case Chain.FISCO:
                 return (transaction) => __awaiter(this, void 0, void 0, function* () {
                     const tx = yield resolveProperties(transaction);
                     if (tx.nonce == null) {
-                        tx.nonce = hexlify(randomBytes(32));
-                    }
-                    if (tx.blockLimit == null) {
-                        tx.blockLimit = yield self.getBlockNumber().then((blockNumber) => blockNumber + 100);
-                    }
-                    if (tx.to != null) {
-                        tx.to = Promise.resolve(tx.to).then((to) => self.resolveName(to));
-                    }
-                    if (tx.chainId == null) {
-                        tx.chainId = self.getChainId();
-                    }
-                    if (tx.groupId == null) {
-                        tx.groupId = self.getGroupId();
+                        tx.nonce = yield self.getTransactionCount(tx.from, 'pending');
                     }
                     if (tx.gasPrice == null) {
                         tx.gasPrice = yield self.getGasPrice();
@@ -331,17 +314,53 @@ export class BaseProvider extends Provider {
                     if (tx.gasLimit == null) {
                         tx.gasLimit = yield self.estimateGas(tx);
                     }
+                    if (tx.to != null) {
+                        tx.to = yield Promise.resolve(tx.to).then((to) => self.resolveName(to));
+                    }
+                    if (tx.chainId == null) {
+                        tx.chainId = yield self.getChainId();
+                    }
+                    return yield resolveProperties(tx);
+                });
+            case Chain.FISCO:
+                return (transaction) => __awaiter(this, void 0, void 0, function* () {
+                    const tx = yield resolveProperties(transaction);
+                    if (tx.nonce == null) {
+                        tx.nonce = hexlify(randomBytes(32));
+                    }
+                    if (tx.gasPrice == null) {
+                        tx.gasPrice = yield self.getGasPrice();
+                    }
+                    if (tx.gasLimit == null) {
+                        tx.gasLimit = yield self.estimateGas(tx);
+                    }
+                    if (tx.blockLimit == null) {
+                        tx.blockLimit = yield self.getBlockNumber().then((blockNumber) => blockNumber + 100);
+                    }
+                    if (tx.to != null) {
+                        tx.to = yield Promise.resolve(tx.to).then((to) => self.resolveName(to));
+                    }
+                    if (tx.chainId == null) {
+                        tx.chainId = yield self.getChainId();
+                    }
+                    if (tx.groupId == null) {
+                        tx.groupId = yield self.getGroupId();
+                    }
                     return yield resolveProperties(tx);
                 });
         }
         return logger.throwArgumentError('invalid chain', 'chain', chain);
     }
-    static serializeTransaction(chain) {
+    // @TODO: Remove this and just use getNetwork
+    static getNetwork(network) {
+        return getNetwork((network == null) ? 'homestead' : network);
+    }
+    static getChainId(chain, perform) {
         switch (chain) {
             case Chain.ETHERS:
-                return serializeEthers;
+                return () => perform('getChainId', {}).then((chainId) => Number(chainId));
             case Chain.FISCO:
-                return serializeRc2;
+                return () => perform('getClientVersion', {}).then((clientVersion) => Number(clientVersion['Chain Id']));
         }
         return logger.throwArgumentError('invalid chain', 'chain', chain);
     }

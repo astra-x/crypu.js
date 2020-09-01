@@ -8,7 +8,7 @@ import { SignatureLike } from '@ethersproject/bytes';
 import { Network, Networkish } from '@ethersproject/networks';
 import { Deferrable } from '@ethersproject/properties';
 import { BigNumber } from '@ethersproject/bignumber';
-import { Transaction } from '@crypujs/transactions';
+import { UnsignedTransaction, Transaction } from '@crypujs/transactions';
 import { ClientVersion, SyncStatus, Peer, Block, BlockTag, BlockWithTransactions, TransactionReceipt, TransactionRequest, TransactionResponse, EventType, Filter, FilterByBlockHash, Listener, Log, Provider } from '@crypujs/abstract-provider';
 import { Chain } from './constants';
 import { Formatter } from './formatter';
@@ -46,9 +46,9 @@ export declare class BaseProvider extends Provider {
     _networkPromise: Promise<Network>;
     _network: Network;
     _groupId: number;
-    readonly getChainId: () => Promise<number>;
+    readonly serializeTransaction: (transaction: UnsignedTransaction) => string;
     readonly populateTransaction: (transaction: Deferrable<TransactionRequest>) => Promise<TransactionRequest>;
-    readonly serializeTransaction: (transaction: TransactionRequest) => string;
+    readonly getChainId: () => Promise<number>;
     /**
      *  ready
      *
@@ -62,10 +62,10 @@ export declare class BaseProvider extends Provider {
     _ready(): Promise<Network>;
     get ready(): Promise<Network>;
     static getFormatter(): Formatter;
+    static serializeTransaction(chain: Chain): (transaction: TransactionRequest, signature?: SignatureLike) => string;
+    static populateTransaction(chain: Chain, self: Provider): (transaction: Deferrable<TransactionRequest>) => Promise<TransactionRequest>;
     static getNetwork(network: Networkish): Network;
     static getChainId(chain: Chain, perform: (method: string, params: any) => Promise<any>): () => Promise<number>;
-    static populateTransaction(chain: Chain, self: Provider): (transaction: Deferrable<TransactionRequest>) => Promise<TransactionRequest>;
-    static serializeTransaction(chain: Chain): (transaction: TransactionRequest, signature?: SignatureLike) => string;
     _getInternalBlockNumber(maxAge: number): Promise<number>;
     poll(): Promise<void>;
     resetEventsBlock(blockNumber: number): void;

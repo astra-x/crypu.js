@@ -125,7 +125,7 @@ export abstract class Signer {
   // Populates all fields in a transaction, signs it and sends it to the network
   async sendTransaction(transaction: Deferrable<TransactionRequest>): Promise<TransactionResponse> {
     this._checkProvider('sendTransaction');
-    return this.provider.populateTransaction(transaction).then(async (tx) => {
+    return this.provider.populateTransaction(this.checkTransaction(transaction)).then(async (tx) => {
       const signedTx = await this.signTransaction(tx);
       return this.provider.sendTransaction(signedTx);
     });
@@ -133,8 +133,7 @@ export abstract class Signer {
 
   async getChainId(): Promise<number> {
     this._checkProvider('getChainId');
-    const network = await this.provider.getNetwork();
-    return network.chainId;
+    return this.provider.getChainId();
   }
 
   async getGroupId(): Promise<number> {

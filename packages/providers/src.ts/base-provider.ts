@@ -47,6 +47,7 @@ import { toUtf8String } from '@ethersproject/strings';
 import { namehash } from '@ethersproject/hash';
 
 import {
+  UnsignedTransaction,
   Transaction,
   serializeEthers,
   serializeRc2,
@@ -274,10 +275,9 @@ export class BaseProvider extends Provider {
   _network: Network;
   _groupId: number;
 
-
-  readonly getChainId: () => Promise<number>;
+  readonly serializeTransaction: (transaction: UnsignedTransaction) => string;
   readonly populateTransaction: (transaction: Deferrable<TransactionRequest>) => Promise<TransactionRequest>;
-  readonly serializeTransaction: (transaction: TransactionRequest) => string;
+  readonly getChainId: () => Promise<number>;
 
   /**
    *  ready
@@ -297,13 +297,12 @@ export class BaseProvider extends Provider {
     this.formatter = new.target.getFormatter();
 
     // Events being listened to
-    this._emitted = { block: -2 };
     this._events = [];
+    this._emitted = { block: -2 };
     this._pollingInterval = 4000;
-
+    this._maxInternalBlockNumber = -1024;
     this._lastBlockNumber = -2;
     this._fastQueryDate = 0;
-    this._maxInternalBlockNumber = -1024;
 
     // If network is any, this Provider allows the underlying
     // network to change dynamically, and we auto-detect the
@@ -334,13 +333,12 @@ export class BaseProvider extends Provider {
 
     defineReadOnly(
       this,
-      'getChainId',
+      'serializeTransaction',
       getStatic<
         (
           chain: Chain,
-          perform: (method: string, params: any) => Promise<any>,
-        ) => () => Promise<number>
-        >(new.target, 'getChainId')(chain, this.perform.bind(this)),
+        ) => (transaction: TransactionRequest, signature?: SignatureLike) => string
+        >(new.target, 'serializeTransaction')(chain),
     );
     defineReadOnly(
       this,
@@ -354,12 +352,13 @@ export class BaseProvider extends Provider {
     );
     defineReadOnly(
       this,
-      'serializeTransaction',
+      'getChainId',
       getStatic<
         (
           chain: Chain,
-        ) => (transaction: TransactionRequest, signature?: SignatureLike) => string
-        >(new.target, 'serializeTransaction')(chain),
+          perform: (method: string, params: any) => Promise<any>,
+        ) => () => Promise<number>
+        >(new.target, 'getChainId')(chain, this.perform.bind(this)),
     );
   }
 
@@ -422,6 +421,56 @@ export class BaseProvider extends Provider {
     return defaultFormatter;
   }
 
+  static serializeTransaction(chain: Chain): (transaction: TransactionRequest, signature?: SignatureLike) => string {
+    switch (chain) {
+      case Chain.ETHERS:
+        return serializeEthers;
+      case Chain.FISCO:
+        return serializeRc2;
+    }
+    return logger.throwArgumentError('invalid chain', 'chain', chain);
+  }
+
+  static populateTransaction(chain: Chain, self: Provider): (transaction: Deferrable<TransactionRequest>) => Promise<TransactionRequest> {
+    switch (chain) {
+      case Chain.ETHERS:
+        return async (transaction: Deferrable<TransactionRequest>): Promise<TransactionRequest> => {
+          const tx: Deferrable<TransactionRequest> = await resolveProperties(transaction);
+
+          if (tx.nonce == null) { tx.nonce = await self.getTransactionCount(tx.from, 'pending'); }
+          if (tx.gasPrice == null) { tx.gasPrice = await self.getGasPrice(); }
+          if (tx.gasLimit == null) { tx.gasLimit = await self.estimateGas(tx); }
+          if (tx.to != null) {
+            tx.to = await Promise.resolve(tx.to).then((to) => self.resolveName(to));
+          }
+
+          if (tx.chainId == null) { tx.chainId = await self.getChainId(); }
+
+          return await resolveProperties(tx);
+        }
+      case Chain.FISCO:
+        return async (transaction: Deferrable<TransactionRequest>): Promise<TransactionRequest> => {
+          const tx: Deferrable<TransactionRequest> = await resolveProperties(transaction)
+
+          if (tx.nonce == null) { tx.nonce = hexlify(randomBytes(32)); }
+          if (tx.gasPrice == null) { tx.gasPrice = await self.getGasPrice(); }
+          if (tx.gasLimit == null) { tx.gasLimit = await self.estimateGas(tx); }
+          if (tx.blockLimit == null) {
+            tx.blockLimit = await self.getBlockNumber().then((blockNumber) => blockNumber + 100);
+          }
+          if (tx.to != null) {
+            tx.to = await Promise.resolve(tx.to).then((to) => self.resolveName(to));
+          }
+
+          if (tx.chainId == null) { tx.chainId = await self.getChainId(); }
+          if (tx.groupId == null) { tx.groupId = await self.getGroupId(); }
+
+          return await resolveProperties(tx);
+        };
+    }
+    return logger.throwArgumentError('invalid chain', 'chain', chain);
+  }
+
   // @TODO: Remove this and just use getNetwork
   static getNetwork(network: Networkish): Network {
     return getNetwork((network == null) ? 'homestead' : network);
@@ -430,44 +479,15 @@ export class BaseProvider extends Provider {
   static getChainId(chain: Chain, perform: (method: string, params: any) => Promise<any>): () => Promise<number> {
     switch (chain) {
       case Chain.ETHERS:
-        return (): Promise<number> => perform('eth_chainId', {});
+        return (): Promise<number> =>
+          perform('getChainId', {}).then(
+            (chainId: any) => Number(chainId)
+          );
       case Chain.FISCO:
         return (): Promise<number> =>
           perform('getClientVersion', {}).then(
             (clientVersion: ClientVersion) => Number(clientVersion['Chain Id'])
           );
-    }
-    return logger.throwArgumentError('invalid chain', 'chain', chain);
-  }
-
-  static populateTransaction(chain: Chain, self: Provider): (transaction: Deferrable<TransactionRequest>) => Promise<TransactionRequest> {
-    switch (chain) {
-      case Chain.ETHERS:
-      case Chain.FISCO:
-        return async (transaction: Deferrable<TransactionRequest>): Promise<TransactionRequest> => {
-          const tx: Deferrable<TransactionRequest> = await resolveProperties(transaction)
-
-          if (tx.nonce == null) { tx.nonce = hexlify(randomBytes(32)); }
-          if (tx.blockLimit == null) { tx.blockLimit = await self.getBlockNumber().then((blockNumber) => blockNumber + 100); }
-          if (tx.to != null) { tx.to = Promise.resolve(tx.to).then((to) => self.resolveName(to)); }
-          if (tx.chainId == null) { tx.chainId = self.getChainId(); }
-          if (tx.groupId == null) { tx.groupId = self.getGroupId(); }
-
-          if (tx.gasPrice == null) { tx.gasPrice = await self.getGasPrice(); }
-          if (tx.gasLimit == null) { tx.gasLimit = await self.estimateGas(tx); }
-
-          return await resolveProperties(tx);
-        };
-    }
-    return logger.throwArgumentError('invalid chain', 'chain', chain);
-  }
-
-  static serializeTransaction(chain: Chain): (transaction: TransactionRequest, signature?: SignatureLike) => string {
-    switch (chain) {
-      case Chain.ETHERS:
-        return serializeEthers;
-      case Chain.FISCO:
-        return serializeRc2;
     }
     return logger.throwArgumentError('invalid chain', 'chain', chain);
   }
