@@ -23,7 +23,7 @@ crypu.js
 
 **Node.js**
 ```Shell
-> npm install --save @crypujs/crypu
+> npm install --save crypu
 ```
 
 **UMD(浏览器)**
