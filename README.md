@@ -1,12 +1,12 @@
 crypu.js
 =====================
-一个完全由 JavaScript/Typescript 实现的轻便，高性能区块链工具库，未来将支持多条区块链，先已支持 FISCO-BCOS。
+一个完全由 JavaScript/Typescript 实现的轻便，高性能区块链工具库，未来将支持多条区块链，现已支持 FISCO-BCOS 和以太坊网络。
 
 **功能特性：**
 
 - **私钥存储于客户端**，保证私钥安全无虞
 - **支持使用私钥或助记词创建钱包**，更加人性化
-- **使用 JSON-RPC 方式**连接 FISCO-BCOS 网络
+- **使用 JSON-RPC 方式**连接 FISCO-BCOS 网络和以太坊网络。
 - **轻量级**，最小化后的 JS 文件不足 400KB，可适用于前端工程
 - **支持微信小程序**
 - **Monorepo 工程结构**，模块化包管理，只使用你需要的功能
@@ -23,25 +23,25 @@ crypu.js
 
 **Node.js**
 ```Shell
-> npm install --save @crypujs/fisco
+> npm install --save @crypujs/crypu
 ```
 
 **UMD(浏览器)**
 ```HTML
-<script src="./fisco.umd.min.js" type="text/javascript">
+<script src="./crypu.umd.min.js" type="text/javascript">
 </script>
 ```
 
 **ESM(浏览器)**
 ```HTML
 <script type="module">
-    import { Wallet } from "./fisco.esm.min.js";
+    import { Wallet } from "./crypu.esm.min.js";
 </script>
 ```
 
 **微信小程序**
 ```JavaScript
-const fisco = require("./fisco.wechat.min.js").default;
+const fisco = require("./crypu.wechat.min.js").default;
 ```
 
 文档
