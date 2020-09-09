@@ -1,11 +1,3 @@
-# `transactions`
+# `@crypujs/transactions`
 
-> TODO: description
-
-## Usage
-
-```
-const transactions = require('transactions');
-
-// TODO: DEMONSTRATE API
-```
+> A sub-module of crypu.js project.

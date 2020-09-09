@@ -1,11 +1,3 @@
-# `abstract-signer`
+# `@crypujs/abstract-signer`
 
-> TODO: description
-
-## Usage
-
-```
-const abstractSigner = require('abstract-signer');
-
-// TODO: DEMONSTRATE API
-```
+> A sub-module of crypu.js project.

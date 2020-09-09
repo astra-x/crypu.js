@@ -1,11 +1,3 @@
-# `providers`
+# `@crypujs/providers`
 
-> TODO: description
-
-## Usage
-
-```
-const providers = require('providers');
-
-// TODO: DEMONSTRATE API
-```
+> A sub-module of crypu.js project.

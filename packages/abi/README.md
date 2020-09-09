@@ -1,11 +1,3 @@
-# `abi`
+# `@crypujs/bi`
 
-> TODO: description
-
-## Usage
-
-```
-const abi = require('abi');
-
-// TODO: DEMONSTRATE API
-```
+> A sub-module of crypu.js project.

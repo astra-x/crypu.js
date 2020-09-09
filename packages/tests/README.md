@@ -1,11 +1,3 @@
-# `test`
+# `@crypujs/tests`
 
-> TODO: description
-
-## Usage
-
-```
-const test = require('test');
-
-// TODO: DEMONSTRATE API
-```
+> The test module of crypu.js project.
