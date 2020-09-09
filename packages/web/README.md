@@ -1,11 +1,3 @@
-# `web`
+# `@crypujs/web`
 
-> TODO: description
-
-## Usage
-
-```
-const web = require('web');
-
-// TODO: DEMONSTRATE API
-```
+> A sub-module of crypu.js project.

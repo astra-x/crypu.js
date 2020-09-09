@@ -1,11 +1,3 @@
-# `wallet`
+# `@crypujs/wallet`
 
-> TODO: description
-
-## Usage
-
-```
-const wallet = require('wallet');
-
-// TODO: DEMONSTRATE API
-```
+> A sub-module of crypu.js project.

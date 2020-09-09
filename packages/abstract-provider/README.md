@@ -1,11 +1,3 @@
-# `abstract-provider`
+# `@crypujs/abstract-provider`
 
-> TODO: description
-
-## Usage
-
-```
-const abstractProvider = require('abstract-provider');
-
-// TODO: DEMONSTRATE API
-```
+> A sub-module of crypu.js project.

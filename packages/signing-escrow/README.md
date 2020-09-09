@@ -1,11 +1,3 @@
-# `signing-trust`
+# `@crypujs/signing-escrow`
 
-> TODO: description
-
-## Usage
-
-```
-const signingTrust = require('signing-trust');
-
-// TODO: DEMONSTRATE API
-```
+> A sub-module of crypu.js project.
