@@ -66,6 +66,8 @@
 // async getBlockNumber(): Promise<number>
 // async getGasPrice(): Promise<BigNumber>
 
+// class Contract
+
 export { BytesLike } from '@ethersproject/bytes';
 export { Deferrable } from '@ethersproject/properties';
 export { Network } from '@ethersproject/networks';
@@ -97,3 +99,4 @@ export {
 } from '@crypujs/providers';
 export { SigningEscrow } from '@crypujs/signing-escrow';
 export { Wallet } from '@crypujs/wallet';
+export { Contract } from '@crypujs/contracts';

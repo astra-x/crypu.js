@@ -28,6 +28,7 @@
   "files": [
     "lib"
   ],
+  "gitHead": "ea3e3f07cf66db6b831013b083b426da67395c55",
   "homepage": "https://github.com/astra-x/crypu.js#readme",
   "keywords": [
     "ethereum",
@@ -53,6 +54,5 @@
     "test": "jest --verbose"
   },
   "types": "lib/index.d.ts",
-  "version": "2.0.2",
-  "gitHead": "ea3e3f07cf66db6b831013b083b426da67395c55"
+  "version": "2.0.2"
 }

@@ -16,6 +16,7 @@
   "files": [
     "lib"
   ],
+  "gitHead": "ada0480a77fb85f09f28ed3fc52bd2518fb65cb4",
   "homepage": "https://github.com/astra-x/crypu.js#readme",
   "keywords": [
     "ethereum",
@@ -41,6 +42,5 @@
     "test": "echo \"Error: run tests from root\" && exit 1"
   },
   "types": "lib/index.d.ts",
-  "version": "2.0.2",
-  "gitHead": "ada0480a77fb85f09f28ed3fc52bd2518fb65cb4"
+  "version": "2.0.2"
 }

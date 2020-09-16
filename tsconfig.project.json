@@ -25,6 +25,9 @@
       "path": "./packages/abstract-signer"
     },
     {
+      "path": "./packages/contracts"
+    },
+    {
       "path": "./packages/providers"
     },
     {
