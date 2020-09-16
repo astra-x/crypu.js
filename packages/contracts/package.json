@@ -1,25 +1,14 @@
 {
   "author": "Youtao Xing <youtao.xing@icloud.com>",
-  "browser": {
-    "./lib/geturl": "./lib/wechat-geturl.js"
-  },
-  "browser.esm": {
-    "./lib.esm/geturl": "./lib.esm/browser-geturl.js"
-  },
-  "browser.umd": {
-    "./lib/geturl": "./lib/browser-geturl.js"
-  },
-  "browser.wechat": {
-    "./lib/geturl": "./lib/wechat-geturl.js"
-  },
   "bugs": {
     "url": "https://github.com/astra-x/crypu.js/issues"
   },
   "dependencies": {
-    "@ethersproject/base64": "^5.0.2",
-    "@ethersproject/logger": "^5.0.4",
-    "@ethersproject/properties": "^5.0.2",
-    "@ethersproject/strings": "^5.0.2"
+    "@crypujs/abi": "^2.0.2",
+    "@crypujs/abstract-provider": "^2.0.2",
+    "@crypujs/abstract-signer": "^2.0.2",
+    "@ethersproject/logger": "^5.0.5",
+    "@ethersproject/properties": "^5.0.3"
   },
   "description": "> TODO: description",
   "directories": {
@@ -41,7 +30,7 @@
   "license": "MIT",
   "main": "./lib/index.js",
   "module": "./lib.esm/index.js",
-  "name": "@crypujs/web",
+  "name": "@crypujs/contracts",
   "publishConfig": {
     "access": "public"
   },
@@ -54,5 +43,5 @@
     "test": "echo \"Error: run tests from root\" && exit 1"
   },
   "types": "lib/index.d.ts",
-  "version": "2.0.2"
+  "version": "1.0.0"
 }

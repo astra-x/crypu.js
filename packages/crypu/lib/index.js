@@ -35,3 +35,5 @@ var signing_escrow_1 = require("@crypujs/signing-escrow");
 Object.defineProperty(exports, "SigningEscrow", { enumerable: true, get: function () { return signing_escrow_1.SigningEscrow; } });
 var wallet_1 = require("@crypujs/wallet");
 Object.defineProperty(exports, "Wallet", { enumerable: true, get: function () { return wallet_1.Wallet; } });
+var contracts_1 = require("@crypujs/contracts");
+Object.defineProperty(exports, "Contract", { enumerable: true, get: function () { return contracts_1.Contract; } });

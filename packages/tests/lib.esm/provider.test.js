@@ -27,7 +27,7 @@ const testData = [
     {
         providerConfig: {
             chain: Chain.FISCO,
-            url: 'http://47.56.165.246:8545',
+            url: 'http://fisco:8545',
             network: {
                 name: 'fisco',
                 chainId: 1,
