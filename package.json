@@ -49,6 +49,9 @@
   "config": {
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
+    },
+    "jest": {
+      "setTimeout": 30000
     }
   }
 }
