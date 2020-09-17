@@ -26,7 +26,12 @@ import { Logger } from '@ethersproject/logger';
 import {
   defineReadOnly,
   getStatic,
+  shallowCopy,
 } from '@ethersproject/properties';
+import {
+  BigNumber,
+  BigNumberish,
+} from '@ethersproject/bignumber';
 
 import {
   JsonFragment,
@@ -34,8 +39,32 @@ import {
   FunctionFragment,
   Interface,
 } from '@crypujs/abi';
-import { Provider } from '@crypujs/abstract-provider';
+import {
+  TransactionRequest,
+  TransactionResponse,
+  BlockTag,
+  Provider,
+} from '@crypujs/abstract-provider';
 import { Signer } from '@crypujs/abstract-signer';
+
+export interface Overrides {
+  gasLimit?: BigNumberish | Promise<BigNumberish>;
+  gasPrice?: BigNumberish | Promise<BigNumberish>;
+  nonce?: BigNumberish | Promise<BigNumberish>;
+};
+
+export interface PayableOverrides extends Overrides {
+  value?: BigNumberish | Promise<BigNumberish>;
+}
+
+export interface CallOverrides extends PayableOverrides {
+  blockTag?: BlockTag | Promise<BlockTag>;
+  from?: string | Promise<string>;
+}
+
+export interface SendOverrides extends CallOverrides {
+  hook?: (transaction: TransactionResponse) => Promise<any>;
+}
 
 export type ContractInterface = string | Array<Fragment | JsonFragment | string> | Interface;
 export type ContractFunction<T = any> = (...args: Array<any>) => Promise<T>;
@@ -46,15 +75,36 @@ function buildCall(contract: Contract, fragment: FunctionFragment): ContractFunc
   return async (...args: Array<any>): Promise<any> => {
     const signerOrProvider = (contract.signer || contract.provider);
     if (!signerOrProvider) {
-      logger.throwError("sending a transaction requires a signer or provider", Logger.errors.UNSUPPORTED_OPERATION, {
-        operation: "call"
-      })
+      logger.throwError('sending a transaction requires a signer or provider', Logger.errors.UNSUPPORTED_OPERATION, {
+        operation: 'call'
+      });
     }
 
-    const tx = {
+    let overrides: CallOverrides = {};
+    if (args.length === fragment.inputs.length + 1 && typeof (args[args.length - 1]) === 'object') {
+      overrides = shallowCopy(args.pop());
+    }
+
+    const tx: TransactionRequest = {
       to: contract.address,
       data: contract.interface.encodeFunctionData(fragment, args),
     };
+
+    if (!!overrides.gasLimit) { tx.gasLimit = BigNumber.from(overrides.gasLimit); }
+    if (!!overrides.gasPrice) { tx.gasPrice = BigNumber.from(overrides.gasPrice); }
+    if (!!overrides.nonce) { tx.nonce = BigNumber.from(overrides.nonce).toNumber(); }
+
+    if (!!overrides.value) {
+      const value = BigNumber.from(overrides.value);
+      if (!value.isZero() && !fragment.payable) {
+        logger.throwError('non-payable method cannot override value', Logger.errors.UNSUPPORTED_OPERATION, {
+          operation: 'overrides.value',
+          value: overrides.value,
+        });
+      }
+      tx.value = value;
+    }
+
     const result = await signerOrProvider.call(tx);
     try {
       return contract.interface.decodeFunctionResult(fragment, result);
@@ -73,16 +123,37 @@ function buildSend(contract: Contract, fragment: FunctionFragment): ContractFunc
   return async (...args: Array<any>): Promise<any> => {
     const signer = contract.signer;
     if (!signer) {
-      logger.throwError("sending a transaction requires a signer", Logger.errors.UNSUPPORTED_OPERATION, {
-        operation: "sendTransaction"
-      })
+      logger.throwError('sending a transaction requires a signer', Logger.errors.UNSUPPORTED_OPERATION, {
+        operation: 'sendTransaction'
+      });
     }
 
-    const tx = {
+    let overrides: SendOverrides = {};
+    if (args.length === fragment.inputs.length + 1 && typeof (args[args.length - 1]) === 'object') {
+      overrides = shallowCopy(args.pop());
+    }
+
+    const tx: TransactionRequest = {
       to: contract.address,
       data: contract.interface.encodeFunctionData(fragment, args),
     };
-    return signer.sendTransaction(tx);
+
+    if (!!overrides.gasLimit) { tx.gasLimit = BigNumber.from(overrides.gasLimit); }
+    if (!!overrides.gasPrice) { tx.gasPrice = BigNumber.from(overrides.gasPrice); }
+    if (!!overrides.nonce) { tx.nonce = BigNumber.from(overrides.nonce).toNumber(); }
+
+    if (!!overrides.value) {
+      const value = BigNumber.from(overrides.value);
+      if (!value.isZero() && !fragment.payable) {
+        logger.throwError('non-payable method cannot override value', Logger.errors.UNSUPPORTED_OPERATION, {
+          operation: 'overrides.value',
+          value: overrides.value,
+        });
+      }
+      tx.value = value;
+    }
+
+    return signer.sendTransaction(tx, overrides.hook);
   }
 }
 
@@ -104,14 +175,14 @@ export class Contract {
 
   constructor(addressOrName: string, contractInterface: ContractInterface, signerOrProvider: Signer | Provider) {
     if (signerOrProvider == null) {
-      defineReadOnly(this, "provider", null);
-      defineReadOnly(this, "signer", null);
+      defineReadOnly(this, 'provider', null);
+      defineReadOnly(this, 'signer', null);
     } else if (Signer.isSigner(signerOrProvider)) {
-      defineReadOnly(this, "provider", signerOrProvider.provider || null);
-      defineReadOnly(this, "signer", signerOrProvider);
+      defineReadOnly(this, 'provider', signerOrProvider.provider || null);
+      defineReadOnly(this, 'signer', signerOrProvider);
     } else if (Provider.isProvider(signerOrProvider)) {
-      defineReadOnly(this, "provider", signerOrProvider);
-      defineReadOnly(this, "signer", null);
+      defineReadOnly(this, 'provider', signerOrProvider);
+      defineReadOnly(this, 'signer', null);
     }
 
     defineReadOnly(this, 'address', addressOrName);

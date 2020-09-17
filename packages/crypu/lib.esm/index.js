@@ -25,4 +25,4 @@ export { Provider, } from '@crypujs/abstract-provider';
 export { Chain, JsonRpcProvider, } from '@crypujs/providers';
 export { SigningEscrow } from '@crypujs/signing-escrow';
 export { Wallet } from '@crypujs/wallet';
-export { Contract } from '@crypujs/contracts';
+export { Contract, } from '@crypujs/contracts';

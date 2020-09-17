@@ -60,9 +60,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Contract = void 0;
 var logger_1 = require("@ethersproject/logger");
 var properties_1 = require("@ethersproject/properties");
+var bignumber_1 = require("@ethersproject/bignumber");
 var abi_1 = require("@crypujs/abi");
 var abstract_provider_1 = require("@crypujs/abstract-provider");
 var abstract_signer_1 = require("@crypujs/abstract-signer");
+;
 var logger = new logger_1.Logger('contracts');
 function buildCall(contract, fragment) {
     var _this = this;
@@ -72,20 +74,43 @@ function buildCall(contract, fragment) {
             args[_i] = arguments[_i];
         }
         return __awaiter(_this, void 0, void 0, function () {
-            var signerOrProvider, tx, result;
+            var signerOrProvider, overrides, tx, value, result;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         signerOrProvider = (contract.signer || contract.provider);
                         if (!signerOrProvider) {
-                            logger.throwError("sending a transaction requires a signer or provider", logger_1.Logger.errors.UNSUPPORTED_OPERATION, {
-                                operation: "call"
+                            logger.throwError('sending a transaction requires a signer or provider', logger_1.Logger.errors.UNSUPPORTED_OPERATION, {
+                                operation: 'call'
                             });
+                        }
+                        overrides = {};
+                        if (args.length === fragment.inputs.length + 1 && typeof (args[args.length - 1]) === 'object') {
+                            overrides = properties_1.shallowCopy(args.pop());
                         }
                         tx = {
                             to: contract.address,
                             data: contract.interface.encodeFunctionData(fragment, args),
                         };
+                        if (!!overrides.gasLimit) {
+                            tx.gasLimit = bignumber_1.BigNumber.from(overrides.gasLimit);
+                        }
+                        if (!!overrides.gasPrice) {
+                            tx.gasPrice = bignumber_1.BigNumber.from(overrides.gasPrice);
+                        }
+                        if (!!overrides.nonce) {
+                            tx.nonce = bignumber_1.BigNumber.from(overrides.nonce).toNumber();
+                        }
+                        if (!!overrides.value) {
+                            value = bignumber_1.BigNumber.from(overrides.value);
+                            if (!value.isZero() && !fragment.payable) {
+                                logger.throwError('non-payable method cannot override value', logger_1.Logger.errors.UNSUPPORTED_OPERATION, {
+                                    operation: 'overrides.value',
+                                    value: overrides.value,
+                                });
+                            }
+                            tx.value = value;
+                        }
                         return [4 /*yield*/, signerOrProvider.call(tx)];
                     case 1:
                         result = _a.sent();
@@ -114,19 +139,42 @@ function buildSend(contract, fragment) {
             args[_i] = arguments[_i];
         }
         return __awaiter(_this, void 0, void 0, function () {
-            var signer, tx;
+            var signer, overrides, tx, value;
             return __generator(this, function (_a) {
                 signer = contract.signer;
                 if (!signer) {
-                    logger.throwError("sending a transaction requires a signer", logger_1.Logger.errors.UNSUPPORTED_OPERATION, {
-                        operation: "sendTransaction"
+                    logger.throwError('sending a transaction requires a signer', logger_1.Logger.errors.UNSUPPORTED_OPERATION, {
+                        operation: 'sendTransaction'
                     });
+                }
+                overrides = {};
+                if (args.length === fragment.inputs.length + 1 && typeof (args[args.length - 1]) === 'object') {
+                    overrides = properties_1.shallowCopy(args.pop());
                 }
                 tx = {
                     to: contract.address,
                     data: contract.interface.encodeFunctionData(fragment, args),
                 };
-                return [2 /*return*/, signer.sendTransaction(tx)];
+                if (!!overrides.gasLimit) {
+                    tx.gasLimit = bignumber_1.BigNumber.from(overrides.gasLimit);
+                }
+                if (!!overrides.gasPrice) {
+                    tx.gasPrice = bignumber_1.BigNumber.from(overrides.gasPrice);
+                }
+                if (!!overrides.nonce) {
+                    tx.nonce = bignumber_1.BigNumber.from(overrides.nonce).toNumber();
+                }
+                if (!!overrides.value) {
+                    value = bignumber_1.BigNumber.from(overrides.value);
+                    if (!value.isZero() && !fragment.payable) {
+                        logger.throwError('non-payable method cannot override value', logger_1.Logger.errors.UNSUPPORTED_OPERATION, {
+                            operation: 'overrides.value',
+                            value: overrides.value,
+                        });
+                    }
+                    tx.value = value;
+                }
+                return [2 /*return*/, signer.sendTransaction(tx, overrides.hook)];
             });
         });
     };
@@ -142,16 +190,16 @@ var Contract = /** @class */ (function () {
         var _newTarget = this.constructor;
         var _this = this;
         if (signerOrProvider == null) {
-            properties_1.defineReadOnly(this, "provider", null);
-            properties_1.defineReadOnly(this, "signer", null);
+            properties_1.defineReadOnly(this, 'provider', null);
+            properties_1.defineReadOnly(this, 'signer', null);
         }
         else if (abstract_signer_1.Signer.isSigner(signerOrProvider)) {
-            properties_1.defineReadOnly(this, "provider", signerOrProvider.provider || null);
-            properties_1.defineReadOnly(this, "signer", signerOrProvider);
+            properties_1.defineReadOnly(this, 'provider', signerOrProvider.provider || null);
+            properties_1.defineReadOnly(this, 'signer', signerOrProvider);
         }
         else if (abstract_provider_1.Provider.isProvider(signerOrProvider)) {
-            properties_1.defineReadOnly(this, "provider", signerOrProvider);
-            properties_1.defineReadOnly(this, "signer", null);
+            properties_1.defineReadOnly(this, 'provider', signerOrProvider);
+            properties_1.defineReadOnly(this, 'signer', null);
         }
         properties_1.defineReadOnly(this, 'address', addressOrName);
         properties_1.defineReadOnly(this, 'interface', properties_1.getStatic((_newTarget), 'getInterface')(contractInterface));
