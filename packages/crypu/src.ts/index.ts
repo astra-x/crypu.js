@@ -99,4 +99,8 @@ export {
 } from '@crypujs/providers';
 export { SigningEscrow } from '@crypujs/signing-escrow';
 export { Wallet } from '@crypujs/wallet';
-export { Contract } from '@crypujs/contracts';
+export {
+  CallOverrides,
+  SendOverrides,
+  Contract,
+} from '@crypujs/contracts';
