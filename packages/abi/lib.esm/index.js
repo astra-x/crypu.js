@@ -30,7 +30,7 @@ export class Interface extends EthersInterface {
         logger.checkNew(new.target, Interface);
         super(fragments);
     }
-    _formatParams(data, result) {
+    _formatParamType(data, result) {
         return (param, index) => {
             const isAddress = param.type.indexOf('address') === 0;
             const isInt = param.type.indexOf('int') === 0;
@@ -71,8 +71,8 @@ export class Interface extends EthersInterface {
         if (typeof (functionFragment) === 'string') {
             functionFragment = this.getFunction(functionFragment);
         }
-        const functionData = super.decodeFunctionData(functionFragment, data);
         const inputs = functionFragment.inputs;
+        const functionData = super.decodeFunctionData(functionFragment, data);
         if (inputs.length !== functionData.length) {
             logger.throwError("inputs/values length mismatch", Logger.errors.INVALID_ARGUMENT, {
                 count: { types: inputs.length, values: functionData.length },
@@ -80,7 +80,23 @@ export class Interface extends EthersInterface {
             });
         }
         let result = [];
-        inputs.forEach(this._formatParams(functionData, result));
+        inputs.forEach(this._formatParamType(functionData, result));
+        return result;
+    }
+    decodeFunctionResult(functionFragment, data) {
+        if (typeof (functionFragment) === 'string') {
+            functionFragment = this.getFunction(functionFragment);
+        }
+        const outputs = functionFragment.outputs;
+        const functionResult = super.decodeFunctionResult(functionFragment, data);
+        if (outputs.length !== functionResult.length) {
+            logger.throwError("outputs/values length mismatch", Logger.errors.INVALID_ARGUMENT, {
+                count: { types: outputs.length, values: functionResult.length },
+                value: { types: outputs, values: functionResult }
+            });
+        }
+        let result = [];
+        outputs.forEach(this._formatParamType(functionResult, result));
         return result;
     }
     decodeEventLog(eventFragment, data, topics) {
@@ -95,7 +111,7 @@ export class Interface extends EthersInterface {
             });
         }
         let result = [];
-        eventFragment.inputs.forEach(this._formatParams(eventLog, result));
+        eventFragment.inputs.forEach(this._formatParamType(eventLog, result));
         return result;
     }
 }

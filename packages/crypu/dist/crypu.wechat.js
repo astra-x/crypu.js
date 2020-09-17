@@ -13400,7 +13400,7 @@
 	        _this = _super.call(this, fragments) || this;
 	        return _this;
 	    }
-	    Interface.prototype._formatParams = function (data, result) {
+	    Interface.prototype._formatParamType = function (data, result) {
 	        return function (param, index) {
 	            var isAddress = param.type.indexOf('address') === 0;
 	            var isInt = param.type.indexOf('int') === 0;
@@ -13441,8 +13441,8 @@
 	        if (typeof (functionFragment) === 'string') {
 	            functionFragment = this.getFunction(functionFragment);
 	        }
-	        var functionData = _super.prototype.decodeFunctionData.call(this, functionFragment, data);
 	        var inputs = functionFragment.inputs;
+	        var functionData = _super.prototype.decodeFunctionData.call(this, functionFragment, data);
 	        if (inputs.length !== functionData.length) {
 	            logger.throwError("inputs/values length mismatch", lib.Logger.errors.INVALID_ARGUMENT, {
 	                count: { types: inputs.length, values: functionData.length },
@@ -13450,7 +13450,23 @@
 	            });
 	        }
 	        var result = [];
-	        inputs.forEach(this._formatParams(functionData, result));
+	        inputs.forEach(this._formatParamType(functionData, result));
+	        return result;
+	    };
+	    Interface.prototype.decodeFunctionResult = function (functionFragment, data) {
+	        if (typeof (functionFragment) === 'string') {
+	            functionFragment = this.getFunction(functionFragment);
+	        }
+	        var outputs = functionFragment.outputs;
+	        var functionResult = _super.prototype.decodeFunctionResult.call(this, functionFragment, data);
+	        if (outputs.length !== functionResult.length) {
+	            logger.throwError("outputs/values length mismatch", lib.Logger.errors.INVALID_ARGUMENT, {
+	                count: { types: outputs.length, values: functionResult.length },
+	                value: { types: outputs, values: functionResult }
+	            });
+	        }
+	        var result = [];
+	        outputs.forEach(this._formatParamType(functionResult, result));
 	        return result;
 	    };
 	    Interface.prototype.decodeEventLog = function (eventFragment, data, topics) {
@@ -13465,7 +13481,7 @@
 	            });
 	        }
 	        var result = [];
-	        eventFragment.inputs.forEach(this._formatParams(eventLog, result));
+	        eventFragment.inputs.forEach(this._formatParamType(eventLog, result));
 	        return result;
 	    };
 	    return Interface;
