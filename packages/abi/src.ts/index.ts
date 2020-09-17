@@ -57,7 +57,7 @@ export class Interface extends EthersInterface {
     super(fragments);
   }
 
-  _formatParams(data: ReadonlyArray<any>, result: (Array<any> & { [key: string]: any })): (param: ParamType, index: number) => void {
+  protected _formatParamType(data: ReadonlyArray<any>, result: (Array<any> & { [key: string]: any })): (param: ParamType, index: number) => void {
     return (param: ParamType, index: number) => {
       const isAddress = param.type.indexOf('address') === 0;
       const isInt = param.type.indexOf('int') === 0;
@@ -97,8 +97,8 @@ export class Interface extends EthersInterface {
     if (typeof (functionFragment) === 'string') {
       functionFragment = this.getFunction(functionFragment);
     }
-    const functionData = super.decodeFunctionData(functionFragment, data);
     const inputs = functionFragment.inputs;
+    const functionData = super.decodeFunctionData(functionFragment, data);
     if (inputs.length !== functionData.length) {
       logger.throwError("inputs/values length mismatch", Logger.errors.INVALID_ARGUMENT, {
         count: { types: inputs.length, values: functionData.length },
@@ -108,7 +108,28 @@ export class Interface extends EthersInterface {
 
     let result: (Array<any> & { [key: string]: any }) = [];
     inputs.forEach(
-      this._formatParams(functionData, result)
+      this._formatParamType(functionData, result)
+    );
+
+    return result;
+  }
+
+  decodeFunctionResult(functionFragment: FunctionFragment | string, data: BytesLike): Result {
+    if (typeof (functionFragment) === 'string') {
+      functionFragment = this.getFunction(functionFragment);
+    }
+    const outputs = functionFragment.outputs;
+    const functionResult = super.decodeFunctionResult(functionFragment, data);
+    if (outputs.length !== functionResult.length) {
+      logger.throwError("outputs/values length mismatch", Logger.errors.INVALID_ARGUMENT, {
+        count: { types: outputs.length, values: functionResult.length },
+        value: { types: outputs, values: functionResult }
+      });
+    }
+
+    let result: (Array<any> & { [key: string]: any }) = [];
+    outputs.forEach(
+      this._formatParamType(functionResult, result)
     );
 
     return result;
@@ -127,7 +148,7 @@ export class Interface extends EthersInterface {
     }
     let result: (Array<any> & { [key: string]: any }) = [];
     eventFragment.inputs.forEach(
-      this._formatParams(eventLog, result)
+      this._formatParamType(eventLog, result)
     );
 
     return result;

@@ -8,9 +8,10 @@ import { JsonFragmentType, JsonFragment, ParamType, Fragment, FunctionFragment, 
 export { JsonFragmentType, JsonFragment, Fragment, FunctionFragment, EventFragment, Result, };
 export declare class Interface extends EthersInterface {
     constructor(fragments: string | Array<Fragment | JsonFragment | string>);
-    _formatParams(data: ReadonlyArray<any>, result: (Array<any> & {
+    protected _formatParamType(data: ReadonlyArray<any>, result: (Array<any> & {
         [key: string]: any;
     })): (param: ParamType, index: number) => void;
     decodeFunctionData(functionFragment: FunctionFragment | string, data: BytesLike): Result;
+    decodeFunctionResult(functionFragment: FunctionFragment | string, data: BytesLike): Result;
     decodeEventLog(eventFragment: EventFragment | string, data: BytesLike, topics?: Array<string>): Result;
 }
