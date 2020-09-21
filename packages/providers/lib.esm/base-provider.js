@@ -358,7 +358,14 @@ export class BaseProvider extends Provider {
     static getChainId(chain, perform) {
         switch (chain) {
             case Chain.ETHERS:
-                return () => perform('getChainId', {}).then((chainId) => Number(chainId));
+                return () => perform('getChainId', {}).then((chainId) => {
+                    if (chainId) {
+                        return Number(chainId);
+                    }
+                    else {
+                        return perform('getNetwork', {}).then((chainId) => Number(chainId));
+                    }
+                });
             case Chain.FISCO:
                 return () => perform('getClientVersion', {}).then((clientVersion) => Number(clientVersion['Chain Id']));
         }

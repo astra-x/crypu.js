@@ -11,6 +11,7 @@
     "@crypujs/providers": "^2.0.3",
     "@crypujs/signing-escrow": "^2.0.3",
     "@crypujs/wallet": "^2.0.3",
+    "@ethersproject/bignumber": "^5.0.5",
     "@ethersproject/bytes": "^5.0.3",
     "@ethersproject/networks": "^5.0.2",
     "@ethersproject/properties": "^5.0.2"

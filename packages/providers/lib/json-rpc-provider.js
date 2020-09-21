@@ -119,6 +119,8 @@ var JsonRpcProvider = /** @class */ (function (_super) {
             case constants_1.Chain.ETHERS:
                 return function (method, params) {
                     switch (method) {
+                        case 'getNetwork':
+                            return ['net_version', []];
                         case 'getChainId':
                             return ['eth_chainId', []];
                         case 'getBlockNumber':

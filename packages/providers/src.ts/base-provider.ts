@@ -481,7 +481,15 @@ export class BaseProvider extends Provider {
       case Chain.ETHERS:
         return (): Promise<number> =>
           perform('getChainId', {}).then(
-            (chainId: any) => Number(chainId)
+            (chainId: any) => {
+              if (chainId) {
+                return Number(chainId);
+              } else {
+                return perform('getNetwork', {}).then(
+                  (chainId: any) => Number(chainId)
+                );
+              }
+            }
           );
       case Chain.FISCO:
         return (): Promise<number> =>

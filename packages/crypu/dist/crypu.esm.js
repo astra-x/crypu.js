@@ -1,298 +1,3 @@
-const version = "logger/5.0.4";
-
-"use strict";
-let _permanentCensorErrors = false;
-let _censorErrors = false;
-const LogLevels = { debug: 1, "default": 2, info: 2, warning: 3, error: 4, off: 5 };
-let _logLevel = LogLevels["default"];
-let _globalLogger = null;
-function _checkNormalize() {
-    try {
-        const missing = [];
-        // Make sure all forms of normalization are supported
-        ["NFD", "NFC", "NFKD", "NFKC"].forEach((form) => {
-            try {
-                if ("test".normalize(form) !== "test") {
-                    throw new Error("bad normalize");
-                }
-                ;
-            }
-            catch (error) {
-                missing.push(form);
-            }
-        });
-        if (missing.length) {
-            throw new Error("missing " + missing.join(", "));
-        }
-        if (String.fromCharCode(0xe9).normalize("NFD") !== String.fromCharCode(0x65, 0x0301)) {
-            throw new Error("broken implementation");
-        }
-    }
-    catch (error) {
-        return error.message;
-    }
-    return null;
-}
-const _normalizeError = _checkNormalize();
-var LogLevel;
-(function (LogLevel) {
-    LogLevel["DEBUG"] = "DEBUG";
-    LogLevel["INFO"] = "INFO";
-    LogLevel["WARNING"] = "WARNING";
-    LogLevel["ERROR"] = "ERROR";
-    LogLevel["OFF"] = "OFF";
-})(LogLevel || (LogLevel = {}));
-var ErrorCode;
-(function (ErrorCode) {
-    ///////////////////
-    // Generic Errors
-    // Unknown Error
-    ErrorCode["UNKNOWN_ERROR"] = "UNKNOWN_ERROR";
-    // Not Implemented
-    ErrorCode["NOT_IMPLEMENTED"] = "NOT_IMPLEMENTED";
-    // Unsupported Operation
-    //   - operation
-    ErrorCode["UNSUPPORTED_OPERATION"] = "UNSUPPORTED_OPERATION";
-    // Network Error (i.e. Ethereum Network, such as an invalid chain ID)
-    //   - event ("noNetwork" is not re-thrown in provider.ready; otherwise thrown)
-    ErrorCode["NETWORK_ERROR"] = "NETWORK_ERROR";
-    // Some sort of bad response from the server
-    ErrorCode["SERVER_ERROR"] = "SERVER_ERROR";
-    // Timeout
-    ErrorCode["TIMEOUT"] = "TIMEOUT";
-    ///////////////////
-    // Operational  Errors
-    // Buffer Overrun
-    ErrorCode["BUFFER_OVERRUN"] = "BUFFER_OVERRUN";
-    // Numeric Fault
-    //   - operation: the operation being executed
-    //   - fault: the reason this faulted
-    ErrorCode["NUMERIC_FAULT"] = "NUMERIC_FAULT";
-    ///////////////////
-    // Argument Errors
-    // Missing new operator to an object
-    //  - name: The name of the class
-    ErrorCode["MISSING_NEW"] = "MISSING_NEW";
-    // Invalid argument (e.g. value is incompatible with type) to a function:
-    //   - argument: The argument name that was invalid
-    //   - value: The value of the argument
-    ErrorCode["INVALID_ARGUMENT"] = "INVALID_ARGUMENT";
-    // Missing argument to a function:
-    //   - count: The number of arguments received
-    //   - expectedCount: The number of arguments expected
-    ErrorCode["MISSING_ARGUMENT"] = "MISSING_ARGUMENT";
-    // Too many arguments
-    //   - count: The number of arguments received
-    //   - expectedCount: The number of arguments expected
-    ErrorCode["UNEXPECTED_ARGUMENT"] = "UNEXPECTED_ARGUMENT";
-    ///////////////////
-    // Blockchain Errors
-    // Call exception
-    //  - transaction: the transaction
-    //  - address?: the contract address
-    //  - args?: The arguments passed into the function
-    //  - method?: The Solidity method signature
-    //  - errorSignature?: The EIP848 error signature
-    //  - errorArgs?: The EIP848 error parameters
-    //  - reason: The reason (only for EIP848 "Error(string)")
-    ErrorCode["CALL_EXCEPTION"] = "CALL_EXCEPTION";
-    // Insufficien funds (< value + gasLimit * gasPrice)
-    //   - transaction: the transaction attempted
-    ErrorCode["INSUFFICIENT_FUNDS"] = "INSUFFICIENT_FUNDS";
-    // Nonce has already been used
-    //   - transaction: the transaction attempted
-    ErrorCode["NONCE_EXPIRED"] = "NONCE_EXPIRED";
-    // The replacement fee for the transaction is too low
-    //   - transaction: the transaction attempted
-    ErrorCode["REPLACEMENT_UNDERPRICED"] = "REPLACEMENT_UNDERPRICED";
-    // The gas limit could not be estimated
-    //   - transaction: the transaction passed to estimateGas
-    ErrorCode["UNPREDICTABLE_GAS_LIMIT"] = "UNPREDICTABLE_GAS_LIMIT";
-})(ErrorCode || (ErrorCode = {}));
-;
-class Logger {
-    constructor(version) {
-        Object.defineProperty(this, "version", {
-            enumerable: true,
-            value: version,
-            writable: false
-        });
-    }
-    _log(logLevel, args) {
-        const level = logLevel.toLowerCase();
-        if (LogLevels[level] == null) {
-            this.throwArgumentError("invalid log level name", "logLevel", logLevel);
-        }
-        if (_logLevel > LogLevels[level]) {
-            return;
-        }
-        console.log.apply(console, args);
-    }
-    debug(...args) {
-        this._log(Logger.levels.DEBUG, args);
-    }
-    info(...args) {
-        this._log(Logger.levels.INFO, args);
-    }
-    warn(...args) {
-        this._log(Logger.levels.WARNING, args);
-    }
-    makeError(message, code, params) {
-        // Errors are being censored
-        if (_censorErrors) {
-            return this.makeError("censored error", code, {});
-        }
-        if (!code) {
-            code = Logger.errors.UNKNOWN_ERROR;
-        }
-        if (!params) {
-            params = {};
-        }
-        const messageDetails = [];
-        Object.keys(params).forEach((key) => {
-            try {
-                messageDetails.push(key + "=" + JSON.stringify(params[key]));
-            }
-            catch (error) {
-                messageDetails.push(key + "=" + JSON.stringify(params[key].toString()));
-            }
-        });
-        messageDetails.push(`code=${code}`);
-        messageDetails.push(`version=${this.version}`);
-        const reason = message;
-        if (messageDetails.length) {
-            message += " (" + messageDetails.join(", ") + ")";
-        }
-        // @TODO: Any??
-        const error = new Error(message);
-        error.reason = reason;
-        error.code = code;
-        Object.keys(params).forEach(function (key) {
-            error[key] = params[key];
-        });
-        return error;
-    }
-    throwError(message, code, params) {
-        throw this.makeError(message, code, params);
-    }
-    throwArgumentError(message, name, value) {
-        return this.throwError(message, Logger.errors.INVALID_ARGUMENT, {
-            argument: name,
-            value: value
-        });
-    }
-    assert(condition, message, code, params) {
-        if (!!condition) {
-            return;
-        }
-        this.throwError(message, code, params);
-    }
-    assertArgument(condition, message, name, value) {
-        if (!!condition) {
-            return;
-        }
-        this.throwArgumentError(message, name, value);
-    }
-    checkNormalize(message) {
-        if (message == null) {
-            message = "platform missing String.prototype.normalize";
-        }
-        if (_normalizeError) {
-            this.throwError("platform missing String.prototype.normalize", Logger.errors.UNSUPPORTED_OPERATION, {
-                operation: "String.prototype.normalize", form: _normalizeError
-            });
-        }
-    }
-    checkSafeUint53(value, message) {
-        if (typeof (value) !== "number") {
-            return;
-        }
-        if (message == null) {
-            message = "value not safe";
-        }
-        if (value < 0 || value >= 0x1fffffffffffff) {
-            this.throwError(message, Logger.errors.NUMERIC_FAULT, {
-                operation: "checkSafeInteger",
-                fault: "out-of-safe-range",
-                value: value
-            });
-        }
-        if (value % 1) {
-            this.throwError(message, Logger.errors.NUMERIC_FAULT, {
-                operation: "checkSafeInteger",
-                fault: "non-integer",
-                value: value
-            });
-        }
-    }
-    checkArgumentCount(count, expectedCount, message) {
-        if (message) {
-            message = ": " + message;
-        }
-        else {
-            message = "";
-        }
-        if (count < expectedCount) {
-            this.throwError("missing argument" + message, Logger.errors.MISSING_ARGUMENT, {
-                count: count,
-                expectedCount: expectedCount
-            });
-        }
-        if (count > expectedCount) {
-            this.throwError("too many arguments" + message, Logger.errors.UNEXPECTED_ARGUMENT, {
-                count: count,
-                expectedCount: expectedCount
-            });
-        }
-    }
-    checkNew(target, kind) {
-        if (target === Object || target == null) {
-            this.throwError("missing new", Logger.errors.MISSING_NEW, { name: kind.name });
-        }
-    }
-    checkAbstract(target, kind) {
-        if (target === kind) {
-            this.throwError("cannot instantiate abstract class " + JSON.stringify(kind.name) + " directly; use a sub-class", Logger.errors.UNSUPPORTED_OPERATION, { name: target.name, operation: "new" });
-        }
-        else if (target === Object || target == null) {
-            this.throwError("missing new", Logger.errors.MISSING_NEW, { name: kind.name });
-        }
-    }
-    static globalLogger() {
-        if (!_globalLogger) {
-            _globalLogger = new Logger(version);
-        }
-        return _globalLogger;
-    }
-    static setCensorship(censorship, permanent) {
-        if (!censorship && permanent) {
-            this.globalLogger().throwError("cannot permanently disable censorship", Logger.errors.UNSUPPORTED_OPERATION, {
-                operation: "setCensorship"
-            });
-        }
-        if (_permanentCensorErrors) {
-            if (!censorship) {
-                return;
-            }
-            this.globalLogger().throwError("error censorship permanent", Logger.errors.UNSUPPORTED_OPERATION, {
-                operation: "setCensorship"
-            });
-        }
-        _censorErrors = !!censorship;
-        _permanentCensorErrors = !!permanent;
-    }
-    static setLogLevel(logLevel) {
-        const level = LogLevels[logLevel.toLowerCase()];
-        if (level == null) {
-            Logger.globalLogger().warn("invalid log level - " + logLevel);
-            return;
-        }
-        _logLevel = level;
-    }
-}
-Logger.errors = ErrorCode;
-Logger.levels = LogLevel;
-
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
 function commonjsRequire () {
@@ -314,7 +19,7 @@ function getCjsExportFromNamespace (n) {
 var _nodeResolve_empty = {};
 
 var _nodeResolve_empty$1 = /*#__PURE__*/Object.freeze({
-    'default': _nodeResolve_empty
+	'default': _nodeResolve_empty
 });
 
 var require$$0 = getCjsExportFromNamespace(_nodeResolve_empty$1);
@@ -3756,15 +3461,15 @@ var bn = createCommonjsModule(function (module) {
 });
 var bn_1 = bn.BN;
 
-const version$1 = "logger/5.0.5";
+const version = "logger/5.0.5";
 
 "use strict";
-let _permanentCensorErrors$1 = false;
-let _censorErrors$1 = false;
-const LogLevels$1 = { debug: 1, "default": 2, info: 2, warning: 3, error: 4, off: 5 };
-let _logLevel$1 = LogLevels$1["default"];
-let _globalLogger$1 = null;
-function _checkNormalize$1() {
+let _permanentCensorErrors = false;
+let _censorErrors = false;
+const LogLevels = { debug: 1, "default": 2, info: 2, warning: 3, error: 4, off: 5 };
+let _logLevel = LogLevels["default"];
+let _globalLogger = null;
+function _checkNormalize() {
     try {
         const missing = [];
         // Make sure all forms of normalization are supported
@@ -3791,16 +3496,16 @@ function _checkNormalize$1() {
     }
     return null;
 }
-const _normalizeError$1 = _checkNormalize$1();
-var LogLevel$1;
+const _normalizeError = _checkNormalize();
+var LogLevel;
 (function (LogLevel) {
     LogLevel["DEBUG"] = "DEBUG";
     LogLevel["INFO"] = "INFO";
     LogLevel["WARNING"] = "WARNING";
     LogLevel["ERROR"] = "ERROR";
     LogLevel["OFF"] = "OFF";
-})(LogLevel$1 || (LogLevel$1 = {}));
-var ErrorCode$1;
+})(LogLevel || (LogLevel = {}));
+var ErrorCode;
 (function (ErrorCode) {
     ///////////////////
     // Generic Errors
@@ -3866,9 +3571,9 @@ var ErrorCode$1;
     // The gas limit could not be estimated
     //   - transaction: the transaction passed to estimateGas
     ErrorCode["UNPREDICTABLE_GAS_LIMIT"] = "UNPREDICTABLE_GAS_LIMIT";
-})(ErrorCode$1 || (ErrorCode$1 = {}));
+})(ErrorCode || (ErrorCode = {}));
 ;
-class Logger$1 {
+class Logger {
     constructor(version) {
         Object.defineProperty(this, "version", {
             enumerable: true,
@@ -3878,30 +3583,30 @@ class Logger$1 {
     }
     _log(logLevel, args) {
         const level = logLevel.toLowerCase();
-        if (LogLevels$1[level] == null) {
+        if (LogLevels[level] == null) {
             this.throwArgumentError("invalid log level name", "logLevel", logLevel);
         }
-        if (_logLevel$1 > LogLevels$1[level]) {
+        if (_logLevel > LogLevels[level]) {
             return;
         }
         console.log.apply(console, args);
     }
     debug(...args) {
-        this._log(Logger$1.levels.DEBUG, args);
+        this._log(Logger.levels.DEBUG, args);
     }
     info(...args) {
-        this._log(Logger$1.levels.INFO, args);
+        this._log(Logger.levels.INFO, args);
     }
     warn(...args) {
-        this._log(Logger$1.levels.WARNING, args);
+        this._log(Logger.levels.WARNING, args);
     }
     makeError(message, code, params) {
         // Errors are being censored
-        if (_censorErrors$1) {
+        if (_censorErrors) {
             return this.makeError("censored error", code, {});
         }
         if (!code) {
-            code = Logger$1.errors.UNKNOWN_ERROR;
+            code = Logger.errors.UNKNOWN_ERROR;
         }
         if (!params) {
             params = {};
@@ -3934,7 +3639,7 @@ class Logger$1 {
         throw this.makeError(message, code, params);
     }
     throwArgumentError(message, name, value) {
-        return this.throwError(message, Logger$1.errors.INVALID_ARGUMENT, {
+        return this.throwError(message, Logger.errors.INVALID_ARGUMENT, {
             argument: name,
             value: value
         });
@@ -3955,9 +3660,9 @@ class Logger$1 {
         if (message == null) {
             message = "platform missing String.prototype.normalize";
         }
-        if (_normalizeError$1) {
-            this.throwError("platform missing String.prototype.normalize", Logger$1.errors.UNSUPPORTED_OPERATION, {
-                operation: "String.prototype.normalize", form: _normalizeError$1
+        if (_normalizeError) {
+            this.throwError("platform missing String.prototype.normalize", Logger.errors.UNSUPPORTED_OPERATION, {
+                operation: "String.prototype.normalize", form: _normalizeError
             });
         }
     }
@@ -3969,14 +3674,14 @@ class Logger$1 {
             message = "value not safe";
         }
         if (value < 0 || value >= 0x1fffffffffffff) {
-            this.throwError(message, Logger$1.errors.NUMERIC_FAULT, {
+            this.throwError(message, Logger.errors.NUMERIC_FAULT, {
                 operation: "checkSafeInteger",
                 fault: "out-of-safe-range",
                 value: value
             });
         }
         if (value % 1) {
-            this.throwError(message, Logger$1.errors.NUMERIC_FAULT, {
+            this.throwError(message, Logger.errors.NUMERIC_FAULT, {
                 operation: "checkSafeInteger",
                 fault: "non-integer",
                 value: value
@@ -3991,13 +3696,13 @@ class Logger$1 {
             message = "";
         }
         if (count < expectedCount) {
-            this.throwError("missing argument" + message, Logger$1.errors.MISSING_ARGUMENT, {
+            this.throwError("missing argument" + message, Logger.errors.MISSING_ARGUMENT, {
                 count: count,
                 expectedCount: expectedCount
             });
         }
         if (count > expectedCount) {
-            this.throwError("too many arguments" + message, Logger$1.errors.UNEXPECTED_ARGUMENT, {
+            this.throwError("too many arguments" + message, Logger.errors.UNEXPECTED_ARGUMENT, {
                 count: count,
                 expectedCount: expectedCount
             });
@@ -4005,56 +3710,56 @@ class Logger$1 {
     }
     checkNew(target, kind) {
         if (target === Object || target == null) {
-            this.throwError("missing new", Logger$1.errors.MISSING_NEW, { name: kind.name });
+            this.throwError("missing new", Logger.errors.MISSING_NEW, { name: kind.name });
         }
     }
     checkAbstract(target, kind) {
         if (target === kind) {
-            this.throwError("cannot instantiate abstract class " + JSON.stringify(kind.name) + " directly; use a sub-class", Logger$1.errors.UNSUPPORTED_OPERATION, { name: target.name, operation: "new" });
+            this.throwError("cannot instantiate abstract class " + JSON.stringify(kind.name) + " directly; use a sub-class", Logger.errors.UNSUPPORTED_OPERATION, { name: target.name, operation: "new" });
         }
         else if (target === Object || target == null) {
-            this.throwError("missing new", Logger$1.errors.MISSING_NEW, { name: kind.name });
+            this.throwError("missing new", Logger.errors.MISSING_NEW, { name: kind.name });
         }
     }
     static globalLogger() {
-        if (!_globalLogger$1) {
-            _globalLogger$1 = new Logger$1(version$1);
+        if (!_globalLogger) {
+            _globalLogger = new Logger(version);
         }
-        return _globalLogger$1;
+        return _globalLogger;
     }
     static setCensorship(censorship, permanent) {
         if (!censorship && permanent) {
-            this.globalLogger().throwError("cannot permanently disable censorship", Logger$1.errors.UNSUPPORTED_OPERATION, {
+            this.globalLogger().throwError("cannot permanently disable censorship", Logger.errors.UNSUPPORTED_OPERATION, {
                 operation: "setCensorship"
             });
         }
-        if (_permanentCensorErrors$1) {
+        if (_permanentCensorErrors) {
             if (!censorship) {
                 return;
             }
-            this.globalLogger().throwError("error censorship permanent", Logger$1.errors.UNSUPPORTED_OPERATION, {
+            this.globalLogger().throwError("error censorship permanent", Logger.errors.UNSUPPORTED_OPERATION, {
                 operation: "setCensorship"
             });
         }
-        _censorErrors$1 = !!censorship;
-        _permanentCensorErrors$1 = !!permanent;
+        _censorErrors = !!censorship;
+        _permanentCensorErrors = !!permanent;
     }
     static setLogLevel(logLevel) {
-        const level = LogLevels$1[logLevel.toLowerCase()];
+        const level = LogLevels[logLevel.toLowerCase()];
         if (level == null) {
-            Logger$1.globalLogger().warn("invalid log level - " + logLevel);
+            Logger.globalLogger().warn("invalid log level - " + logLevel);
             return;
         }
-        _logLevel$1 = level;
+        _logLevel = level;
     }
 }
-Logger$1.errors = ErrorCode$1;
-Logger$1.levels = LogLevel$1;
+Logger.errors = ErrorCode;
+Logger.levels = LogLevel;
 
-const version$2 = "bytes/5.0.4";
+const version$1 = "bytes/5.0.4";
 
 "use strict";
-const logger = new Logger$1(version$2);
+const logger = new Logger(version$1);
 ///////////////////////////////
 function isHexable(value) {
     return !!(value.toHexString);
@@ -4431,10 +4136,10 @@ function joinSignature(signature) {
     ]));
 }
 
-const version$3 = "bignumber/5.0.7";
+const version$2 = "bignumber/5.0.7";
 
 "use strict";
-const logger$1 = new Logger$1(version$3);
+const logger$1 = new Logger(version$2);
 const _constructorGuard = {};
 const MAX_SAFE = 0x1fffffffffffff;
 function isBigNumberish(value) {
@@ -4449,7 +4154,7 @@ class BigNumber {
     constructor(constructorGuard, hex) {
         logger$1.checkNew(new.target, BigNumber);
         if (constructorGuard !== _constructorGuard) {
-            logger$1.throwError("cannot call constructor directly; use BigNumber.from", Logger$1.errors.UNSUPPORTED_OPERATION, {
+            logger$1.throwError("cannot call constructor directly; use BigNumber.from", Logger.errors.UNSUPPORTED_OPERATION, {
                 operation: "new (BigNumber)"
             });
         }
@@ -4571,7 +4276,7 @@ class BigNumber {
     toString() {
         // Lots of people expect this, which we do not support, so check
         if (arguments.length !== 0) {
-            logger$1.throwError("bigNumber.toString does not accept parameters", Logger$1.errors.UNEXPECTED_ARGUMENT, {});
+            logger$1.throwError("bigNumber.toString does not accept parameters", Logger.errors.UNEXPECTED_ARGUMENT, {});
         }
         return toBN(this).toString(10);
     }
@@ -4694,11 +4399,11 @@ function throwFault(fault, operation, value) {
     if (value != null) {
         params.value = value;
     }
-    return logger$1.throwError(fault, Logger$1.errors.NUMERIC_FAULT, params);
+    return logger$1.throwError(fault, Logger.errors.NUMERIC_FAULT, params);
 }
 
 "use strict";
-const logger$2 = new Logger$1(version$3);
+const logger$2 = new Logger(version$2);
 const _constructorGuard$1 = {};
 const Zero = BigNumber.from(0);
 const NegativeOne = BigNumber.from(-1);
@@ -4707,7 +4412,7 @@ function throwFault$1(message, fault, operation, value) {
     if (value !== undefined) {
         params.value = value;
     }
-    return logger$2.throwError(message, Logger$1.errors.NUMERIC_FAULT, params);
+    return logger$2.throwError(message, Logger.errors.NUMERIC_FAULT, params);
 }
 // Constant to pull zeros from for multipliers
 let zeros = "0";
@@ -4801,7 +4506,7 @@ function parseFixed(value, decimals) {
 class FixedFormat {
     constructor(constructorGuard, signed, width, decimals) {
         if (constructorGuard !== _constructorGuard$1) {
-            logger$2.throwError("cannot use FixedFormat constructor; use FixedFormat.from", Logger$1.errors.UNSUPPORTED_OPERATION, {
+            logger$2.throwError("cannot use FixedFormat constructor; use FixedFormat.from", Logger.errors.UNSUPPORTED_OPERATION, {
                 operation: "new FixedFormat"
             });
         }
@@ -4863,7 +4568,7 @@ class FixedNumber {
     constructor(constructorGuard, hex, value, format) {
         logger$2.checkNew(new.target, FixedNumber);
         if (constructorGuard !== _constructorGuard$1) {
-            logger$2.throwError("cannot use FixedNumber constructor; use FixedNumber.from", Logger$1.errors.UNSUPPORTED_OPERATION, {
+            logger$2.throwError("cannot use FixedNumber constructor; use FixedNumber.from", Logger.errors.UNSUPPORTED_OPERATION, {
                 operation: "new FixedFormat"
             });
         }
@@ -5019,7 +4724,7 @@ class FixedNumber {
         }
         catch (error) {
             // Allow NUMERIC_FAULT to bubble up
-            if (error.code !== Logger$1.errors.INVALID_ARGUMENT) {
+            if (error.code !== Logger.errors.INVALID_ARGUMENT) {
                 throw error;
             }
         }
@@ -5031,6 +4736,301 @@ class FixedNumber {
 }
 const ONE = FixedNumber.from(1);
 const BUMP = FixedNumber.from("0.5");
+
+const version$3 = "logger/5.0.4";
+
+"use strict";
+let _permanentCensorErrors$1 = false;
+let _censorErrors$1 = false;
+const LogLevels$1 = { debug: 1, "default": 2, info: 2, warning: 3, error: 4, off: 5 };
+let _logLevel$1 = LogLevels$1["default"];
+let _globalLogger$1 = null;
+function _checkNormalize$1() {
+    try {
+        const missing = [];
+        // Make sure all forms of normalization are supported
+        ["NFD", "NFC", "NFKD", "NFKC"].forEach((form) => {
+            try {
+                if ("test".normalize(form) !== "test") {
+                    throw new Error("bad normalize");
+                }
+                ;
+            }
+            catch (error) {
+                missing.push(form);
+            }
+        });
+        if (missing.length) {
+            throw new Error("missing " + missing.join(", "));
+        }
+        if (String.fromCharCode(0xe9).normalize("NFD") !== String.fromCharCode(0x65, 0x0301)) {
+            throw new Error("broken implementation");
+        }
+    }
+    catch (error) {
+        return error.message;
+    }
+    return null;
+}
+const _normalizeError$1 = _checkNormalize$1();
+var LogLevel$1;
+(function (LogLevel) {
+    LogLevel["DEBUG"] = "DEBUG";
+    LogLevel["INFO"] = "INFO";
+    LogLevel["WARNING"] = "WARNING";
+    LogLevel["ERROR"] = "ERROR";
+    LogLevel["OFF"] = "OFF";
+})(LogLevel$1 || (LogLevel$1 = {}));
+var ErrorCode$1;
+(function (ErrorCode) {
+    ///////////////////
+    // Generic Errors
+    // Unknown Error
+    ErrorCode["UNKNOWN_ERROR"] = "UNKNOWN_ERROR";
+    // Not Implemented
+    ErrorCode["NOT_IMPLEMENTED"] = "NOT_IMPLEMENTED";
+    // Unsupported Operation
+    //   - operation
+    ErrorCode["UNSUPPORTED_OPERATION"] = "UNSUPPORTED_OPERATION";
+    // Network Error (i.e. Ethereum Network, such as an invalid chain ID)
+    //   - event ("noNetwork" is not re-thrown in provider.ready; otherwise thrown)
+    ErrorCode["NETWORK_ERROR"] = "NETWORK_ERROR";
+    // Some sort of bad response from the server
+    ErrorCode["SERVER_ERROR"] = "SERVER_ERROR";
+    // Timeout
+    ErrorCode["TIMEOUT"] = "TIMEOUT";
+    ///////////////////
+    // Operational  Errors
+    // Buffer Overrun
+    ErrorCode["BUFFER_OVERRUN"] = "BUFFER_OVERRUN";
+    // Numeric Fault
+    //   - operation: the operation being executed
+    //   - fault: the reason this faulted
+    ErrorCode["NUMERIC_FAULT"] = "NUMERIC_FAULT";
+    ///////////////////
+    // Argument Errors
+    // Missing new operator to an object
+    //  - name: The name of the class
+    ErrorCode["MISSING_NEW"] = "MISSING_NEW";
+    // Invalid argument (e.g. value is incompatible with type) to a function:
+    //   - argument: The argument name that was invalid
+    //   - value: The value of the argument
+    ErrorCode["INVALID_ARGUMENT"] = "INVALID_ARGUMENT";
+    // Missing argument to a function:
+    //   - count: The number of arguments received
+    //   - expectedCount: The number of arguments expected
+    ErrorCode["MISSING_ARGUMENT"] = "MISSING_ARGUMENT";
+    // Too many arguments
+    //   - count: The number of arguments received
+    //   - expectedCount: The number of arguments expected
+    ErrorCode["UNEXPECTED_ARGUMENT"] = "UNEXPECTED_ARGUMENT";
+    ///////////////////
+    // Blockchain Errors
+    // Call exception
+    //  - transaction: the transaction
+    //  - address?: the contract address
+    //  - args?: The arguments passed into the function
+    //  - method?: The Solidity method signature
+    //  - errorSignature?: The EIP848 error signature
+    //  - errorArgs?: The EIP848 error parameters
+    //  - reason: The reason (only for EIP848 "Error(string)")
+    ErrorCode["CALL_EXCEPTION"] = "CALL_EXCEPTION";
+    // Insufficien funds (< value + gasLimit * gasPrice)
+    //   - transaction: the transaction attempted
+    ErrorCode["INSUFFICIENT_FUNDS"] = "INSUFFICIENT_FUNDS";
+    // Nonce has already been used
+    //   - transaction: the transaction attempted
+    ErrorCode["NONCE_EXPIRED"] = "NONCE_EXPIRED";
+    // The replacement fee for the transaction is too low
+    //   - transaction: the transaction attempted
+    ErrorCode["REPLACEMENT_UNDERPRICED"] = "REPLACEMENT_UNDERPRICED";
+    // The gas limit could not be estimated
+    //   - transaction: the transaction passed to estimateGas
+    ErrorCode["UNPREDICTABLE_GAS_LIMIT"] = "UNPREDICTABLE_GAS_LIMIT";
+})(ErrorCode$1 || (ErrorCode$1 = {}));
+;
+class Logger$1 {
+    constructor(version) {
+        Object.defineProperty(this, "version", {
+            enumerable: true,
+            value: version,
+            writable: false
+        });
+    }
+    _log(logLevel, args) {
+        const level = logLevel.toLowerCase();
+        if (LogLevels$1[level] == null) {
+            this.throwArgumentError("invalid log level name", "logLevel", logLevel);
+        }
+        if (_logLevel$1 > LogLevels$1[level]) {
+            return;
+        }
+        console.log.apply(console, args);
+    }
+    debug(...args) {
+        this._log(Logger$1.levels.DEBUG, args);
+    }
+    info(...args) {
+        this._log(Logger$1.levels.INFO, args);
+    }
+    warn(...args) {
+        this._log(Logger$1.levels.WARNING, args);
+    }
+    makeError(message, code, params) {
+        // Errors are being censored
+        if (_censorErrors$1) {
+            return this.makeError("censored error", code, {});
+        }
+        if (!code) {
+            code = Logger$1.errors.UNKNOWN_ERROR;
+        }
+        if (!params) {
+            params = {};
+        }
+        const messageDetails = [];
+        Object.keys(params).forEach((key) => {
+            try {
+                messageDetails.push(key + "=" + JSON.stringify(params[key]));
+            }
+            catch (error) {
+                messageDetails.push(key + "=" + JSON.stringify(params[key].toString()));
+            }
+        });
+        messageDetails.push(`code=${code}`);
+        messageDetails.push(`version=${this.version}`);
+        const reason = message;
+        if (messageDetails.length) {
+            message += " (" + messageDetails.join(", ") + ")";
+        }
+        // @TODO: Any??
+        const error = new Error(message);
+        error.reason = reason;
+        error.code = code;
+        Object.keys(params).forEach(function (key) {
+            error[key] = params[key];
+        });
+        return error;
+    }
+    throwError(message, code, params) {
+        throw this.makeError(message, code, params);
+    }
+    throwArgumentError(message, name, value) {
+        return this.throwError(message, Logger$1.errors.INVALID_ARGUMENT, {
+            argument: name,
+            value: value
+        });
+    }
+    assert(condition, message, code, params) {
+        if (!!condition) {
+            return;
+        }
+        this.throwError(message, code, params);
+    }
+    assertArgument(condition, message, name, value) {
+        if (!!condition) {
+            return;
+        }
+        this.throwArgumentError(message, name, value);
+    }
+    checkNormalize(message) {
+        if (message == null) {
+            message = "platform missing String.prototype.normalize";
+        }
+        if (_normalizeError$1) {
+            this.throwError("platform missing String.prototype.normalize", Logger$1.errors.UNSUPPORTED_OPERATION, {
+                operation: "String.prototype.normalize", form: _normalizeError$1
+            });
+        }
+    }
+    checkSafeUint53(value, message) {
+        if (typeof (value) !== "number") {
+            return;
+        }
+        if (message == null) {
+            message = "value not safe";
+        }
+        if (value < 0 || value >= 0x1fffffffffffff) {
+            this.throwError(message, Logger$1.errors.NUMERIC_FAULT, {
+                operation: "checkSafeInteger",
+                fault: "out-of-safe-range",
+                value: value
+            });
+        }
+        if (value % 1) {
+            this.throwError(message, Logger$1.errors.NUMERIC_FAULT, {
+                operation: "checkSafeInteger",
+                fault: "non-integer",
+                value: value
+            });
+        }
+    }
+    checkArgumentCount(count, expectedCount, message) {
+        if (message) {
+            message = ": " + message;
+        }
+        else {
+            message = "";
+        }
+        if (count < expectedCount) {
+            this.throwError("missing argument" + message, Logger$1.errors.MISSING_ARGUMENT, {
+                count: count,
+                expectedCount: expectedCount
+            });
+        }
+        if (count > expectedCount) {
+            this.throwError("too many arguments" + message, Logger$1.errors.UNEXPECTED_ARGUMENT, {
+                count: count,
+                expectedCount: expectedCount
+            });
+        }
+    }
+    checkNew(target, kind) {
+        if (target === Object || target == null) {
+            this.throwError("missing new", Logger$1.errors.MISSING_NEW, { name: kind.name });
+        }
+    }
+    checkAbstract(target, kind) {
+        if (target === kind) {
+            this.throwError("cannot instantiate abstract class " + JSON.stringify(kind.name) + " directly; use a sub-class", Logger$1.errors.UNSUPPORTED_OPERATION, { name: target.name, operation: "new" });
+        }
+        else if (target === Object || target == null) {
+            this.throwError("missing new", Logger$1.errors.MISSING_NEW, { name: kind.name });
+        }
+    }
+    static globalLogger() {
+        if (!_globalLogger$1) {
+            _globalLogger$1 = new Logger$1(version$3);
+        }
+        return _globalLogger$1;
+    }
+    static setCensorship(censorship, permanent) {
+        if (!censorship && permanent) {
+            this.globalLogger().throwError("cannot permanently disable censorship", Logger$1.errors.UNSUPPORTED_OPERATION, {
+                operation: "setCensorship"
+            });
+        }
+        if (_permanentCensorErrors$1) {
+            if (!censorship) {
+                return;
+            }
+            this.globalLogger().throwError("error censorship permanent", Logger$1.errors.UNSUPPORTED_OPERATION, {
+                operation: "setCensorship"
+            });
+        }
+        _censorErrors$1 = !!censorship;
+        _permanentCensorErrors$1 = !!permanent;
+    }
+    static setLogLevel(logLevel) {
+        const level = LogLevels$1[logLevel.toLowerCase()];
+        if (level == null) {
+            Logger$1.globalLogger().warn("invalid log level - " + logLevel);
+            return;
+        }
+        _logLevel$1 = level;
+    }
+}
+Logger$1.errors = ErrorCode$1;
+Logger$1.levels = LogLevel$1;
 
 const version$4 = "logger/5.0.5";
 
@@ -5445,13 +5445,13 @@ class Description {
 }
 
 var lib_esm = /*#__PURE__*/Object.freeze({
-    defineReadOnly: defineReadOnly,
-    getStatic: getStatic,
-    resolveProperties: resolveProperties,
-    checkProperties: checkProperties,
-    shallowCopy: shallowCopy,
-    deepCopy: deepCopy,
-    Description: Description
+	defineReadOnly: defineReadOnly,
+	getStatic: getStatic,
+	resolveProperties: resolveProperties,
+	checkProperties: checkProperties,
+	shallowCopy: shallowCopy,
+	deepCopy: deepCopy,
+	Description: Description
 });
 
 const version$6 = "logger/5.0.5";
@@ -11447,11 +11447,11 @@ function hashMessage(message) {
 }
 
 var lib_esm$1 = /*#__PURE__*/Object.freeze({
-    isValidName: isValidName,
-    namehash: namehash,
-    id: id,
-    messagePrefix: messagePrefix,
-    hashMessage: hashMessage
+	isValidName: isValidName,
+	namehash: namehash,
+	id: id,
+	messagePrefix: messagePrefix,
+	hashMessage: hashMessage
 });
 
 "use strict";
@@ -11966,7 +11966,7 @@ class Interface {
  * @date 2020
  */
 'use strict';
-const logger$i = new Logger('abi');
+const logger$i = new Logger$1('abi');
 class Interface$1 extends Interface {
     constructor(fragments) {
         logger$i.checkNew(new.target, Interface$1);
@@ -12016,7 +12016,7 @@ class Interface$1 extends Interface {
         const inputs = functionFragment.inputs;
         const functionData = super.decodeFunctionData(functionFragment, data);
         if (inputs.length !== functionData.length) {
-            logger$i.throwError("inputs/values length mismatch", Logger.errors.INVALID_ARGUMENT, {
+            logger$i.throwError("inputs/values length mismatch", Logger$1.errors.INVALID_ARGUMENT, {
                 count: { types: inputs.length, values: functionData.length },
                 value: { types: inputs, values: functionData }
             });
@@ -12032,7 +12032,7 @@ class Interface$1 extends Interface {
         const outputs = functionFragment.outputs;
         const functionResult = super.decodeFunctionResult(functionFragment, data);
         if (outputs.length !== functionResult.length) {
-            logger$i.throwError("outputs/values length mismatch", Logger.errors.INVALID_ARGUMENT, {
+            logger$i.throwError("outputs/values length mismatch", Logger$1.errors.INVALID_ARGUMENT, {
                 count: { types: outputs.length, values: functionResult.length },
                 value: { types: outputs, values: functionResult }
             });
@@ -12047,7 +12047,7 @@ class Interface$1 extends Interface {
         }
         const eventLog = super.decodeEventLog(eventFragment, data, topics);
         if (eventFragment.inputs.length !== eventLog.length) {
-            logger$i.throwError("inputs/values length mismatch", Logger.errors.INVALID_ARGUMENT, {
+            logger$i.throwError("inputs/values length mismatch", Logger$1.errors.INVALID_ARGUMENT, {
                 count: { types: eventFragment.inputs.length, values: eventLog.length },
                 value: { types: eventFragment.inputs, values: eventLog }
             });
@@ -12061,7 +12061,7 @@ class Interface$1 extends Interface {
 const version$l = "bytes/5.0.3";
 
 "use strict";
-const logger$j = new Logger(version$l);
+const logger$j = new Logger$1(version$l);
 ///////////////////////////////
 function isHexable$6(value) {
     return !!(value.toHexString);
@@ -12460,7 +12460,7 @@ function joinSignature$6(signature) {
  * @date 2020
  */
 'use strict';
-const logger$k = new Logger('abstract-provider');
+const logger$k = new Logger$1('abstract-provider');
 ;
 ;
 //export type CallTransactionable = {
@@ -13740,22 +13740,22 @@ function joinSignature$7(signature) {
 }
 
 var lib_esm$2 = /*#__PURE__*/Object.freeze({
-    isBytesLike: isBytesLike$7,
-    isBytes: isBytes$7,
-    arrayify: arrayify$7,
-    concat: concat$7,
-    stripZeros: stripZeros$7,
-    zeroPad: zeroPad$7,
-    isHexString: isHexString$7,
-    hexlify: hexlify$7,
-    hexDataLength: hexDataLength$7,
-    hexDataSlice: hexDataSlice$7,
-    hexConcat: hexConcat$7,
-    hexValue: hexValue$7,
-    hexStripZeros: hexStripZeros$7,
-    hexZeroPad: hexZeroPad$7,
-    splitSignature: splitSignature$7,
-    joinSignature: joinSignature$7
+	isBytesLike: isBytesLike$7,
+	isBytes: isBytes$7,
+	arrayify: arrayify$7,
+	concat: concat$7,
+	stripZeros: stripZeros$7,
+	zeroPad: zeroPad$7,
+	isHexString: isHexString$7,
+	hexlify: hexlify$7,
+	hexDataLength: hexDataLength$7,
+	hexDataSlice: hexDataSlice$7,
+	hexConcat: hexConcat$7,
+	hexValue: hexValue$7,
+	hexStripZeros: hexStripZeros$7,
+	hexZeroPad: hexZeroPad$7,
+	splitSignature: splitSignature$7,
+	joinSignature: joinSignature$7
 });
 
 var browser = createCommonjsModule(function (module, exports) {
@@ -13886,7 +13886,7 @@ var __awaiter$2 = (window && window.__awaiter) || function (thisArg, _arguments,
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const logger$n = new Logger('web');
+const logger$n = new Logger$1('web');
 function fetchJson(connection, json, processFunc) {
     const headers = {};
     let url = null;
@@ -13917,7 +13917,7 @@ function fetchJson(connection, json, processFunc) {
         }
         if (connection.user != null && connection.password != null) {
             if (url.substring(0, 6) !== 'https:' && connection.allowInsecureAuthentication !== true) {
-                logger$n.throwError('basic authentication requires a secure https url', Logger.errors.INVALID_ARGUMENT, { argument: 'url', url: url, user: connection.user, password: '[REDACTED]' });
+                logger$n.throwError('basic authentication requires a secure https url', Logger$1.errors.INVALID_ARGUMENT, { argument: 'url', url: url, user: connection.user, password: '[REDACTED]' });
             }
             const authorization = connection.user + ':' + connection.password;
             headers['authorization'] = {
@@ -13946,7 +13946,7 @@ function fetchJson(connection, json, processFunc) {
                         return;
                     }
                     timer = null;
-                    reject(logger$n.makeError('timeout', Logger.errors.TIMEOUT, {
+                    reject(logger$n.makeError('timeout', Logger$1.errors.TIMEOUT, {
                         requestBody: (options.body || null),
                         requestMethod: options.method,
                         timeout: timeout,
@@ -13974,7 +13974,7 @@ function fetchJson(connection, json, processFunc) {
                 response = error.response;
                 if (response == null) {
                     runningTimeout.cancel();
-                    logger$n.throwError('missing response', Logger.errors.SERVER_ERROR, {
+                    logger$n.throwError('missing response', Logger$1.errors.SERVER_ERROR, {
                         requestBody: (options.body || null),
                         requestMethod: options.method,
                         serverError: error,
@@ -13988,7 +13988,7 @@ function fetchJson(connection, json, processFunc) {
             }
             else if (response.statusCode < 200 || response.statusCode >= 300) {
                 runningTimeout.cancel();
-                logger$n.throwError('bad response', Logger.errors.SERVER_ERROR, {
+                logger$n.throwError('bad response', Logger$1.errors.SERVER_ERROR, {
                     status: response.statusCode,
                     headers: response.headers,
                     body: body,
@@ -14005,7 +14005,7 @@ function fetchJson(connection, json, processFunc) {
                         json = JSON.parse(body);
                     }
                     catch (error) {
-                        logger$n.throwError('invalid JSON', Logger.errors.SERVER_ERROR, {
+                        logger$n.throwError('invalid JSON', Logger$1.errors.SERVER_ERROR, {
                             body: body,
                             error: error,
                             requestBody: (options.body || null),
@@ -14023,7 +14023,7 @@ function fetchJson(connection, json, processFunc) {
                     json = yield processFunc(json, response);
                 }
                 catch (error) {
-                    logger$n.throwError('processing response error', Logger.errors.SERVER_ERROR, {
+                    logger$n.throwError('processing response error', Logger$1.errors.SERVER_ERROR, {
                         body: json,
                         error: error,
                         requestBody: (options.body || null),
@@ -14128,8 +14128,8 @@ var _package = {
 };
 
 var _package$1 = /*#__PURE__*/Object.freeze({
-    version: version$q,
-    'default': _package
+	version: version$q,
+	'default': _package
 });
 
 var minimalisticAssert = assert;
@@ -18478,7 +18478,7 @@ function computePublicKey(key, compressed) {
  */
 'use strict';
 ///////////////////////////////
-const logger$q = new Logger('transactions');
+const logger$q = new Logger$1('transactions');
 const transactionFieldsEthers = [
     { name: 'nonce', maxLength: 32, numeric: true },
     { name: 'gasPrice', maxLength: 32, numeric: true },
@@ -18771,7 +18771,7 @@ function parseRc2(rawTransaction, transaction) {
  * @date 2020
  */
 'use strict';
-const logger$r = new Logger('providers');
+const logger$r = new Logger$1('providers');
 class Formatter {
     constructor() {
         logger$r.checkNew(new.target, Formatter);
@@ -19451,9 +19451,9 @@ Logger$b.errors = ErrorCode$b;
 Logger$b.levels = LogLevel$b;
 
 var lib_esm$3 = /*#__PURE__*/Object.freeze({
-    get LogLevel () { return LogLevel$b; },
-    get ErrorCode () { return ErrorCode$b; },
-    Logger: Logger$b
+	get LogLevel () { return LogLevel$b; },
+	get ErrorCode () { return ErrorCode$b; },
+	Logger: Logger$b
 });
 
 const version$v = "bytes/5.0.4";
@@ -19837,22 +19837,22 @@ function joinSignature$9(signature) {
 }
 
 var lib_esm$4 = /*#__PURE__*/Object.freeze({
-    isBytesLike: isBytesLike$9,
-    isBytes: isBytes$9,
-    arrayify: arrayify$9,
-    concat: concat$9,
-    stripZeros: stripZeros$9,
-    zeroPad: zeroPad$9,
-    isHexString: isHexString$9,
-    hexlify: hexlify$9,
-    hexDataLength: hexDataLength$9,
-    hexDataSlice: hexDataSlice$9,
-    hexConcat: hexConcat$9,
-    hexValue: hexValue$9,
-    hexStripZeros: hexStripZeros$9,
-    hexZeroPad: hexZeroPad$9,
-    splitSignature: splitSignature$9,
-    joinSignature: joinSignature$9
+	isBytesLike: isBytesLike$9,
+	isBytes: isBytes$9,
+	arrayify: arrayify$9,
+	concat: concat$9,
+	stripZeros: stripZeros$9,
+	zeroPad: zeroPad$9,
+	isHexString: isHexString$9,
+	hexlify: hexlify$9,
+	hexDataLength: hexDataLength$9,
+	hexDataSlice: hexDataSlice$9,
+	hexConcat: hexConcat$9,
+	hexValue: hexValue$9,
+	hexStripZeros: hexStripZeros$9,
+	hexZeroPad: hexZeroPad$9,
+	splitSignature: splitSignature$9,
+	joinSignature: joinSignature$9
 });
 
 var _version = createCommonjsModule(function (module, exports) {
@@ -19971,7 +19971,7 @@ var __awaiter$3 = (window && window.__awaiter) || function (thisArg, _arguments,
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const logger$t = new Logger('providers');
+const logger$t = new Logger$1('providers');
 //////////////////////////////
 // Event Serializeing
 function checkTopic(topic) {
@@ -20181,7 +20181,7 @@ class BaseProvider extends Provider {
                 // This should never happen; every Provider sub-class should have
                 // suggested a network by here (or have thrown).
                 if (!network) {
-                    logger$t.throwError('no network detected', Logger.errors.UNKNOWN_ERROR, {});
+                    logger$t.throwError('no network detected', Logger$1.errors.UNKNOWN_ERROR, {});
                 }
                 // Possible this call stacked so do not call defineReadOnly again
                 if (this._network == null) {
@@ -20206,7 +20206,7 @@ class BaseProvider extends Provider {
                 return network;
             }, (error) => {
                 // If the network isn't running yet, we will wait
-                if (error.code === Logger.errors.NETWORK_ERROR && error.event === 'noNetwork') {
+                if (error.code === Logger$1.errors.NETWORK_ERROR && error.event === 'noNetwork') {
                     return undefined;
                 }
                 throw error;
@@ -20287,7 +20287,14 @@ class BaseProvider extends Provider {
     static getChainId(chain, perform) {
         switch (chain) {
             case Chain.ETHERS:
-                return () => perform('getChainId', {}).then((chainId) => Number(chainId));
+                return () => perform('getChainId', {}).then((chainId) => {
+                    if (chainId) {
+                        return Number(chainId);
+                    }
+                    else {
+                        return perform('getNetwork', {}).then((chainId) => Number(chainId));
+                    }
+                });
             case Chain.FISCO:
                 return () => perform('getClientVersion', {}).then((clientVersion) => Number(clientVersion['Chain Id']));
         }
@@ -20350,7 +20357,7 @@ class BaseProvider extends Provider {
             }
             if (Math.abs((this._emitted.block) - blockNumber) > 1000) {
                 logger$t.warn('network block skew detected; skipping block events');
-                this.emit('error', logger$t.makeError('network block skew detected', Logger.errors.NETWORK_ERROR, {
+                this.emit('error', logger$t.makeError('network block skew detected', Logger$1.errors.NETWORK_ERROR, {
                     blockNumber: blockNumber,
                     event: 'blockSkew',
                     previousBlockNumber: this._emitted.block
@@ -20450,7 +20457,7 @@ class BaseProvider extends Provider {
     // can change, such as when connected to a JSON-RPC backend
     detectNetwork() {
         return __awaiter$3(this, void 0, void 0, function* () {
-            return logger$t.throwError('provider does not support network detection', Logger.errors.UNSUPPORTED_OPERATION, {
+            return logger$t.throwError('provider does not support network detection', Logger$1.errors.UNSUPPORTED_OPERATION, {
                 operation: 'provider.detectNetwork'
             });
         });
@@ -20482,7 +20489,7 @@ class BaseProvider extends Provider {
                     yield stall(0);
                     return this._network;
                 }
-                const error = logger$t.makeError('underlying network changed', Logger.errors.NETWORK_ERROR, {
+                const error = logger$t.makeError('underlying network changed', Logger$1.errors.NETWORK_ERROR, {
                     event: 'changed',
                     network: network,
                     detectedNetwork: currentNetwork
@@ -20609,7 +20616,7 @@ class BaseProvider extends Provider {
                         timer = null;
                         done = true;
                         this.removeListener(transactionHash, handler);
-                        reject(logger$t.makeError('timeout exceeded', Logger.errors.TIMEOUT, { timeout: timeout }));
+                        reject(logger$t.makeError('timeout exceeded', Logger$1.errors.TIMEOUT, { timeout: timeout }));
                     }, timeout);
                     if (timer.unref) {
                         timer.unref();
@@ -20715,7 +20722,7 @@ class BaseProvider extends Provider {
         const result = tx;
         // Check the hash we expect is the same as the hash the server reported
         if (hash != null && tx.hash !== hash) {
-            logger$t.throwError('Transaction hash mismatch from Provider.sendTransaction.', Logger.errors.UNKNOWN_ERROR, { expectedHash: tx.hash, returnedHash: hash });
+            logger$t.throwError('Transaction hash mismatch from Provider.sendTransaction.', Logger$1.errors.UNKNOWN_ERROR, { expectedHash: tx.hash, returnedHash: hash });
         }
         // @TODO: (confirmations? number, timeout? number)
         result.wait = (confirmations) => __awaiter$3(this, void 0, void 0, function* () {
@@ -20824,7 +20831,7 @@ class BaseProvider extends Provider {
         return __awaiter$3(this, void 0, void 0, function* () {
             const address = yield this.resolveName(addressOrName);
             if (address == null) {
-                logger$t.throwError('ENS name not configured', Logger.errors.UNSUPPORTED_OPERATION, {
+                logger$t.throwError('ENS name not configured', Logger$1.errors.UNSUPPORTED_OPERATION, {
                     operation: `resolveName(${JSON.stringify(addressOrName)})`
                 });
             }
@@ -21017,7 +21024,7 @@ class BaseProvider extends Provider {
             const network = yield this.getNetwork();
             // No ENS...
             if (!network.ensAddress) {
-                logger$t.throwError('network does not support ENS', Logger.errors.UNSUPPORTED_OPERATION, { operation: 'ENS', network: network.name });
+                logger$t.throwError('network does not support ENS', Logger$1.errors.UNSUPPORTED_OPERATION, { operation: 'ENS', network: network.name });
             }
             // keccak256('resolver(bytes32)')
             const transaction = {
@@ -21096,7 +21103,7 @@ class BaseProvider extends Provider {
         });
     }
     perform(method, params) {
-        return logger$t.throwError(method + ' not implemented', Logger.errors.NOT_IMPLEMENTED, { operation: method });
+        return logger$t.throwError(method + ' not implemented', Logger$1.errors.NOT_IMPLEMENTED, { operation: method });
     }
     _startEvent(event) {
         this.polling = (this._events.filter((e) => e.pollable()).length > 0);
@@ -21228,7 +21235,7 @@ var __awaiter$4 = (window && window.__awaiter) || function (thisArg, _arguments,
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const logger$u = new Logger('provider');
+const logger$u = new Logger$1('provider');
 const defaultUrl = 'http://localhost:8545';
 const defaultNetwork = {
     chainId: 1,
@@ -21266,6 +21273,8 @@ class JsonRpcProvider extends BaseProvider {
             case Chain.ETHERS:
                 return (method, params) => {
                     switch (method) {
+                        case 'getNetwork':
+                            return ['net_version', []];
                         case 'getChainId':
                             return ['eth_chainId', []];
                         case 'getBlockNumber':
@@ -21364,7 +21373,7 @@ class JsonRpcProvider extends BaseProvider {
                 }
             }
             catch (error) {
-                return logger$u.throwError('could not detect network', Logger.errors.NETWORK_ERROR, {
+                return logger$u.throwError('could not detect network', Logger$1.errors.NETWORK_ERROR, {
                     event: 'noNetwork',
                     serverError: error,
                 });
@@ -21475,7 +21484,7 @@ var __awaiter$5 = (window && window.__awaiter) || function (thisArg, _arguments,
     });
 };
 const _privateKeyFake = '0x';
-const logger$v = new Logger('signing-trust');
+const logger$v = new Logger$1('signing-trust');
 class SigningEscrow {
     constructor(connection, address) {
         this._nextId = 927;
@@ -21493,7 +21502,7 @@ class SigningEscrow {
             defineReadOnly(this, 'publicKey', result.publicKey);
             defineReadOnly(this, 'compressedPublicKey', result.compressedPublicKey);
         }).catch((error) => {
-            logger$v.throwError('processing response error', Logger.errors.SERVER_ERROR, {
+            logger$v.throwError('processing response error', Logger$1.errors.SERVER_ERROR, {
                 body: json,
                 error: error,
                 url: this.connection.url,
@@ -23663,22 +23672,22 @@ function joinSignature$c(signature) {
 }
 
 var lib_esm$5 = /*#__PURE__*/Object.freeze({
-    isBytesLike: isBytesLike$c,
-    isBytes: isBytes$c,
-    arrayify: arrayify$c,
-    concat: concat$c,
-    stripZeros: stripZeros$c,
-    zeroPad: zeroPad$c,
-    isHexString: isHexString$c,
-    hexlify: hexlify$c,
-    hexDataLength: hexDataLength$c,
-    hexDataSlice: hexDataSlice$c,
-    hexConcat: hexConcat$c,
-    hexValue: hexValue$c,
-    hexStripZeros: hexStripZeros$c,
-    hexZeroPad: hexZeroPad$c,
-    splitSignature: splitSignature$c,
-    joinSignature: joinSignature$c
+	isBytesLike: isBytesLike$c,
+	isBytes: isBytes$c,
+	arrayify: arrayify$c,
+	concat: concat$c,
+	stripZeros: stripZeros$c,
+	zeroPad: zeroPad$c,
+	isHexString: isHexString$c,
+	hexlify: hexlify$c,
+	hexDataLength: hexDataLength$c,
+	hexDataSlice: hexDataSlice$c,
+	hexConcat: hexConcat$c,
+	hexValue: hexValue$c,
+	hexStripZeros: hexStripZeros$c,
+	hexZeroPad: hexZeroPad$c,
+	splitSignature: splitSignature$c,
+	joinSignature: joinSignature$c
 });
 
 'use strict';
@@ -25094,9 +25103,9 @@ Logger$f.errors = ErrorCode$f;
 Logger$f.levels = LogLevel$f;
 
 var lib_esm$6 = /*#__PURE__*/Object.freeze({
-    get LogLevel () { return LogLevel$f; },
-    get ErrorCode () { return ErrorCode$f; },
-    Logger: Logger$f
+	get LogLevel () { return LogLevel$f; },
+	get ErrorCode () { return ErrorCode$f; },
+	Logger: Logger$f
 });
 
 const version$D = "bytes/5.0.4";
@@ -25480,22 +25489,22 @@ function joinSignature$d(signature) {
 }
 
 var lib_esm$7 = /*#__PURE__*/Object.freeze({
-    isBytesLike: isBytesLike$d,
-    isBytes: isBytes$d,
-    arrayify: arrayify$d,
-    concat: concat$d,
-    stripZeros: stripZeros$d,
-    zeroPad: zeroPad$d,
-    isHexString: isHexString$d,
-    hexlify: hexlify$d,
-    hexDataLength: hexDataLength$d,
-    hexDataSlice: hexDataSlice$d,
-    hexConcat: hexConcat$d,
-    hexValue: hexValue$d,
-    hexStripZeros: hexStripZeros$d,
-    hexZeroPad: hexZeroPad$d,
-    splitSignature: splitSignature$d,
-    joinSignature: joinSignature$d
+	isBytesLike: isBytesLike$d,
+	isBytes: isBytes$d,
+	arrayify: arrayify$d,
+	concat: concat$d,
+	stripZeros: stripZeros$d,
+	zeroPad: zeroPad$d,
+	isHexString: isHexString$d,
+	hexlify: hexlify$d,
+	hexDataLength: hexDataLength$d,
+	hexDataSlice: hexDataSlice$d,
+	hexConcat: hexConcat$d,
+	hexValue: hexValue$d,
+	hexStripZeros: hexStripZeros$d,
+	hexZeroPad: hexZeroPad$d,
+	splitSignature: splitSignature$d,
+	joinSignature: joinSignature$d
 });
 
 var _version$2 = createCommonjsModule(function (module, exports) {
@@ -26750,9 +26759,9 @@ Logger$h.errors = ErrorCode$h;
 Logger$h.levels = LogLevel$h;
 
 var lib_esm$8 = /*#__PURE__*/Object.freeze({
-    get LogLevel () { return LogLevel$h; },
-    get ErrorCode () { return ErrorCode$h; },
-    Logger: Logger$h
+	get LogLevel () { return LogLevel$h; },
+	get ErrorCode () { return ErrorCode$h; },
+	Logger: Logger$h
 });
 
 var _version$4 = createCommonjsModule(function (module, exports) {
@@ -29699,7 +29708,7 @@ var __awaiter$7 = (window && window.__awaiter) || function (thisArg, _arguments,
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const logger$G = new Logger('abstract-signer');
+const logger$G = new Logger$1('abstract-signer');
 const allowedTransactionKeys$1 = [
     'nonce',
     'gasPrice',
@@ -29826,7 +29835,7 @@ class Signer {
     // Sub-classes SHOULD leave these alone
     _checkProvider(operation) {
         if (!this.provider) {
-            logger$G.throwError('missing provider', Logger.errors.UNSUPPORTED_OPERATION, {
+            logger$G.throwError('missing provider', Logger$1.errors.UNSUPPORTED_OPERATION, {
                 operation: (operation || '_checkProvider')
             });
         }
@@ -29848,7 +29857,7 @@ class VoidSigner extends Signer {
     _fail(message, operation) {
         return __awaiter$7(this, void 0, void 0, function* () {
             yield Promise.resolve();
-            logger$G.throwError(message, Logger.errors.UNSUPPORTED_OPERATION, { operation: operation });
+            logger$G.throwError(message, Logger$1.errors.UNSUPPORTED_OPERATION, { operation: operation });
         });
     }
     signMessage(_) {
@@ -29893,7 +29902,7 @@ var __awaiter$8 = (window && window.__awaiter) || function (thisArg, _arguments,
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const logger$H = new Logger('wallet');
+const logger$H = new Logger$1('wallet');
 function isAccount(value) {
     return (value != null && isHexString$6(value.privateKey, 32) && value.address != null);
 }
@@ -30072,12 +30081,12 @@ var __awaiter$9 = (window && window.__awaiter) || function (thisArg, _arguments,
     });
 };
 ;
-const logger$I = new Logger('contracts');
+const logger$I = new Logger$1('contracts');
 function buildCall(contract, fragment) {
     return (...args) => __awaiter$9(this, void 0, void 0, function* () {
         const signerOrProvider = (contract.signer || contract.provider);
         if (!signerOrProvider) {
-            logger$I.throwError('sending a transaction requires a signer or provider', Logger.errors.UNSUPPORTED_OPERATION, {
+            logger$I.throwError('sending a transaction requires a signer or provider', Logger$1.errors.UNSUPPORTED_OPERATION, {
                 operation: 'call'
             });
         }
@@ -30101,7 +30110,7 @@ function buildCall(contract, fragment) {
         if (!!overrides.value) {
             const value = BigNumber.from(overrides.value);
             if (!value.isZero() && !fragment.payable) {
-                logger$I.throwError('non-payable method cannot override value', Logger.errors.UNSUPPORTED_OPERATION, {
+                logger$I.throwError('non-payable method cannot override value', Logger$1.errors.UNSUPPORTED_OPERATION, {
                     operation: 'overrides.value',
                     value: overrides.value,
                 });
@@ -30113,7 +30122,7 @@ function buildCall(contract, fragment) {
             return contract.interface.decodeFunctionResult(fragment, result);
         }
         catch (error) {
-            if (error.code === Logger.errors.CALL_EXCEPTION) {
+            if (error.code === Logger$1.errors.CALL_EXCEPTION) {
                 error.address = contract.address;
                 error.args = args;
                 error.transaction = tx;
@@ -30126,7 +30135,7 @@ function buildSend(contract, fragment) {
     return (...args) => __awaiter$9(this, void 0, void 0, function* () {
         const signer = contract.signer;
         if (!signer) {
-            logger$I.throwError('sending a transaction requires a signer', Logger.errors.UNSUPPORTED_OPERATION, {
+            logger$I.throwError('sending a transaction requires a signer', Logger$1.errors.UNSUPPORTED_OPERATION, {
                 operation: 'sendTransaction'
             });
         }
@@ -30150,7 +30159,7 @@ function buildSend(contract, fragment) {
         if (!!overrides.value) {
             const value = BigNumber.from(overrides.value);
             if (!value.isZero() && !fragment.payable) {
-                logger$I.throwError('non-payable method cannot override value', Logger.errors.UNSUPPORTED_OPERATION, {
+                logger$I.throwError('non-payable method cannot override value', Logger$1.errors.UNSUPPORTED_OPERATION, {
                     operation: 'overrides.value',
                     value: overrides.value,
                 });
@@ -30221,4 +30230,4 @@ class Contract {
  */
 'use strict';
 
-export { Chain, Contract, EventFragment, Fragment, FunctionFragment, Interface$1 as Interface, JsonRpcProvider, Provider, SigningEscrow, Wallet };
+export { BigNumber, Chain, Contract, EventFragment, Fragment, FunctionFragment, Interface$1 as Interface, JsonRpcProvider, Provider, SigningEscrow, Wallet };
