@@ -69,6 +69,7 @@
 // class Contract
 
 export { BytesLike } from '@ethersproject/bytes';
+export { BigNumber } from '@ethersproject/bignumber';
 export { Deferrable } from '@ethersproject/properties';
 export { Network } from '@ethersproject/networks';
 

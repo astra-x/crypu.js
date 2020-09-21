@@ -20,6 +20,7 @@
  * @date 2020
  */
 'use strict';
+export { BigNumber } from '@ethersproject/bignumber';
 export { Fragment, FunctionFragment, EventFragment, Interface, } from '@crypujs/abi';
 export { Provider, } from '@crypujs/abstract-provider';
 export { Chain, JsonRpcProvider, } from '@crypujs/providers';

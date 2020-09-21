@@ -108,6 +108,8 @@ export class JsonRpcProvider extends BaseProvider {
       case Chain.ETHERS:
         return (method: string, params: any): [string, Array<any>] => {
           switch (method) {
+            case 'getNetwork':
+              return ['net_version', []];
             case 'getChainId':
               return ['eth_chainId', []];
             case 'getBlockNumber':

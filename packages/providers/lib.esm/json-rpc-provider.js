@@ -74,6 +74,8 @@ export class JsonRpcProvider extends BaseProvider {
             case Chain.ETHERS:
                 return (method, params) => {
                     switch (method) {
+                        case 'getNetwork':
+                            return ['net_version', []];
                         case 'getChainId':
                             return ['eth_chainId', []];
                         case 'getBlockNumber':

@@ -501,7 +501,14 @@ var BaseProvider = /** @class */ (function (_super) {
         switch (chain) {
             case constants_1.Chain.ETHERS:
                 return function () {
-                    return perform('getChainId', {}).then(function (chainId) { return Number(chainId); });
+                    return perform('getChainId', {}).then(function (chainId) {
+                        if (chainId) {
+                            return Number(chainId);
+                        }
+                        else {
+                            return perform('getNetwork', {}).then(function (chainId) { return Number(chainId); });
+                        }
+                    });
                 };
             case constants_1.Chain.FISCO:
                 return function () {

@@ -21,6 +21,8 @@
  */
 'use strict';
 Object.defineProperty(exports, "__esModule", { value: true });
+var bignumber_1 = require("@ethersproject/bignumber");
+Object.defineProperty(exports, "BigNumber", { enumerable: true, get: function () { return bignumber_1.BigNumber; } });
 var abi_1 = require("@crypujs/abi");
 Object.defineProperty(exports, "Fragment", { enumerable: true, get: function () { return abi_1.Fragment; } });
 Object.defineProperty(exports, "FunctionFragment", { enumerable: true, get: function () { return abi_1.FunctionFragment; } });
