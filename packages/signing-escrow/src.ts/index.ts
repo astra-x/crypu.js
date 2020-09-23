@@ -22,40 +22,26 @@
 
 'use strict';
 
-import {
-  Logger,
-} from '@ethersproject/logger';
+import { Logger } from '@ethersproject/logger';
 import {
   BytesLike,
   Signature,
   arrayify,
 } from '@ethersproject/bytes';
-import {
-  defineReadOnly,
-} from '@ethersproject/properties';
-import {
-  getAddress,
-} from '@ethersproject/address';
+import { defineReadOnly } from '@ethersproject/properties';
+import { getAddress } from '@ethersproject/address';
 
 import {
   ConnectionInfo,
   fetchJson,
 } from '@crypujs/web';
 
-import {
-  Response,
-} from './dto/response.dto';
-import {
-  GetEoaResult,
-  GetEoaRequestDto,
-} from './dto/get-eoa.dto';
-import {
-  SignDigestResult,
-  SignDigestRequestDto,
-} from './dto/sign-digest.dto';
+import { Response } from './dto/response.dto';
+import { RetrieveResult } from './dto/eoa.retrieve.dto';
+import { DigestResult } from './dto/sign.digest.dto';
 
 const _privateKeyFake = '0x';
-const logger = new Logger('signing-trust');
+const logger = new Logger('signing-escrow');
 
 export class SigningEscrow {
   _nextId: number = 927;
@@ -74,13 +60,13 @@ export class SigningEscrow {
     defineReadOnly(this, 'address', getAddress(address));
     defineReadOnly(this, 'privateKey', _privateKeyFake);
 
-    const json: GetEoaRequestDto = {
+    const json = {
       id: (this._nextId++),
       jsonrpc: '2.0',
-      method: 'getEoa',
+      method: 'eoa_retrieve',
       params: [this.address],
     }
-    fetchJson(this.connection, JSON.stringify(json), this.getResult).then((result: GetEoaResult) => {
+    fetchJson(this.connection, JSON.stringify(json), this.getResult).then((result: RetrieveResult) => {
       defineReadOnly(this, 'publicKey', result.publicKey);
       defineReadOnly(this, 'compressedPublicKey', result.compressedPublicKey);
     }).catch((error: any) => {
@@ -95,13 +81,13 @@ export class SigningEscrow {
   }
 
   async signDigest(digest: BytesLike): Promise<Signature> {
-    const json: SignDigestRequestDto = {
+    const json = {
       id: (this._nextId++),
       jsonrpc: '2.0',
       method: 'signDigest',
       params: [this.address, arrayify(digest)],
     };
-    const { signature }: SignDigestResult = await fetchJson(this.connection, JSON.stringify(json), this.getResult);
+    const { signature }: DigestResult = await fetchJson(this.connection, JSON.stringify(json), this.getResult);
     return <Signature>signature;
   }
 

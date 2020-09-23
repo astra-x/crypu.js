@@ -21484,7 +21484,7 @@ var __awaiter$5 = (window && window.__awaiter) || function (thisArg, _arguments,
     });
 };
 const _privateKeyFake = '0x';
-const logger$v = new Logger$1('signing-trust');
+const logger$v = new Logger$1('signing-escrow');
 class SigningEscrow {
     constructor(connection, address) {
         this._nextId = 927;
@@ -21495,7 +21495,7 @@ class SigningEscrow {
         const json = {
             id: (this._nextId++),
             jsonrpc: '2.0',
-            method: 'getEoa',
+            method: 'eoa_retrieve',
             params: [this.address],
         };
         fetchJson(this.connection, JSON.stringify(json), this.getResult).then((result) => {
