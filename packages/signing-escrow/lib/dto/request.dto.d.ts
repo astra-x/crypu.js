@@ -7,5 +7,5 @@ export interface Request<T, R> {
     id: number;
     jsonrpc: '2.0';
     method: T;
-    params: R;
+    params?: R;
 }

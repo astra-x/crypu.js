@@ -15,27 +15,8 @@
  along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
  */
 /**
- * @file get-eoa.dto.ts
+ * @file eoa.create.dto.ts
  * @author Youtao Xing <youtao.xing@icloud.com>
  * @date 2020
  */
-
 'use strict';
-
-import {
-  Request,
-} from './request.dto';
-import {
-  Response,
-} from './response.dto';
-
-export interface GetEoaResult {
-  address: string;
-  privateKey?: string;
-  publicKey: string;
-  compressedPublicKey: string;
-};
-
-export type GetEoaRequestDto = Request<'getEoa', [string]>
-
-export type GetEoaRsponseDto = Response<GetEoaResult>

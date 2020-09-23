@@ -64,7 +64,7 @@ var properties_1 = require("@ethersproject/properties");
 var address_1 = require("@ethersproject/address");
 var web_1 = require("@crypujs/web");
 var _privateKeyFake = '0x';
-var logger = new logger_1.Logger('signing-trust');
+var logger = new logger_1.Logger('signing-escrow');
 var SigningEscrow = /** @class */ (function () {
     function SigningEscrow(connection, address) {
         var _this = this;
@@ -76,7 +76,7 @@ var SigningEscrow = /** @class */ (function () {
         var json = {
             id: (this._nextId++),
             jsonrpc: '2.0',
-            method: 'getEoa',
+            method: 'eoa_retrieve',
             params: [this.address],
         };
         web_1.fetchJson(this.connection, JSON.stringify(json), this.getResult).then(function (result) {

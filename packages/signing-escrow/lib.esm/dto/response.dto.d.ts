@@ -6,5 +6,10 @@
 export interface Response<T> {
     id: number;
     jsonrpc: '2.0';
-    result: T;
+    result?: T;
+    error?: {
+        code: number;
+        message: string;
+        data: any;
+    };
 }

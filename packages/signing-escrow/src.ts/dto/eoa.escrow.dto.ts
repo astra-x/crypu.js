@@ -15,20 +15,22 @@
  along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
  */
 /**
- * @file response.dto.ts
+ * @file eoa.escrow.dto.ts
  * @author Youtao Xing <youtao.xing@icloud.com>
  * @date 2020
  */
 
 'use strict';
 
-export interface Response<T> {
-  id: number;
-  jsonrpc: '2.0';
-  result?: T;
-  error?: {
-    code: number;
-    message: string;
-    data: any;
-  };
-};
+import { Request } from './request.dto';
+import { Response } from './response.dto';
+
+export type EscrowParams = [
+  string, /* privateKey */
+];
+
+export type EscrowResult = {};
+
+export type EscrowRequestDto = Request<'eoa_escrow', EscrowParams>;
+
+export type EscrowRsponseDto = Response<EscrowResult>;

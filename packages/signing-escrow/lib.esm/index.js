@@ -29,13 +29,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { Logger, } from '@ethersproject/logger';
+import { Logger } from '@ethersproject/logger';
 import { arrayify, } from '@ethersproject/bytes';
-import { defineReadOnly, } from '@ethersproject/properties';
-import { getAddress, } from '@ethersproject/address';
+import { defineReadOnly } from '@ethersproject/properties';
+import { getAddress } from '@ethersproject/address';
 import { fetchJson, } from '@crypujs/web';
 const _privateKeyFake = '0x';
-const logger = new Logger('signing-trust');
+const logger = new Logger('signing-escrow');
 export class SigningEscrow {
     constructor(connection, address) {
         this._nextId = 927;
@@ -46,7 +46,7 @@ export class SigningEscrow {
         const json = {
             id: (this._nextId++),
             jsonrpc: '2.0',
-            method: 'getEoa',
+            method: 'eoa_retrieve',
             params: [this.address],
         };
         fetchJson(this.connection, JSON.stringify(json), this.getResult).then((result) => {

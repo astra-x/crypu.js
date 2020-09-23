@@ -24119,7 +24119,7 @@
 
 
 	var _privateKeyFake = '0x';
-	var logger = new lib$3.Logger('signing-trust');
+	var logger = new lib$3.Logger('signing-escrow');
 	var SigningEscrow = /** @class */ (function () {
 	    function SigningEscrow(connection, address) {
 	        var _this = this;
@@ -24131,7 +24131,7 @@
 	        var json = {
 	            id: (this._nextId++),
 	            jsonrpc: '2.0',
-	            method: 'getEoa',
+	            method: 'eoa_retrieve',
 	            params: [this.address],
 	        };
 	        lib$w.fetchJson(this.connection, JSON.stringify(json), this.getResult).then(function (result) {
