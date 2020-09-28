@@ -15,27 +15,9 @@
  along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
  */
 /**
- * @file eoa.retrieve.dto.ts
+ * @file escrowAccount.dto.ts
  * @author Youtao Xing <youtao.xing@icloud.com>
  * @date 2020
  */
-
 'use strict';
-
-import { Request } from './request.dto';
-import { Response } from './response.dto';
-
-export type RetrieveParams = [
-  string, /* address */
-];
-
-export type RetrieveResult = {
-  address: string;
-  privateKey?: string;
-  publicKey: string;
-  compressedPublicKey: string;
-};
-
-export type RetrieveRequestDto = Request<'eoa_retrieve', RetrieveParams>;
-
-export type RetrieveRsponseDto = Response<RetrieveResult>;
+Object.defineProperty(exports, "__esModule", { value: true });

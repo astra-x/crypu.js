@@ -15,8 +15,27 @@
  along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
  */
 /**
- * @file eoa.escrow.dto.ts
+ * @file createAccount.dto.ts
  * @author Youtao Xing <youtao.xing@icloud.com>
  * @date 2020
  */
+
 'use strict';
+
+import { Request } from './request.dto';
+import { Response } from './response.dto';
+
+export type CreateAccountParams = [
+  boolean, /* escrow */
+];
+
+export type CreateAccountResult = {
+  address: string;
+  privateKey?: string;
+  publicKey: string;
+  compressedPublicKey: string;
+};
+
+export type CreateAccountRequestDto = Request<'createAccount', CreateAccountParams>;
+
+export type CreateAccountRsponseDto = Response<CreateAccountResult>;
