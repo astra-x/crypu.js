@@ -37,8 +37,8 @@ import {
 } from '@crypujs/web';
 
 import { Response } from './dto/response.dto';
-import { RetrieveResult } from './dto/eoa.retrieve.dto';
-import { DigestResult } from './dto/sign.digest.dto';
+import { RetrieveAccountResult } from './dto/retrieveAccount.dto';
+import { SignDigestResult } from './dto/signDigest.dto';
 
 const _privateKeyFake = '0x';
 const logger = new Logger('signing-escrow');
@@ -66,7 +66,7 @@ export class SigningEscrow {
       method: 'eoa_retrieve',
       params: [this.address],
     }
-    fetchJson(this.connection, JSON.stringify(json), this.getResult).then((result: RetrieveResult) => {
+    fetchJson(this.connection, JSON.stringify(json), this.getResult).then((result: RetrieveAccountResult) => {
       defineReadOnly(this, 'publicKey', result.publicKey);
       defineReadOnly(this, 'compressedPublicKey', result.compressedPublicKey);
     }).catch((error: any) => {
@@ -87,7 +87,7 @@ export class SigningEscrow {
       method: 'signDigest',
       params: [this.address, arrayify(digest)],
     };
-    const { signature }: DigestResult = await fetchJson(this.connection, JSON.stringify(json), this.getResult);
+    const { signature }: SignDigestResult = await fetchJson(this.connection, JSON.stringify(json), this.getResult);
     return <Signature>signature;
   }
 

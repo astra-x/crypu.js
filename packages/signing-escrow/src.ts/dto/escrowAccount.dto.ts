@@ -15,7 +15,7 @@
  along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
  */
 /**
- * @file eoa.escrow.dto.ts
+ * @file escrowAccount.dto.ts
  * @author Youtao Xing <youtao.xing@icloud.com>
  * @date 2020
  */
@@ -25,12 +25,12 @@
 import { Request } from './request.dto';
 import { Response } from './response.dto';
 
-export type EscrowParams = [
+export type EscrowAccountParams = [
   string, /* privateKey */
 ];
 
-export type EscrowResult = {};
+export type EscrowAccountResult = {};
 
-export type EscrowRequestDto = Request<'eoa_escrow', EscrowParams>;
+export type EscrowAccountRequestDto = Request<'escrowAccount', EscrowAccountParams>;
 
-export type EscrowRsponseDto = Response<EscrowResult>;
+export type EscrowAccountRsponseDto = Response<EscrowAccountResult>;

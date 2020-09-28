@@ -15,10 +15,9 @@
  along with crypu.js.  If not, see <http://www.gnu.org/licenses/>.
  */
 /**
- * @file sign-digest.dto.ts
+ * @file retrieveAccount.dto.ts
  * @author Youtao Xing <youtao.xing@icloud.com>
  * @date 2020
  */
 'use strict';
 Object.defineProperty(exports, "__esModule", { value: true });
-;
