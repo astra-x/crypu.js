@@ -4,9 +4,9 @@
     "url": "https://github.com/astra-x/crypu.js/issues"
   },
   "dependencies": {
-    "@crypujs/abi": "^2.0.2",
-    "@crypujs/abstract-provider": "^2.0.2",
-    "@crypujs/abstract-signer": "^2.0.2",
+    "@crypujs/abi": "^2.0.4",
+    "@crypujs/abstract-provider": "^2.0.4",
+    "@crypujs/abstract-signer": "^2.0.4",
     "@ethersproject/bignumber": "^5.0.5",
     "@ethersproject/logger": "^5.0.4",
     "@ethersproject/properties": "^5.0.2"
@@ -44,5 +44,5 @@
     "test": "echo \"Error: run tests from root\" && exit 1"
   },
   "types": "lib/index.d.ts",
-  "version": "2.0.3"
+  "version": "2.0.4"
 }
