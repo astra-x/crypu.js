@@ -943,7 +943,7 @@ export class BaseProvider extends Provider {
     }
 
     // @TODO: (confirmations? number, timeout? number)
-    result.wait = async (confirmations?: number) => {
+    result.wait = async (confirmations?: number, timeout?: number) => {
 
       // We know this transaction *must* exist (whether it gets mined is
       // another story), so setting an emitted value forces us to
@@ -952,7 +952,7 @@ export class BaseProvider extends Provider {
         this._emitted['t:' + tx.hash] = 'pending';
       }
 
-      const receipt = await this.waitForTransaction(tx.hash, confirmations);
+      const receipt = await this.waitForTransaction(tx.hash, confirmations, timeout);
       if (receipt == null && confirmations === 0) { return null; }
 
       // No longer pending, allow the polling loop to garbage collect this

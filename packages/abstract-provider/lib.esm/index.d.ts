@@ -64,7 +64,7 @@ export interface TransactionResponse extends Transaction {
     confirmations: number;
     from: string;
     raw?: string;
-    wait: (confirmations?: number) => Promise<TransactionReceipt>;
+    wait: (confirmations?: number, timeout?: number) => Promise<TransactionReceipt>;
 }
 export declare type BlockTag = string | number;
 interface _Block {

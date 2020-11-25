@@ -1098,7 +1098,7 @@ var BaseProvider = /** @class */ (function (_super) {
             logger.throwError('Transaction hash mismatch from Provider.sendTransaction.', logger_1.Logger.errors.UNKNOWN_ERROR, { expectedHash: tx.hash, returnedHash: hash });
         }
         // @TODO: (confirmations? number, timeout? number)
-        result.wait = function (confirmations) { return __awaiter(_this, void 0, void 0, function () {
+        result.wait = function (confirmations, timeout) { return __awaiter(_this, void 0, void 0, function () {
             var receipt;
             return __generator(this, function (_a) {
                 switch (_a.label) {
@@ -1109,7 +1109,7 @@ var BaseProvider = /** @class */ (function (_super) {
                         if (confirmations !== 0) {
                             this._emitted['t:' + tx.hash] = 'pending';
                         }
-                        return [4 /*yield*/, this.waitForTransaction(tx.hash, confirmations)];
+                        return [4 /*yield*/, this.waitForTransaction(tx.hash, confirmations, timeout)];
                     case 1:
                         receipt = _a.sent();
                         if (receipt == null && confirmations === 0) {

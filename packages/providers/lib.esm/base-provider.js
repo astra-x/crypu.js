@@ -796,14 +796,14 @@ export class BaseProvider extends Provider {
             logger.throwError('Transaction hash mismatch from Provider.sendTransaction.', Logger.errors.UNKNOWN_ERROR, { expectedHash: tx.hash, returnedHash: hash });
         }
         // @TODO: (confirmations? number, timeout? number)
-        result.wait = (confirmations) => __awaiter(this, void 0, void 0, function* () {
+        result.wait = (confirmations, timeout) => __awaiter(this, void 0, void 0, function* () {
             // We know this transaction *must* exist (whether it gets mined is
             // another story), so setting an emitted value forces us to
             // wait even if the node returns null for the receipt
             if (confirmations !== 0) {
                 this._emitted['t:' + tx.hash] = 'pending';
             }
-            const receipt = yield this.waitForTransaction(tx.hash, confirmations);
+            const receipt = yield this.waitForTransaction(tx.hash, confirmations, timeout);
             if (receipt == null && confirmations === 0) {
                 return null;
             }
