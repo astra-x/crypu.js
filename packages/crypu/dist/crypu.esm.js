@@ -3461,7 +3461,7 @@ var bn = createCommonjsModule(function (module) {
 });
 var bn_1 = bn.BN;
 
-const version = "logger/5.0.5";
+const version = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors = false;
@@ -3752,11 +3752,14 @@ class Logger {
         }
         _logLevel = level;
     }
+    static from(version) {
+        return new Logger(version);
+    }
 }
 Logger.errors = ErrorCode;
 Logger.levels = LogLevel;
 
-const version$1 = "bytes/5.0.4";
+const version$1 = "bytes/5.0.7";
 
 "use strict";
 const logger = new Logger(version$1);
@@ -4136,9 +4139,10 @@ function joinSignature(signature) {
     ]));
 }
 
-const version$2 = "bignumber/5.0.7";
+const version$2 = "bignumber/5.0.11";
 
 "use strict";
+var BN = bn.BN;
 const logger$1 = new Logger(version$2);
 const _constructorGuard = {};
 const MAX_SAFE = 0x1fffffffffffff;
@@ -4150,6 +4154,8 @@ function isBigNumberish(value) {
         (typeof (value) === "bigint") ||
         isBytes(value));
 }
+// Only warn about passing 10 into radix once
+let _warnedToStringRadix = false;
 class BigNumber {
     constructor(constructorGuard, hex) {
         logger$1.checkNew(new.target, BigNumber);
@@ -4274,9 +4280,20 @@ class BigNumber {
         return null;
     }
     toString() {
-        // Lots of people expect this, which we do not support, so check
-        if (arguments.length !== 0) {
-            logger$1.throwError("bigNumber.toString does not accept parameters", Logger.errors.UNEXPECTED_ARGUMENT, {});
+        // Lots of people expect this, which we do not support, so check (See: #889)
+        if (arguments.length > 0) {
+            if (arguments[0] === 10) {
+                if (!_warnedToStringRadix) {
+                    _warnedToStringRadix = true;
+                    logger$1.warn("BigNumber.toString does not accept any parameters; base-10 is assumed");
+                }
+            }
+            else if (arguments[0] === 16) {
+                logger$1.throwError("BigNumber.toString does not accept any parameters; use bigNumber.toHexString()", Logger.errors.UNEXPECTED_ARGUMENT, {});
+            }
+            else {
+                logger$1.throwError("BigNumber.toString does not accept parameters", Logger.errors.UNEXPECTED_ARGUMENT, {});
+            }
         }
         return toBN(this).toString(10);
     }
@@ -4295,7 +4312,7 @@ class BigNumber {
                 return new BigNumber(_constructorGuard, toHex(value));
             }
             if (value.match(/^-?[0-9]+$/)) {
-                return new BigNumber(_constructorGuard, toHex(new bn_1(value)));
+                return new BigNumber(_constructorGuard, toHex(new BN(value)));
             }
             return logger$1.throwArgumentError("invalid BigNumber string", "value", value);
         }
@@ -4390,9 +4407,9 @@ function toBigNumber(value) {
 function toBN(value) {
     const hex = BigNumber.from(value).toHexString();
     if (hex[0] === "-") {
-        return (new bn_1("-" + hex.substring(3), 16));
+        return (new BN("-" + hex.substring(3), 16));
     }
-    return new bn_1(hex.substring(2), 16);
+    return new BN(hex.substring(2), 16);
 }
 function throwFault(fault, operation, value) {
     const params = { fault: fault, operation: operation };
@@ -4400,6 +4417,14 @@ function throwFault(fault, operation, value) {
         params.value = value;
     }
     return logger$1.throwError(fault, Logger.errors.NUMERIC_FAULT, params);
+}
+// value should have no prefix
+function _base36To16(value) {
+    return (new BN(value, 36)).toString(16);
+}
+// value should have no prefix
+function _base16To36(value) {
+    return (new BN(value, 16)).toString(36);
 }
 
 "use strict";
@@ -5032,7 +5057,7 @@ class Logger$1 {
 Logger$1.errors = ErrorCode$1;
 Logger$1.levels = LogLevel$1;
 
-const version$4 = "logger/5.0.5";
+const version$4 = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$2 = false;
@@ -5323,11 +5348,14 @@ class Logger$2 {
         }
         _logLevel$2 = level;
     }
+    static from(version) {
+        return new Logger$2(version);
+    }
 }
 Logger$2.errors = ErrorCode$2;
 Logger$2.levels = LogLevel$2;
 
-const version$5 = "properties/5.0.3";
+const version$5 = "properties/5.0.6";
 
 "use strict";
 var __awaiter = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -5444,17 +5472,7 @@ class Description {
     }
 }
 
-var lib_esm = /*#__PURE__*/Object.freeze({
-	defineReadOnly: defineReadOnly,
-	getStatic: getStatic,
-	resolveProperties: resolveProperties,
-	checkProperties: checkProperties,
-	shallowCopy: shallowCopy,
-	deepCopy: deepCopy,
-	Description: Description
-});
-
-const version$6 = "logger/5.0.5";
+const version$6 = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$3 = false;
@@ -5745,11 +5763,14 @@ class Logger$3 {
         }
         _logLevel$3 = level;
     }
+    static from(version) {
+        return new Logger$3(version);
+    }
 }
 Logger$3.errors = ErrorCode$3;
 Logger$3.levels = LogLevel$3;
 
-const version$7 = "abi/5.0.5";
+const version$7 = "abi/5.0.9";
 
 "use strict";
 const logger$4 = new Logger$3(version$7);
@@ -6532,7 +6553,7 @@ function splitNesting(value) {
     return result;
 }
 
-const version$8 = "bytes/5.0.4";
+const version$8 = "bytes/5.0.7";
 
 "use strict";
 const logger$5 = new Logger$3(version$8);
@@ -6950,20 +6971,28 @@ class Coder {
 class Writer {
     constructor(wordSize) {
         defineReadOnly(this, "wordSize", wordSize || 32);
-        this._data = arrayify$1([]);
+        this._data = [];
+        this._dataLength = 0;
         this._padding = new Uint8Array(wordSize);
     }
-    get data() { return hexlify$1(this._data); }
-    get length() { return this._data.length; }
+    get data() {
+        return hexConcat$1(this._data);
+    }
+    get length() { return this._dataLength; }
     _writeData(data) {
-        this._data = concat$1([this._data, data]);
+        this._data.push(data);
+        this._dataLength += data.length;
         return data.length;
+    }
+    appendWriter(writer) {
+        return this._writeData(concat$1(writer._data));
     }
     // Arrayish items; padded on the right to wordSize
     writeBytes(value) {
         let bytes = arrayify$1(value);
-        if (bytes.length % this.wordSize) {
-            bytes = concat$1([bytes, this._padding.slice(bytes.length % this.wordSize)]);
+        const paddingOffset = bytes.length % this.wordSize;
+        if (paddingOffset) {
+            bytes = concat$1([bytes, this._padding.slice(paddingOffset)]);
         }
         return this._writeData(bytes);
     }
@@ -6985,10 +7014,11 @@ class Writer {
         return this._writeData(this._getValue(value));
     }
     writeUpdatableValue() {
-        let offset = this.length;
-        this.writeValue(0);
+        const offset = this._data.length;
+        this._data.push(this._padding);
+        this._dataLength += this.wordSize;
         return (value) => {
-            this._data.set(this._getValue(value), offset);
+            this._data[offset] = this._getValue(value);
         };
     }
 }
@@ -7045,7 +7075,7 @@ class Reader {
     }
 }
 
-const version$9 = "logger/5.0.5";
+const version$9 = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$4 = false;
@@ -7336,11 +7366,14 @@ class Logger$4 {
         }
         _logLevel$4 = level;
     }
+    static from(version) {
+        return new Logger$4(version);
+    }
 }
 Logger$4.errors = ErrorCode$4;
 Logger$4.levels = LogLevel$4;
 
-const version$a = "bytes/5.0.4";
+const version$a = "bytes/5.0.7";
 
 "use strict";
 const logger$7 = new Logger$4(version$a);
@@ -8203,7 +8236,7 @@ function keccak256(data) {
     return '0x' + sha3.keccak_256(arrayify$2(data));
 }
 
-const version$b = "logger/5.0.5";
+const version$b = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$5 = false;
@@ -8494,11 +8527,14 @@ class Logger$5 {
         }
         _logLevel$5 = level;
     }
+    static from(version) {
+        return new Logger$5(version);
+    }
 }
 Logger$5.errors = ErrorCode$5;
 Logger$5.levels = LogLevel$5;
 
-const version$c = "bytes/5.0.4";
+const version$c = "bytes/5.0.7";
 
 "use strict";
 const logger$8 = new Logger$5(version$c);
@@ -8878,7 +8914,7 @@ function joinSignature$3(signature) {
     ]));
 }
 
-const version$d = "rlp/5.0.3";
+const version$d = "rlp/5.0.6";
 
 "use strict";
 const logger$9 = new Logger$5(version$d);
@@ -8996,7 +9032,7 @@ function decode(data) {
     return decoded.result;
 }
 
-const version$e = "address/5.0.4";
+const version$e = "address/5.0.8";
 
 "use strict";
 const logger$a = new Logger$4(version$e);
@@ -9078,7 +9114,7 @@ function getAddress(address) {
         if (address.substring(2, 4) !== ibanChecksum(address)) {
             logger$a.throwArgumentError("bad icap checksum", "address", address);
         }
-        result = (new bn_1(address.substring(4), 36)).toString(16);
+        result = _base36To16(address.substring(4));
         while (result.length < 40) {
             result = "0" + result;
         }
@@ -9098,7 +9134,7 @@ function isAddress(address) {
     return false;
 }
 function getIcapAddress(address) {
-    let base36 = (new bn_1(getAddress(address).substring(2), 16)).toString(36).toUpperCase();
+    let base36 = _base16To36(getAddress(address).substring(2)).toUpperCase();
     while (base36.length < 30) {
         base36 = "0" + base36;
     }
@@ -9131,6 +9167,9 @@ class AddressCoder extends Coder {
     constructor(localName) {
         super("address", "address", localName, false);
     }
+    defaultValue() {
+        return "0x0000000000000000000000000000000000000000";
+    }
     encode(writer, value) {
         try {
             getAddress(value);
@@ -9151,6 +9190,9 @@ class AnonymousCoder extends Coder {
     constructor(coder) {
         super(coder.name, coder.type, undefined, coder.dynamic);
         this.coder = coder;
+    }
+    defaultValue() {
+        return this.coder.defaultValue();
     }
     encode(writer, value) {
         return this.coder.encode(writer, value);
@@ -9217,8 +9259,8 @@ function pack(writer, coders, values) {
     });
     // Backfill all the dynamic offsets, now that we know the static length
     updateFuncs.forEach((func) => { func(staticWriter.length); });
-    let length = writer.writeBytes(staticWriter.data);
-    length += writer.writeBytes(dynamicWriter.data);
+    let length = writer.appendWriter(staticWriter);
+    length += writer.appendWriter(dynamicWriter);
     return length;
 }
 function unpack(reader, coders) {
@@ -9314,6 +9356,15 @@ class ArrayCoder extends Coder {
         this.coder = coder;
         this.length = length;
     }
+    defaultValue() {
+        // Verifies the child coder is valid (even if the array is dynamic or 0-length)
+        const defaultChild = this.coder.defaultValue();
+        const result = [];
+        for (let i = 0; i < this.length; i++) {
+            result.push(defaultChild);
+        }
+        return result;
+    }
     encode(writer, value) {
         if (!Array.isArray(value)) {
             this._throwError("expected array value", value);
@@ -9348,6 +9399,9 @@ class BooleanCoder extends Coder {
     constructor(localName) {
         super("bool", "bool", localName, false);
     }
+    defaultValue() {
+        return false;
+    }
     encode(writer, value) {
         return writer.writeValue(value ? 1 : 0);
     }
@@ -9360,6 +9414,9 @@ class BooleanCoder extends Coder {
 class DynamicBytesCoder extends Coder {
     constructor(type, localName) {
         super(type, type, localName, true);
+    }
+    defaultValue() {
+        return "0x";
     }
     encode(writer, value) {
         value = arrayify$1(value);
@@ -9388,6 +9445,9 @@ class FixedBytesCoder extends Coder {
         super(name, name, localName, false);
         this.size = size;
     }
+    defaultValue() {
+        return ("0x0000000000000000000000000000000000000000000000000000000000000000").substring(0, 2 + this.size * 2);
+    }
     encode(writer, value) {
         let data = arrayify$1(value);
         if (data.length !== this.size) {
@@ -9405,6 +9465,9 @@ class NullCoder extends Coder {
     constructor(localName) {
         super("null", "", localName, false);
     }
+    defaultValue() {
+        return null;
+    }
     encode(writer, value) {
         if (value != null) {
             this._throwError("not null", value);
@@ -9417,17 +9480,21 @@ class NullCoder extends Coder {
     }
 }
 
-"use strict";
 const AddressZero = "0x0000000000000000000000000000000000000000";
+
+const NegativeOne$1 = ( /*#__PURE__*/BigNumber.from(-1));
+const Zero$1 = ( /*#__PURE__*/BigNumber.from(0));
+const One = ( /*#__PURE__*/BigNumber.from(1));
+const Two = ( /*#__PURE__*/BigNumber.from(2));
+const WeiPerEther = ( /*#__PURE__*/BigNumber.from("1000000000000000000"));
+const MaxUint256 = ( /*#__PURE__*/BigNumber.from("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
+
 const HashZero = "0x0000000000000000000000000000000000000000000000000000000000000000";
+
 // NFKC (composed)             // (decomposed)
 const EtherSymbol = "\u039e"; // "\uD835\uDF63";
-const NegativeOne$1 = BigNumber.from(-1);
-const Zero$1 = BigNumber.from(0);
-const One = BigNumber.from(1);
-const Two = BigNumber.from(2);
-const WeiPerEther = BigNumber.from("1000000000000000000");
-const MaxUint256 = BigNumber.from("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
+"use strict";
 
 "use strict";
 class NumberCoder extends Coder {
@@ -9436,6 +9503,9 @@ class NumberCoder extends Coder {
         super(name, name, localName, false);
         this.size = size;
         this.signed = signed;
+    }
+    defaultValue() {
+        return 0;
     }
     encode(writer, value) {
         let v = BigNumber.from(value);
@@ -9465,7 +9535,7 @@ class NumberCoder extends Coder {
     }
 }
 
-const version$f = "logger/5.0.5";
+const version$f = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$6 = false;
@@ -9756,11 +9826,14 @@ class Logger$6 {
         }
         _logLevel$6 = level;
     }
+    static from(version) {
+        return new Logger$6(version);
+    }
 }
 Logger$6.errors = ErrorCode$6;
 Logger$6.levels = LogLevel$6;
 
-const version$g = "bytes/5.0.4";
+const version$g = "bytes/5.0.7";
 
 "use strict";
 const logger$c = new Logger$6(version$g);
@@ -10140,7 +10213,7 @@ function joinSignature$4(signature) {
     ]));
 }
 
-const version$h = "strings/5.0.4";
+const version$h = "strings/5.0.7";
 
 "use strict";
 const logger$d = new Logger$6(version$h);
@@ -10610,6 +10683,9 @@ class StringCoder extends DynamicBytesCoder {
     constructor(localName) {
         super("string", localName);
     }
+    defaultValue() {
+        return "";
+    }
     encode(writer, value) {
         return super.encode(writer, toUtf8Bytes(value));
     }
@@ -10632,6 +10708,38 @@ class TupleCoder extends Coder {
         const type = ("tuple(" + types.join(",") + ")");
         super("tuple", type, localName, dynamic);
         this.coders = coders;
+    }
+    defaultValue() {
+        const values = [];
+        this.coders.forEach((coder) => {
+            values.push(coder.defaultValue());
+        });
+        // We only output named properties for uniquely named coders
+        const uniqueNames = this.coders.reduce((accum, coder) => {
+            const name = coder.localName;
+            if (name) {
+                if (!accum[name]) {
+                    accum[name] = 0;
+                }
+                accum[name]++;
+            }
+            return accum;
+        }, {});
+        // Add named values
+        this.coders.forEach((coder, index) => {
+            let name = coder.localName;
+            if (!name || uniqueNames[name] !== 1) {
+                return;
+            }
+            if (name === "length") {
+                name = "_length";
+            }
+            if (values[name] != null) {
+                return;
+            }
+            values[name] = values[index];
+        });
+        return Object.freeze(values);
     }
     encode(writer, value) {
         return pack(writer, this.coders, value);
@@ -10696,6 +10804,11 @@ class AbiCoder {
     _getWriter() {
         return new Writer(this._getWordSize());
     }
+    getDefaultValue(types) {
+        const coders = types.map((type) => this._getCoder(ParamType.from(type)));
+        const coder = new TupleCoder(coders, "_");
+        return coder.defaultValue();
+    }
     encode(types, values) {
         if (types.length !== values.length) {
             logger$e.throwError("types/values length mismatch", Logger$3.errors.INVALID_ARGUMENT, {
@@ -10717,7 +10830,7 @@ class AbiCoder {
 }
 const defaultAbiCoder = new AbiCoder();
 
-const version$i = "logger/5.0.5";
+const version$i = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$7 = false;
@@ -11008,11 +11121,14 @@ class Logger$7 {
         }
         _logLevel$7 = level;
     }
+    static from(version) {
+        return new Logger$7(version);
+    }
 }
 Logger$7.errors = ErrorCode$7;
 Logger$7.levels = LogLevel$7;
 
-const version$j = "bytes/5.0.4";
+const version$j = "bytes/5.0.7";
 
 "use strict";
 const logger$f = new Logger$7(version$j);
@@ -11397,12 +11513,15 @@ function keccak256$1(data) {
     return '0x' + sha3.keccak_256(arrayify$5(data));
 }
 
-const version$k = "hash/5.0.4";
+function id(text) {
+    return keccak256$1(toUtf8Bytes(text));
+}
 
-"use strict";
+const version$k = "hash/5.0.8";
+
 const logger$g = new Logger$7(version$k);
-///////////////////////////////
-const Zeros = new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+const Zeros = new Uint8Array(32);
+Zeros.fill(0);
 const Partition = new RegExp("^((.*)\\.)?([^.]+)$");
 function isValidName(name) {
     try {
@@ -11431,9 +11550,7 @@ function namehash(name) {
     }
     return hexlify$5(result);
 }
-function id(text) {
-    return keccak256$1(toUtf8Bytes(text));
-}
+
 const messagePrefix = "\x19Ethereum Signed Message:\n";
 function hashMessage(message) {
     if (typeof (message) === "string") {
@@ -11446,13 +11563,443 @@ function hashMessage(message) {
     ]));
 }
 
-var lib_esm$1 = /*#__PURE__*/Object.freeze({
-	isValidName: isValidName,
-	namehash: namehash,
-	id: id,
-	messagePrefix: messagePrefix,
-	hashMessage: hashMessage
-});
+var __awaiter$1 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+const logger$h = new Logger$7(version$k);
+const padding = new Uint8Array(32);
+padding.fill(0);
+const NegativeOne$2 = BigNumber.from(-1);
+const Zero$2 = BigNumber.from(0);
+const One$1 = BigNumber.from(1);
+const MaxUint256$1 = BigNumber.from("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+function hexPadRight(value) {
+    const bytes = arrayify$5(value);
+    const padOffset = bytes.length % 32;
+    if (padOffset) {
+        return hexConcat$5([bytes, padding.slice(padOffset)]);
+    }
+    return hexlify$5(bytes);
+}
+const hexTrue = hexZeroPad$5(One$1.toHexString(), 32);
+const hexFalse = hexZeroPad$5(Zero$2.toHexString(), 32);
+const domainFieldTypes = {
+    name: "string",
+    version: "string",
+    chainId: "uint256",
+    verifyingContract: "address",
+    salt: "bytes32"
+};
+const domainFieldNames = [
+    "name", "version", "chainId", "verifyingContract", "salt"
+];
+function checkString(key) {
+    return function (value) {
+        if (typeof (value) !== "string") {
+            logger$h.throwArgumentError(`invalid domain value for ${JSON.stringify(key)}`, `domain.${key}`, value);
+        }
+        return value;
+    };
+}
+const domainChecks = {
+    name: checkString("name"),
+    version: checkString("version"),
+    chainId: function (value) {
+        try {
+            return BigNumber.from(value).toString();
+        }
+        catch (error) { }
+        return logger$h.throwArgumentError(`invalid domain value for "chainId"`, "domain.chainId", value);
+    },
+    verifyingContract: function (value) {
+        try {
+            return getAddress(value).toLowerCase();
+        }
+        catch (error) { }
+        return logger$h.throwArgumentError(`invalid domain value "verifyingContract"`, "domain.verifyingContract", value);
+    },
+    salt: function (value) {
+        try {
+            const bytes = arrayify$5(value);
+            if (bytes.length !== 32) {
+                throw new Error("bad length");
+            }
+            return hexlify$5(bytes);
+        }
+        catch (error) { }
+        return logger$h.throwArgumentError(`invalid domain value "salt"`, "domain.salt", value);
+    }
+};
+function getBaseEncoder(type) {
+    // intXX and uintXX
+    {
+        const match = type.match(/^(u?)int(\d*)$/);
+        if (match) {
+            const signed = (match[1] === "");
+            const width = parseInt(match[2] || "256");
+            if (width % 8 !== 0 || width > 256 || (match[2] && match[2] !== String(width))) {
+                logger$h.throwArgumentError("invalid numeric width", "type", type);
+            }
+            const boundsUpper = MaxUint256$1.mask(signed ? (width - 1) : width);
+            const boundsLower = signed ? boundsUpper.add(One$1).mul(NegativeOne$2) : Zero$2;
+            return function (value) {
+                const v = BigNumber.from(value);
+                if (v.lt(boundsLower) || v.gt(boundsUpper)) {
+                    logger$h.throwArgumentError(`value out-of-bounds for ${type}`, "value", value);
+                }
+                return hexZeroPad$5(v.toTwos(256).toHexString(), 32);
+            };
+        }
+    }
+    // bytesXX
+    {
+        const match = type.match(/^bytes(\d+)$/);
+        if (match) {
+            const width = parseInt(match[1]);
+            if (width === 0 || width > 32 || match[1] !== String(width)) {
+                logger$h.throwArgumentError("invalid bytes width", "type", type);
+            }
+            return function (value) {
+                const bytes = arrayify$5(value);
+                if (bytes.length !== width) {
+                    logger$h.throwArgumentError(`invalid length for ${type}`, "value", value);
+                }
+                return hexPadRight(value);
+            };
+        }
+    }
+    switch (type) {
+        case "address": return function (value) {
+            return hexZeroPad$5(getAddress(value), 32);
+        };
+        case "bool": return function (value) {
+            return ((!value) ? hexFalse : hexTrue);
+        };
+        case "bytes": return function (value) {
+            return keccak256$1(value);
+        };
+        case "string": return function (value) {
+            return id(value);
+        };
+    }
+    return null;
+}
+function encodeType(name, fields) {
+    return `${name}(${fields.map(({ name, type }) => (type + " " + name)).join(",")})`;
+}
+class TypedDataEncoder {
+    constructor(types) {
+        defineReadOnly(this, "types", Object.freeze(deepCopy(types)));
+        defineReadOnly(this, "_encoderCache", {});
+        defineReadOnly(this, "_types", {});
+        // Link struct types to their direct child structs
+        const links = {};
+        // Link structs to structs which contain them as a child
+        const parents = {};
+        // Link all subtypes within a given struct
+        const subtypes = {};
+        Object.keys(types).forEach((type) => {
+            links[type] = {};
+            parents[type] = [];
+            subtypes[type] = {};
+        });
+        for (const name in types) {
+            const uniqueNames = {};
+            types[name].forEach((field) => {
+                // Check each field has a unique name
+                if (uniqueNames[field.name]) {
+                    logger$h.throwArgumentError(`duplicate variable name ${JSON.stringify(field.name)} in ${JSON.stringify(name)}`, "types", types);
+                }
+                uniqueNames[field.name] = true;
+                // Get the base type (drop any array specifiers)
+                const baseType = field.type.match(/^([^\x5b]*)(\x5b|$)/)[1];
+                if (baseType === name) {
+                    logger$h.throwArgumentError(`circular type reference to ${JSON.stringify(baseType)}`, "types", types);
+                }
+                // Is this a base encoding type?
+                const encoder = getBaseEncoder(baseType);
+                if (encoder) {
+                    return;
+                }
+                if (!parents[baseType]) {
+                    logger$h.throwArgumentError(`unknown type ${JSON.stringify(baseType)}`, "types", types);
+                }
+                // Add linkage
+                parents[baseType].push(name);
+                links[name][baseType] = true;
+            });
+        }
+        // Deduce the primary type
+        const primaryTypes = Object.keys(parents).filter((n) => (parents[n].length === 0));
+        if (primaryTypes.length === 0) {
+            logger$h.throwArgumentError("missing primary type", "types", types);
+        }
+        else if (primaryTypes.length > 1) {
+            logger$h.throwArgumentError(`ambiguous primary types or unused types: ${primaryTypes.map((t) => (JSON.stringify(t))).join(", ")}`, "types", types);
+        }
+        defineReadOnly(this, "primaryType", primaryTypes[0]);
+        // Check for circular type references
+        function checkCircular(type, found) {
+            if (found[type]) {
+                logger$h.throwArgumentError(`circular type reference to ${JSON.stringify(type)}`, "types", types);
+            }
+            found[type] = true;
+            Object.keys(links[type]).forEach((child) => {
+                if (!parents[child]) {
+                    return;
+                }
+                // Recursively check children
+                checkCircular(child, found);
+                // Mark all ancestors as having this decendant
+                Object.keys(found).forEach((subtype) => {
+                    subtypes[subtype][child] = true;
+                });
+            });
+            delete found[type];
+        }
+        checkCircular(this.primaryType, {});
+        // Compute each fully describe type
+        for (const name in subtypes) {
+            const st = Object.keys(subtypes[name]);
+            st.sort();
+            this._types[name] = encodeType(name, types[name]) + st.map((t) => encodeType(t, types[t])).join("");
+        }
+    }
+    getEncoder(type) {
+        let encoder = this._encoderCache[type];
+        if (!encoder) {
+            encoder = this._encoderCache[type] = this._getEncoder(type);
+        }
+        return encoder;
+    }
+    _getEncoder(type) {
+        // Basic encoder type (address, bool, uint256, etc)
+        {
+            const encoder = getBaseEncoder(type);
+            if (encoder) {
+                return encoder;
+            }
+        }
+        // Array
+        const match = type.match(/^(.*)(\x5b(\d*)\x5d)$/);
+        if (match) {
+            const subtype = match[1];
+            const subEncoder = this.getEncoder(subtype);
+            const length = parseInt(match[3]);
+            return (value) => {
+                if (length >= 0 && value.length !== length) {
+                    logger$h.throwArgumentError("array length mismatch; expected length ${ arrayLength }", "value", value);
+                }
+                let result = value.map(subEncoder);
+                if (this._types[subtype]) {
+                    result = result.map(keccak256$1);
+                }
+                return keccak256$1(hexConcat$5(result));
+            };
+        }
+        // Struct
+        const fields = this.types[type];
+        if (fields) {
+            const encodedType = id(this._types[type]);
+            return (value) => {
+                const values = fields.map(({ name, type }) => {
+                    const result = this.getEncoder(type)(value[name]);
+                    if (this._types[type]) {
+                        return keccak256$1(result);
+                    }
+                    return result;
+                });
+                values.unshift(encodedType);
+                return hexConcat$5(values);
+            };
+        }
+        return logger$h.throwArgumentError(`unknown type: ${type}`, "type", type);
+    }
+    encodeType(name) {
+        const result = this._types[name];
+        if (!result) {
+            logger$h.throwArgumentError(`unknown type: ${JSON.stringify(name)}`, "name", name);
+        }
+        return result;
+    }
+    encodeData(type, value) {
+        return this.getEncoder(type)(value);
+    }
+    hashStruct(name, value) {
+        return keccak256$1(this.encodeData(name, value));
+    }
+    encode(value) {
+        return this.encodeData(this.primaryType, value);
+    }
+    hash(value) {
+        return this.hashStruct(this.primaryType, value);
+    }
+    _visit(type, value, callback) {
+        // Basic encoder type (address, bool, uint256, etc)
+        {
+            const encoder = getBaseEncoder(type);
+            if (encoder) {
+                return callback(type, value);
+            }
+        }
+        // Array
+        const match = type.match(/^(.*)(\x5b(\d*)\x5d)$/);
+        if (match) {
+            const subtype = match[1];
+            const length = parseInt(match[3]);
+            if (length >= 0 && value.length !== length) {
+                logger$h.throwArgumentError("array length mismatch; expected length ${ arrayLength }", "value", value);
+            }
+            return value.map((v) => this._visit(subtype, v, callback));
+        }
+        // Struct
+        const fields = this.types[type];
+        if (fields) {
+            return fields.reduce((accum, { name, type }) => {
+                accum[name] = this._visit(type, value[name], callback);
+                return accum;
+            }, {});
+        }
+        return logger$h.throwArgumentError(`unknown type: ${type}`, "type", type);
+    }
+    visit(value, callback) {
+        return this._visit(this.primaryType, value, callback);
+    }
+    static from(types) {
+        return new TypedDataEncoder(types);
+    }
+    static getPrimaryType(types) {
+        return TypedDataEncoder.from(types).primaryType;
+    }
+    static hashStruct(name, types, value) {
+        return TypedDataEncoder.from(types).hashStruct(name, value);
+    }
+    static hashDomain(domain) {
+        const domainFields = [];
+        for (const name in domain) {
+            const type = domainFieldTypes[name];
+            if (!type) {
+                logger$h.throwArgumentError(`invalid typed-data domain key: ${JSON.stringify(name)}`, "domain", domain);
+            }
+            domainFields.push({ name, type });
+        }
+        domainFields.sort((a, b) => {
+            return domainFieldNames.indexOf(a.name) - domainFieldNames.indexOf(b.name);
+        });
+        return TypedDataEncoder.hashStruct("EIP712Domain", { EIP712Domain: domainFields }, domain);
+    }
+    static encode(domain, types, value) {
+        return hexConcat$5([
+            "0x1901",
+            TypedDataEncoder.hashDomain(domain),
+            TypedDataEncoder.from(types).hash(value)
+        ]);
+    }
+    static hash(domain, types, value) {
+        return keccak256$1(TypedDataEncoder.encode(domain, types, value));
+    }
+    // Replaces all address types with ENS names with their looked up address
+    static resolveNames(domain, types, value, resolveName) {
+        return __awaiter$1(this, void 0, void 0, function* () {
+            // Make a copy to isolate it from the object passed in
+            domain = shallowCopy(domain);
+            // Look up all ENS names
+            const ensCache = {};
+            // Do we need to look up the domain's verifyingContract?
+            if (domain.verifyingContract && !isHexString$5(domain.verifyingContract, 20)) {
+                ensCache[domain.verifyingContract] = "0x";
+            }
+            // We are going to use the encoder to visit all the base values
+            const encoder = TypedDataEncoder.from(types);
+            // Get a list of all the addresses
+            encoder.visit(value, (type, value) => {
+                if (type === "address" && !isHexString$5(value, 20)) {
+                    ensCache[value] = "0x";
+                }
+                return value;
+            });
+            // Lookup each name
+            for (const name in ensCache) {
+                ensCache[name] = yield resolveName(name);
+            }
+            // Replace the domain verifyingContract if needed
+            if (domain.verifyingContract && ensCache[domain.verifyingContract]) {
+                domain.verifyingContract = ensCache[domain.verifyingContract];
+            }
+            // Replace all ENS names with their address
+            value = encoder.visit(value, (type, value) => {
+                if (type === "address" && ensCache[value]) {
+                    return ensCache[value];
+                }
+                return value;
+            });
+            return { domain, value };
+        });
+    }
+    static getPayload(domain, types, value) {
+        // Validate the domain fields
+        TypedDataEncoder.hashDomain(domain);
+        // Derive the EIP712Domain Struct reference type
+        const domainValues = {};
+        const domainTypes = [];
+        domainFieldNames.forEach((name) => {
+            const value = domain[name];
+            if (value == null) {
+                return;
+            }
+            domainValues[name] = domainChecks[name](value);
+            domainTypes.push({ name, type: domainFieldTypes[name] });
+        });
+        const encoder = TypedDataEncoder.from(types);
+        const typesWithDomain = shallowCopy(types);
+        if (typesWithDomain.EIP712Domain) {
+            typesWithDomain.EIP712Domain = domainTypes;
+        }
+        // Validate the data structures and types
+        encoder.encode(value);
+        return {
+            types: typesWithDomain,
+            domain: domainValues,
+            primaryType: encoder.primaryType,
+            message: encoder.visit(value, (type, value) => {
+                // bytes
+                if (type.match(/^bytes(\d*)/)) {
+                    return hexlify$5(arrayify$5(value));
+                }
+                // uint or int
+                if (type.match(/^u?int/)) {
+                    let prefix = "";
+                    let v = BigNumber.from(value);
+                    if (v.isNegative()) {
+                        prefix = "-";
+                        v = v.mul(-1);
+                    }
+                    return prefix + hexValue$5(v.toHexString());
+                }
+                switch (type) {
+                    case "address":
+                        return value.toLowerCase();
+                    case "bool":
+                        return !!value;
+                    case "string":
+                        if (typeof (value) !== "string") {
+                            logger$h.throwArgumentError(`invalid string`, "value", value);
+                        }
+                        return value;
+                }
+                return logger$h.throwArgumentError("unsupported type", "type", type);
+            })
+        };
+    }
+}
+
+"use strict";
 
 "use strict";
 function keccak256$2(data) {
@@ -11460,7 +12007,7 @@ function keccak256$2(data) {
 }
 
 "use strict";
-const logger$h = new Logger$3(version$7);
+const logger$i = new Logger$3(version$7);
 class LogDescription extends Description {
 }
 class TransactionDescription extends Description {
@@ -11490,7 +12037,7 @@ function checkNames(fragment: Fragment, type: "input" | "output", params: Array<
 */
 class Interface {
     constructor(fragments) {
-        logger$h.checkNew(new.target, Interface);
+        logger$i.checkNew(new.target, Interface);
         let abi = [];
         if (typeof (fragments) === "string") {
             abi = JSON.parse(fragments);
@@ -11512,7 +12059,7 @@ class Interface {
             switch (fragment.type) {
                 case "constructor":
                     if (this.deploy) {
-                        logger$h.warn("duplicate definition - constructor");
+                        logger$i.warn("duplicate definition - constructor");
                         return;
                     }
                     //checkNames(fragment, "input", fragment.inputs);
@@ -11532,7 +12079,7 @@ class Interface {
             }
             let signature = fragment.format();
             if (bucket[signature]) {
-                logger$h.warn("duplicate definition - " + signature);
+                logger$i.warn("duplicate definition - " + signature);
                 return;
             }
             bucket[signature] = fragment;
@@ -11551,7 +12098,7 @@ class Interface {
             format = FormatTypes.full;
         }
         if (format === FormatTypes.sighash) {
-            logger$h.throwArgumentError("interface does not support formatting sighash", "format", format);
+            logger$i.throwArgumentError("interface does not support formatting sighash", "format", format);
         }
         const abi = this.fragments.map((fragment) => fragment.format(format));
         // We need to re-bundle the JSON fragments a bit
@@ -11581,24 +12128,24 @@ class Interface {
                     return this.functions[name];
                 }
             }
-            logger$h.throwArgumentError("no matching function", "sighash", nameOrSignatureOrSighash);
+            logger$i.throwArgumentError("no matching function", "sighash", nameOrSignatureOrSighash);
         }
         // It is a bare name, look up the function (will return null if ambiguous)
         if (nameOrSignatureOrSighash.indexOf("(") === -1) {
             const name = nameOrSignatureOrSighash.trim();
             const matching = Object.keys(this.functions).filter((f) => (f.split("(" /* fix:) */)[0] === name));
             if (matching.length === 0) {
-                logger$h.throwArgumentError("no matching function", "name", name);
+                logger$i.throwArgumentError("no matching function", "name", name);
             }
             else if (matching.length > 1) {
-                logger$h.throwArgumentError("multiple matching functions", "name", name);
+                logger$i.throwArgumentError("multiple matching functions", "name", name);
             }
             return this.functions[matching[0]];
         }
         // Normlize the signature and lookup the function
         const result = this.functions[FunctionFragment.fromString(nameOrSignatureOrSighash).format()];
         if (!result) {
-            logger$h.throwArgumentError("no matching function", "signature", nameOrSignatureOrSighash);
+            logger$i.throwArgumentError("no matching function", "signature", nameOrSignatureOrSighash);
         }
         return result;
     }
@@ -11611,24 +12158,24 @@ class Interface {
                     return this.events[name];
                 }
             }
-            logger$h.throwArgumentError("no matching event", "topichash", topichash);
+            logger$i.throwArgumentError("no matching event", "topichash", topichash);
         }
         // It is a bare name, look up the function (will return null if ambiguous)
         if (nameOrSignatureOrTopic.indexOf("(") === -1) {
             const name = nameOrSignatureOrTopic.trim();
             const matching = Object.keys(this.events).filter((f) => (f.split("(" /* fix:) */)[0] === name));
             if (matching.length === 0) {
-                logger$h.throwArgumentError("no matching event", "name", name);
+                logger$i.throwArgumentError("no matching event", "name", name);
             }
             else if (matching.length > 1) {
-                logger$h.throwArgumentError("multiple matching events", "name", name);
+                logger$i.throwArgumentError("multiple matching events", "name", name);
             }
             return this.events[matching[0]];
         }
         // Normlize the signature and lookup the function
         const result = this.events[EventFragment.fromString(nameOrSignatureOrTopic).format()];
         if (!result) {
-            logger$h.throwArgumentError("no matching event", "signature", nameOrSignatureOrTopic);
+            logger$i.throwArgumentError("no matching event", "signature", nameOrSignatureOrTopic);
         }
         return result;
     }
@@ -11662,7 +12209,7 @@ class Interface {
         }
         const bytes = arrayify$1(data);
         if (hexlify$1(bytes.slice(0, 4)) !== this.getSighash(functionFragment)) {
-            logger$h.throwArgumentError(`data signature does not match function ${functionFragment.name}.`, "data", hexlify$1(bytes));
+            logger$i.throwArgumentError(`data signature does not match function ${functionFragment.name}.`, "data", hexlify$1(bytes));
         }
         return this._decodeParams(functionFragment.inputs, bytes.slice(4));
     }
@@ -11698,7 +12245,7 @@ class Interface {
                 }
                 break;
         }
-        return logger$h.throwError("call revert exception", Logger$3.errors.CALL_EXCEPTION, {
+        return logger$i.throwError("call revert exception", Logger$3.errors.CALL_EXCEPTION, {
             method: functionFragment.format(),
             errorSignature: errorSignature,
             errorArgs: [reason],
@@ -11718,7 +12265,7 @@ class Interface {
             eventFragment = this.getEvent(eventFragment);
         }
         if (values.length > eventFragment.inputs.length) {
-            logger$h.throwError("too many arguments for " + eventFragment.format(), Logger$3.errors.UNEXPECTED_ARGUMENT, {
+            logger$i.throwError("too many arguments for " + eventFragment.format(), Logger$3.errors.UNEXPECTED_ARGUMENT, {
                 argument: "values",
                 value: values
             });
@@ -11744,7 +12291,7 @@ class Interface {
             let param = eventFragment.inputs[index];
             if (!param.indexed) {
                 if (value != null) {
-                    logger$h.throwArgumentError("cannot filter non-indexed parameters; must be null", ("contract." + param.name), value);
+                    logger$i.throwArgumentError("cannot filter non-indexed parameters; must be null", ("contract." + param.name), value);
                 }
                 return;
             }
@@ -11752,7 +12299,7 @@ class Interface {
                 topics.push(null);
             }
             else if (param.baseType === "array" || param.baseType === "tuple") {
-                logger$h.throwArgumentError("filtering with tuples or arrays not supported", ("contract." + param.name), value);
+                logger$i.throwArgumentError("filtering with tuples or arrays not supported", ("contract." + param.name), value);
             }
             else if (Array.isArray(value)) {
                 topics.push(value.map((value) => encodeTopic(param, value)));
@@ -11778,7 +12325,7 @@ class Interface {
             topics.push(this.getEventTopic(eventFragment));
         }
         if (values.length !== eventFragment.inputs.length) {
-            logger$h.throwArgumentError("event arguments/values mismatch", "values", values);
+            logger$i.throwArgumentError("event arguments/values mismatch", "values", values);
         }
         eventFragment.inputs.forEach((param, index) => {
             const value = values[index];
@@ -11815,7 +12362,7 @@ class Interface {
         if (topics != null && !eventFragment.anonymous) {
             let topicHash = this.getEventTopic(eventFragment);
             if (!isHexString$1(topics[0], 32) || topics[0].toLowerCase() !== topicHash) {
-                logger$h.throwError("fragment/topic mismatch", Logger$3.errors.INVALID_ARGUMENT, { argument: "topics[0]", expected: topicHash, value: topics[0] });
+                logger$i.throwError("fragment/topic mismatch", Logger$3.errors.INVALID_ARGUMENT, { argument: "topics[0]", expected: topicHash, value: topics[0] });
             }
             topics = topics.slice(1);
         }
@@ -11966,10 +12513,10 @@ class Interface {
  * @date 2020
  */
 'use strict';
-const logger$i = new Logger$1('abi');
+const logger$j = new Logger$1('abi');
 class Interface$1 extends Interface {
     constructor(fragments) {
-        logger$i.checkNew(new.target, Interface$1);
+        logger$j.checkNew(new.target, Interface$1);
         super(fragments);
     }
     _formatParamType(data, result) {
@@ -12016,7 +12563,7 @@ class Interface$1 extends Interface {
         const inputs = functionFragment.inputs;
         const functionData = super.decodeFunctionData(functionFragment, data);
         if (inputs.length !== functionData.length) {
-            logger$i.throwError("inputs/values length mismatch", Logger$1.errors.INVALID_ARGUMENT, {
+            logger$j.throwError("inputs/values length mismatch", Logger$1.errors.INVALID_ARGUMENT, {
                 count: { types: inputs.length, values: functionData.length },
                 value: { types: inputs, values: functionData }
             });
@@ -12032,7 +12579,7 @@ class Interface$1 extends Interface {
         const outputs = functionFragment.outputs;
         const functionResult = super.decodeFunctionResult(functionFragment, data);
         if (outputs.length !== functionResult.length) {
-            logger$i.throwError("outputs/values length mismatch", Logger$1.errors.INVALID_ARGUMENT, {
+            logger$j.throwError("outputs/values length mismatch", Logger$1.errors.INVALID_ARGUMENT, {
                 count: { types: outputs.length, values: functionResult.length },
                 value: { types: outputs, values: functionResult }
             });
@@ -12047,7 +12594,7 @@ class Interface$1 extends Interface {
         }
         const eventLog = super.decodeEventLog(eventFragment, data, topics);
         if (eventFragment.inputs.length !== eventLog.length) {
-            logger$i.throwError("inputs/values length mismatch", Logger$1.errors.INVALID_ARGUMENT, {
+            logger$j.throwError("inputs/values length mismatch", Logger$1.errors.INVALID_ARGUMENT, {
                 count: { types: eventFragment.inputs.length, values: eventLog.length },
                 value: { types: eventFragment.inputs, values: eventLog }
             });
@@ -12061,7 +12608,7 @@ class Interface$1 extends Interface {
 const version$l = "bytes/5.0.3";
 
 "use strict";
-const logger$j = new Logger$1(version$l);
+const logger$k = new Logger$1(version$l);
 ///////////////////////////////
 function isHexable$6(value) {
     return !!(value.toHexString);
@@ -12105,7 +12652,7 @@ function arrayify$6(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$j.checkSafeUint53(value, "invalid arrayify value");
+        logger$k.checkSafeUint53(value, "invalid arrayify value");
         const result = [];
         while (value) {
             result.unshift(value & 0xff);
@@ -12132,7 +12679,7 @@ function arrayify$6(value, options) {
                 hex += "0";
             }
             else {
-                logger$j.throwArgumentError("hex data is odd-length", "value", value);
+                logger$k.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         const result = [];
@@ -12144,7 +12691,7 @@ function arrayify$6(value, options) {
     if (isBytes$6(value)) {
         return addSlice$6(new Uint8Array(value));
     }
-    return logger$j.throwArgumentError("invalid arrayify value", "value", value);
+    return logger$k.throwArgumentError("invalid arrayify value", "value", value);
 }
 function concat$6(items) {
     const objects = items.map(item => arrayify$6(item));
@@ -12175,7 +12722,7 @@ function stripZeros$6(value) {
 function zeroPad$6(value, length) {
     value = arrayify$6(value);
     if (value.length > length) {
-        logger$j.throwArgumentError("value out of range", "value", arguments[0]);
+        logger$k.throwArgumentError("value out of range", "value", arguments[0]);
     }
     const result = new Uint8Array(length);
     result.set(value, length - value.length);
@@ -12196,7 +12743,7 @@ function hexlify$6(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$j.checkSafeUint53(value, "invalid hexlify value");
+        logger$k.checkSafeUint53(value, "invalid hexlify value");
         let hex = "";
         while (value) {
             hex = HexCharacters$6[value & 0x0f] + hex;
@@ -12225,7 +12772,7 @@ function hexlify$6(value, options) {
                 value += "0";
             }
             else {
-                logger$j.throwArgumentError("hex data is odd-length", "value", value);
+                logger$k.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         return value.toLowerCase();
@@ -12238,7 +12785,7 @@ function hexlify$6(value, options) {
         }
         return result;
     }
-    return logger$j.throwArgumentError("invalid hexlify value", "value", value);
+    return logger$k.throwArgumentError("invalid hexlify value", "value", value);
 }
 /*
 function unoddify(value: BytesLike | Hexable | number): BytesLike | Hexable | number {
@@ -12262,7 +12809,7 @@ function hexDataSlice$6(data, offset, endOffset) {
         data = hexlify$6(data);
     }
     else if (!isHexString$6(data) || (data.length % 2)) {
-        logger$j.throwArgumentError("invalid hexData", "value", data);
+        logger$k.throwArgumentError("invalid hexData", "value", data);
     }
     offset = 2 + 2 * offset;
     if (endOffset != null) {
@@ -12289,7 +12836,7 @@ function hexStripZeros$6(value) {
         value = hexlify$6(value);
     }
     if (!isHexString$6(value)) {
-        logger$j.throwArgumentError("invalid hex string", "value", value);
+        logger$k.throwArgumentError("invalid hex string", "value", value);
     }
     value = value.substring(2);
     let offset = 0;
@@ -12303,10 +12850,10 @@ function hexZeroPad$6(value, length) {
         value = hexlify$6(value);
     }
     else if (!isHexString$6(value)) {
-        logger$j.throwArgumentError("invalid hex string", "value", value);
+        logger$k.throwArgumentError("invalid hex string", "value", value);
     }
     if (value.length > 2 * length + 2) {
-        logger$j.throwArgumentError("value out of range", "value", arguments[1]);
+        logger$k.throwArgumentError("value out of range", "value", arguments[1]);
     }
     while (value.length < 2 * length + 2) {
         value = "0x0" + value.substring(2);
@@ -12324,7 +12871,7 @@ function splitSignature$6(signature) {
     if (isBytesLike$6(signature)) {
         const bytes = arrayify$6(signature);
         if (bytes.length !== 65) {
-            logger$j.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
+            logger$k.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
         }
         // Get the r, s and v
         result.r = hexlify$6(bytes.slice(0, 32));
@@ -12336,7 +12883,7 @@ function splitSignature$6(signature) {
                 result.v += 27;
             }
             else {
-                logger$j.throwArgumentError("signature invalid v byte", "signature", signature);
+                logger$k.throwArgumentError("signature invalid v byte", "signature", signature);
             }
         }
         // Compute recoveryParam from v
@@ -12364,7 +12911,7 @@ function splitSignature$6(signature) {
                 result.recoveryParam = recoveryParam;
             }
             else if (result.recoveryParam !== recoveryParam) {
-                logger$j.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
+                logger$k.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
             }
             // Set or check the s
             vs[0] &= 0x7f;
@@ -12373,13 +12920,13 @@ function splitSignature$6(signature) {
                 result.s = s;
             }
             else if (result.s !== s) {
-                logger$j.throwArgumentError("signature v mismatch _vs", "signature", signature);
+                logger$k.throwArgumentError("signature v mismatch _vs", "signature", signature);
             }
         }
         // Use recid and v to populate each other
         if (result.recoveryParam == null) {
             if (result.v == null) {
-                logger$j.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
+                logger$k.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
             }
             else {
                 result.recoveryParam = 1 - (result.v % 2);
@@ -12390,24 +12937,24 @@ function splitSignature$6(signature) {
                 result.v = 27 + result.recoveryParam;
             }
             else if (result.recoveryParam !== (1 - (result.v % 2))) {
-                logger$j.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
+                logger$k.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
             }
         }
         if (result.r == null || !isHexString$6(result.r)) {
-            logger$j.throwArgumentError("signature missing or invalid r", "signature", signature);
+            logger$k.throwArgumentError("signature missing or invalid r", "signature", signature);
         }
         else {
             result.r = hexZeroPad$6(result.r, 32);
         }
         if (result.s == null || !isHexString$6(result.s)) {
-            logger$j.throwArgumentError("signature missing or invalid s", "signature", signature);
+            logger$k.throwArgumentError("signature missing or invalid s", "signature", signature);
         }
         else {
             result.s = hexZeroPad$6(result.s, 32);
         }
         const vs = arrayify$6(result.s);
         if (vs[0] >= 128) {
-            logger$j.throwArgumentError("signature s out of range", "signature", signature);
+            logger$k.throwArgumentError("signature s out of range", "signature", signature);
         }
         if (result.recoveryParam) {
             vs[0] |= 0x80;
@@ -12415,7 +12962,7 @@ function splitSignature$6(signature) {
         const _vs = hexlify$6(vs);
         if (result._vs) {
             if (!isHexString$6(result._vs)) {
-                logger$j.throwArgumentError("signature invalid _vs", "signature", signature);
+                logger$k.throwArgumentError("signature invalid _vs", "signature", signature);
             }
             result._vs = hexZeroPad$6(result._vs, 32);
         }
@@ -12424,7 +12971,7 @@ function splitSignature$6(signature) {
             result._vs = _vs;
         }
         else if (result._vs !== _vs) {
-            logger$j.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
+            logger$k.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
         }
     }
     return result;
@@ -12460,7 +13007,7 @@ function joinSignature$6(signature) {
  * @date 2020
  */
 'use strict';
-const logger$k = new Logger$1('abstract-provider');
+const logger$l = new Logger$1('abstract-provider');
 ;
 ;
 //export type CallTransactionable = {
@@ -12474,7 +13021,7 @@ class ForkEvent extends Description {
 class BlockForkEvent extends ForkEvent {
     constructor(blockHash, expiry) {
         if (!isHexString$6(blockHash, 32)) {
-            logger$k.throwArgumentError('invalid blockHash', 'blockHash', blockHash);
+            logger$l.throwArgumentError('invalid blockHash', 'blockHash', blockHash);
         }
         super({
             _isForkEvent: true,
@@ -12487,7 +13034,7 @@ class BlockForkEvent extends ForkEvent {
 class TransactionForkEvent extends ForkEvent {
     constructor(hash, expiry) {
         if (!isHexString$6(hash, 32)) {
-            logger$k.throwArgumentError('invalid transaction hash', 'hash', hash);
+            logger$l.throwArgumentError('invalid transaction hash', 'hash', hash);
         }
         super({
             _isForkEvent: true,
@@ -12500,10 +13047,10 @@ class TransactionForkEvent extends ForkEvent {
 class TransactionOrderForkEvent extends ForkEvent {
     constructor(beforeHash, afterHash, expiry) {
         if (!isHexString$6(beforeHash, 32)) {
-            logger$k.throwArgumentError('invalid transaction hash', 'beforeHash', beforeHash);
+            logger$l.throwArgumentError('invalid transaction hash', 'beforeHash', beforeHash);
         }
         if (!isHexString$6(afterHash, 32)) {
-            logger$k.throwArgumentError('invalid transaction hash', 'afterHash', afterHash);
+            logger$l.throwArgumentError('invalid transaction hash', 'afterHash', afterHash);
         }
         super({
             _isForkEvent: true,
@@ -12518,7 +13065,7 @@ class TransactionOrderForkEvent extends ForkEvent {
 // Exported Abstracts
 class Provider {
     constructor() {
-        logger$k.checkAbstract(new.target, Provider);
+        logger$l.checkAbstract(new.target, Provider);
         defineReadOnly(this, '_isProvider', true);
     }
     // Alias for 'on'
@@ -12562,7 +13109,7 @@ var Chain;
     Chain[Chain["ANTFIN"] = 2] = "ANTFIN";
 })(Chain || (Chain = {}));
 
-const version$m = "logger/5.0.5";
+const version$m = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$8 = false;
@@ -12853,14 +13400,17 @@ class Logger$8 {
         }
         _logLevel$8 = level;
     }
+    static from(version) {
+        return new Logger$8(version);
+    }
 }
 Logger$8.errors = ErrorCode$8;
 Logger$8.levels = LogLevel$8;
 
-const version$n = "networks/5.0.3";
+const version$n = "networks/5.0.6";
 
 "use strict";
-const logger$l = new Logger$8(version$n);
+const logger$m = new Logger$8(version$n);
 ;
 function isRenetworkable(value) {
     return (value && typeof (value.renetwork) === "function");
@@ -13036,13 +13586,13 @@ function getNetwork(network) {
     // Not a standard network; check that it is a valid network in general
     if (!standard) {
         if (typeof (network.chainId) !== "number") {
-            logger$l.throwArgumentError("invalid network chainId", "network", network);
+            logger$m.throwArgumentError("invalid network chainId", "network", network);
         }
         return network;
     }
     // Make sure the chainId matches the expected network chainId (or is 0; disable EIP-155)
     if (network.chainId !== 0 && network.chainId !== standard.chainId) {
-        logger$l.throwArgumentError("network chainId mismatch", "network", network);
+        logger$m.throwArgumentError("network chainId mismatch", "network", network);
     }
     // @TODO: In the next major version add an attach function to a defaultProvider
     // class and move the _defaultProvider internal to this file (extend Network)
@@ -13064,7 +13614,7 @@ function getNetwork(network) {
     };
 }
 
-const version$o = "logger/5.0.5";
+const version$o = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$9 = false;
@@ -13355,14 +13905,17 @@ class Logger$9 {
         }
         _logLevel$9 = level;
     }
+    static from(version) {
+        return new Logger$9(version);
+    }
 }
 Logger$9.errors = ErrorCode$9;
 Logger$9.levels = LogLevel$9;
 
-const version$p = "bytes/5.0.4";
+const version$p = "bytes/5.0.7";
 
 "use strict";
-const logger$m = new Logger$9(version$p);
+const logger$n = new Logger$9(version$p);
 ///////////////////////////////
 function isHexable$7(value) {
     return !!(value.toHexString);
@@ -13406,7 +13959,7 @@ function arrayify$7(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$m.checkSafeUint53(value, "invalid arrayify value");
+        logger$n.checkSafeUint53(value, "invalid arrayify value");
         const result = [];
         while (value) {
             result.unshift(value & 0xff);
@@ -13433,7 +13986,7 @@ function arrayify$7(value, options) {
                 hex += "0";
             }
             else {
-                logger$m.throwArgumentError("hex data is odd-length", "value", value);
+                logger$n.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         const result = [];
@@ -13445,7 +13998,7 @@ function arrayify$7(value, options) {
     if (isBytes$7(value)) {
         return addSlice$7(new Uint8Array(value));
     }
-    return logger$m.throwArgumentError("invalid arrayify value", "value", value);
+    return logger$n.throwArgumentError("invalid arrayify value", "value", value);
 }
 function concat$7(items) {
     const objects = items.map(item => arrayify$7(item));
@@ -13476,7 +14029,7 @@ function stripZeros$7(value) {
 function zeroPad$7(value, length) {
     value = arrayify$7(value);
     if (value.length > length) {
-        logger$m.throwArgumentError("value out of range", "value", arguments[0]);
+        logger$n.throwArgumentError("value out of range", "value", arguments[0]);
     }
     const result = new Uint8Array(length);
     result.set(value, length - value.length);
@@ -13497,7 +14050,7 @@ function hexlify$7(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$m.checkSafeUint53(value, "invalid hexlify value");
+        logger$n.checkSafeUint53(value, "invalid hexlify value");
         let hex = "";
         while (value) {
             hex = HexCharacters$7[value & 0x0f] + hex;
@@ -13526,7 +14079,7 @@ function hexlify$7(value, options) {
                 value += "0";
             }
             else {
-                logger$m.throwArgumentError("hex data is odd-length", "value", value);
+                logger$n.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         return value.toLowerCase();
@@ -13539,7 +14092,7 @@ function hexlify$7(value, options) {
         }
         return result;
     }
-    return logger$m.throwArgumentError("invalid hexlify value", "value", value);
+    return logger$n.throwArgumentError("invalid hexlify value", "value", value);
 }
 /*
 function unoddify(value: BytesLike | Hexable | number): BytesLike | Hexable | number {
@@ -13563,7 +14116,7 @@ function hexDataSlice$7(data, offset, endOffset) {
         data = hexlify$7(data);
     }
     else if (!isHexString$7(data) || (data.length % 2)) {
-        logger$m.throwArgumentError("invalid hexData", "value", data);
+        logger$n.throwArgumentError("invalid hexData", "value", data);
     }
     offset = 2 + 2 * offset;
     if (endOffset != null) {
@@ -13590,7 +14143,7 @@ function hexStripZeros$7(value) {
         value = hexlify$7(value);
     }
     if (!isHexString$7(value)) {
-        logger$m.throwArgumentError("invalid hex string", "value", value);
+        logger$n.throwArgumentError("invalid hex string", "value", value);
     }
     value = value.substring(2);
     let offset = 0;
@@ -13604,10 +14157,10 @@ function hexZeroPad$7(value, length) {
         value = hexlify$7(value);
     }
     else if (!isHexString$7(value)) {
-        logger$m.throwArgumentError("invalid hex string", "value", value);
+        logger$n.throwArgumentError("invalid hex string", "value", value);
     }
     if (value.length > 2 * length + 2) {
-        logger$m.throwArgumentError("value out of range", "value", arguments[1]);
+        logger$n.throwArgumentError("value out of range", "value", arguments[1]);
     }
     while (value.length < 2 * length + 2) {
         value = "0x0" + value.substring(2);
@@ -13625,7 +14178,7 @@ function splitSignature$7(signature) {
     if (isBytesLike$7(signature)) {
         const bytes = arrayify$7(signature);
         if (bytes.length !== 65) {
-            logger$m.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
+            logger$n.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
         }
         // Get the r, s and v
         result.r = hexlify$7(bytes.slice(0, 32));
@@ -13637,7 +14190,7 @@ function splitSignature$7(signature) {
                 result.v += 27;
             }
             else {
-                logger$m.throwArgumentError("signature invalid v byte", "signature", signature);
+                logger$n.throwArgumentError("signature invalid v byte", "signature", signature);
             }
         }
         // Compute recoveryParam from v
@@ -13665,7 +14218,7 @@ function splitSignature$7(signature) {
                 result.recoveryParam = recoveryParam;
             }
             else if (result.recoveryParam !== recoveryParam) {
-                logger$m.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
+                logger$n.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
             }
             // Set or check the s
             vs[0] &= 0x7f;
@@ -13674,13 +14227,13 @@ function splitSignature$7(signature) {
                 result.s = s;
             }
             else if (result.s !== s) {
-                logger$m.throwArgumentError("signature v mismatch _vs", "signature", signature);
+                logger$n.throwArgumentError("signature v mismatch _vs", "signature", signature);
             }
         }
         // Use recid and v to populate each other
         if (result.recoveryParam == null) {
             if (result.v == null) {
-                logger$m.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
+                logger$n.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
             }
             else {
                 result.recoveryParam = 1 - (result.v % 2);
@@ -13691,24 +14244,24 @@ function splitSignature$7(signature) {
                 result.v = 27 + result.recoveryParam;
             }
             else if (result.recoveryParam !== (1 - (result.v % 2))) {
-                logger$m.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
+                logger$n.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
             }
         }
         if (result.r == null || !isHexString$7(result.r)) {
-            logger$m.throwArgumentError("signature missing or invalid r", "signature", signature);
+            logger$n.throwArgumentError("signature missing or invalid r", "signature", signature);
         }
         else {
             result.r = hexZeroPad$7(result.r, 32);
         }
         if (result.s == null || !isHexString$7(result.s)) {
-            logger$m.throwArgumentError("signature missing or invalid s", "signature", signature);
+            logger$n.throwArgumentError("signature missing or invalid s", "signature", signature);
         }
         else {
             result.s = hexZeroPad$7(result.s, 32);
         }
         const vs = arrayify$7(result.s);
         if (vs[0] >= 128) {
-            logger$m.throwArgumentError("signature s out of range", "signature", signature);
+            logger$n.throwArgumentError("signature s out of range", "signature", signature);
         }
         if (result.recoveryParam) {
             vs[0] |= 0x80;
@@ -13716,7 +14269,7 @@ function splitSignature$7(signature) {
         const _vs = hexlify$7(vs);
         if (result._vs) {
             if (!isHexString$7(result._vs)) {
-                logger$m.throwArgumentError("signature invalid _vs", "signature", signature);
+                logger$n.throwArgumentError("signature invalid _vs", "signature", signature);
             }
             result._vs = hexZeroPad$7(result._vs, 32);
         }
@@ -13725,7 +14278,7 @@ function splitSignature$7(signature) {
             result._vs = _vs;
         }
         else if (result._vs !== _vs) {
-            logger$m.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
+            logger$n.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
         }
     }
     return result;
@@ -13739,53 +14292,25 @@ function joinSignature$7(signature) {
     ]));
 }
 
-var lib_esm$2 = /*#__PURE__*/Object.freeze({
-	isBytesLike: isBytesLike$7,
-	isBytes: isBytes$7,
-	arrayify: arrayify$7,
-	concat: concat$7,
-	stripZeros: stripZeros$7,
-	zeroPad: zeroPad$7,
-	isHexString: isHexString$7,
-	hexlify: hexlify$7,
-	hexDataLength: hexDataLength$7,
-	hexDataSlice: hexDataSlice$7,
-	hexConcat: hexConcat$7,
-	hexValue: hexValue$7,
-	hexStripZeros: hexStripZeros$7,
-	hexZeroPad: hexZeroPad$7,
-	splitSignature: splitSignature$7,
-	joinSignature: joinSignature$7
-});
-
-var browser = createCommonjsModule(function (module, exports) {
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-
-function decode(textData) {
+function decode$1(textData) {
     textData = atob(textData);
-    var data = [];
-    for (var i = 0; i < textData.length; i++) {
+    const data = [];
+    for (let i = 0; i < textData.length; i++) {
         data.push(textData.charCodeAt(i));
     }
-    return lib_esm$2.arrayify(data);
+    return arrayify$7(data);
 }
-exports.decode = decode;
-function encode(data) {
-    data = lib_esm$2.arrayify(data);
-    var textData = "";
-    for (var i = 0; i < data.length; i++) {
+function encode$1(data) {
+    data = arrayify$7(data);
+    let textData = "";
+    for (let i = 0; i < data.length; i++) {
         textData += String.fromCharCode(data[i]);
     }
     return btoa(textData);
 }
-exports.encode = encode;
 
-});
-
-var browser$1 = unwrapExports(browser);
-var browser_1 = browser.decode;
-var browser_2 = browser.encode;
+"use strict";
 
 /*
  This file is part of crypu.js.
@@ -13809,7 +14334,7 @@ var browser_2 = browser.encode;
  * @date 2020
  */
 'use strict';
-var __awaiter$1 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
+var __awaiter$2 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -13819,7 +14344,7 @@ var __awaiter$1 = (window && window.__awaiter) || function (thisArg, _arguments,
     });
 };
 function getUrl(href, options) {
-    return __awaiter$1(this, void 0, void 0, function* () {
+    return __awaiter$2(this, void 0, void 0, function* () {
         if (options == null) {
             options = {};
         }
@@ -13877,7 +14402,7 @@ function getUrl(href, options) {
  * @date 2020
  */
 'use strict';
-var __awaiter$2 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
+var __awaiter$3 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -13886,7 +14411,7 @@ var __awaiter$2 = (window && window.__awaiter) || function (thisArg, _arguments,
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const logger$n = new Logger$1('web');
+const logger$o = new Logger$1('web');
 function fetchJson(connection, json, processFunc) {
     const headers = {};
     let url = null;
@@ -13901,7 +14426,7 @@ function fetchJson(connection, json, processFunc) {
     }
     else if (typeof (connection) === 'object') {
         if (connection == null || connection.url == null) {
-            logger$n.throwArgumentError('missing URL', 'connection.url', connection);
+            logger$o.throwArgumentError('missing URL', 'connection.url', connection);
         }
         url = connection.url;
         if (typeof (connection.timeout) === 'number' && connection.timeout > 0) {
@@ -13917,12 +14442,12 @@ function fetchJson(connection, json, processFunc) {
         }
         if (connection.user != null && connection.password != null) {
             if (url.substring(0, 6) !== 'https:' && connection.allowInsecureAuthentication !== true) {
-                logger$n.throwError('basic authentication requires a secure https url', Logger$1.errors.INVALID_ARGUMENT, { argument: 'url', url: url, user: connection.user, password: '[REDACTED]' });
+                logger$o.throwError('basic authentication requires a secure https url', Logger$1.errors.INVALID_ARGUMENT, { argument: 'url', url: url, user: connection.user, password: '[REDACTED]' });
             }
             const authorization = connection.user + ':' + connection.password;
             headers['authorization'] = {
                 key: 'Authorization',
-                value: 'Basic ' + browser_2(toUtf8Bytes(authorization))
+                value: 'Basic ' + encode$1(toUtf8Bytes(authorization))
             };
         }
     }
@@ -13946,7 +14471,7 @@ function fetchJson(connection, json, processFunc) {
                         return;
                     }
                     timer = null;
-                    reject(logger$n.makeError('timeout', Logger$1.errors.TIMEOUT, {
+                    reject(logger$o.makeError('timeout', Logger$1.errors.TIMEOUT, {
                         requestBody: (options.body || null),
                         requestMethod: options.method,
                         timeout: timeout,
@@ -13965,7 +14490,7 @@ function fetchJson(connection, json, processFunc) {
         return { promise, cancel };
     })();
     const runningFetch = (function () {
-        return __awaiter$2(this, void 0, void 0, function* () {
+        return __awaiter$3(this, void 0, void 0, function* () {
             let response = null;
             try {
                 response = yield getUrl(url, options);
@@ -13974,7 +14499,7 @@ function fetchJson(connection, json, processFunc) {
                 response = error.response;
                 if (response == null) {
                     runningTimeout.cancel();
-                    logger$n.throwError('missing response', Logger$1.errors.SERVER_ERROR, {
+                    logger$o.throwError('missing response', Logger$1.errors.SERVER_ERROR, {
                         requestBody: (options.body || null),
                         requestMethod: options.method,
                         serverError: error,
@@ -13988,7 +14513,7 @@ function fetchJson(connection, json, processFunc) {
             }
             else if (response.statusCode < 200 || response.statusCode >= 300) {
                 runningTimeout.cancel();
-                logger$n.throwError('bad response', Logger$1.errors.SERVER_ERROR, {
+                logger$o.throwError('bad response', Logger$1.errors.SERVER_ERROR, {
                     status: response.statusCode,
                     headers: response.headers,
                     body: body,
@@ -14005,7 +14530,7 @@ function fetchJson(connection, json, processFunc) {
                         json = JSON.parse(body);
                     }
                     catch (error) {
-                        logger$n.throwError('invalid JSON', Logger$1.errors.SERVER_ERROR, {
+                        logger$o.throwError('invalid JSON', Logger$1.errors.SERVER_ERROR, {
                             body: body,
                             error: error,
                             requestBody: (options.body || null),
@@ -14023,7 +14548,7 @@ function fetchJson(connection, json, processFunc) {
                     json = yield processFunc(json, response);
                 }
                 catch (error) {
-                    logger$n.throwError('processing response error', Logger$1.errors.SERVER_ERROR, {
+                    logger$o.throwError('processing response error', Logger$1.errors.SERVER_ERROR, {
                         body: json,
                         error: error,
                         requestBody: (options.body || null),
@@ -14122,16 +14647,6 @@ function keccak256$3(data) {
     return '0x' + sha3.keccak_256(arrayify$6(data));
 }
 
-var version$q = "6.5.3";
-var _package = {
-	version: version$q
-};
-
-var _package$1 = /*#__PURE__*/Object.freeze({
-	version: version$q,
-	'default': _package
-});
-
 var minimalisticAssert = assert;
 
 function assert(val, msg) {
@@ -14142,567 +14657,6 @@ function assert(val, msg) {
 assert.equal = function assertEqual(l, r, msg) {
   if (l != r)
     throw new Error(msg || ('Assertion failed: ' + l + ' != ' + r));
-};
-
-var utils_1 = createCommonjsModule(function (module, exports) {
-'use strict';
-
-var utils = exports;
-
-function toArray(msg, enc) {
-  if (Array.isArray(msg))
-    return msg.slice();
-  if (!msg)
-    return [];
-  var res = [];
-  if (typeof msg !== 'string') {
-    for (var i = 0; i < msg.length; i++)
-      res[i] = msg[i] | 0;
-    return res;
-  }
-  if (enc === 'hex') {
-    msg = msg.replace(/[^a-z0-9]+/ig, '');
-    if (msg.length % 2 !== 0)
-      msg = '0' + msg;
-    for (var i = 0; i < msg.length; i += 2)
-      res.push(parseInt(msg[i] + msg[i + 1], 16));
-  } else {
-    for (var i = 0; i < msg.length; i++) {
-      var c = msg.charCodeAt(i);
-      var hi = c >> 8;
-      var lo = c & 0xff;
-      if (hi)
-        res.push(hi, lo);
-      else
-        res.push(lo);
-    }
-  }
-  return res;
-}
-utils.toArray = toArray;
-
-function zero2(word) {
-  if (word.length === 1)
-    return '0' + word;
-  else
-    return word;
-}
-utils.zero2 = zero2;
-
-function toHex(msg) {
-  var res = '';
-  for (var i = 0; i < msg.length; i++)
-    res += zero2(msg[i].toString(16));
-  return res;
-}
-utils.toHex = toHex;
-
-utils.encode = function encode(arr, enc) {
-  if (enc === 'hex')
-    return toHex(arr);
-  else
-    return arr;
-};
-});
-
-var utils_1$1 = createCommonjsModule(function (module, exports) {
-'use strict';
-
-var utils = exports;
-
-
-
-
-utils.assert = minimalisticAssert;
-utils.toArray = utils_1.toArray;
-utils.zero2 = utils_1.zero2;
-utils.toHex = utils_1.toHex;
-utils.encode = utils_1.encode;
-
-// Represent num in a w-NAF form
-function getNAF(num, w, bits) {
-  var naf = new Array(Math.max(num.bitLength(), bits) + 1);
-  naf.fill(0);
-
-  var ws = 1 << (w + 1);
-  var k = num.clone();
-
-  for (var i = 0; i < naf.length; i++) {
-    var z;
-    var mod = k.andln(ws - 1);
-    if (k.isOdd()) {
-      if (mod > (ws >> 1) - 1)
-        z = (ws >> 1) - mod;
-      else
-        z = mod;
-      k.isubn(z);
-    } else {
-      z = 0;
-    }
-
-    naf[i] = z;
-    k.iushrn(1);
-  }
-
-  return naf;
-}
-utils.getNAF = getNAF;
-
-// Represent k1, k2 in a Joint Sparse Form
-function getJSF(k1, k2) {
-  var jsf = [
-    [],
-    []
-  ];
-
-  k1 = k1.clone();
-  k2 = k2.clone();
-  var d1 = 0;
-  var d2 = 0;
-  while (k1.cmpn(-d1) > 0 || k2.cmpn(-d2) > 0) {
-
-    // First phase
-    var m14 = (k1.andln(3) + d1) & 3;
-    var m24 = (k2.andln(3) + d2) & 3;
-    if (m14 === 3)
-      m14 = -1;
-    if (m24 === 3)
-      m24 = -1;
-    var u1;
-    if ((m14 & 1) === 0) {
-      u1 = 0;
-    } else {
-      var m8 = (k1.andln(7) + d1) & 7;
-      if ((m8 === 3 || m8 === 5) && m24 === 2)
-        u1 = -m14;
-      else
-        u1 = m14;
-    }
-    jsf[0].push(u1);
-
-    var u2;
-    if ((m24 & 1) === 0) {
-      u2 = 0;
-    } else {
-      var m8 = (k2.andln(7) + d2) & 7;
-      if ((m8 === 3 || m8 === 5) && m14 === 2)
-        u2 = -m24;
-      else
-        u2 = m24;
-    }
-    jsf[1].push(u2);
-
-    // Second phase
-    if (2 * d1 === u1 + 1)
-      d1 = 1 - d1;
-    if (2 * d2 === u2 + 1)
-      d2 = 1 - d2;
-    k1.iushrn(1);
-    k2.iushrn(1);
-  }
-
-  return jsf;
-}
-utils.getJSF = getJSF;
-
-function cachedProperty(obj, name, computer) {
-  var key = '_' + name;
-  obj.prototype[name] = function cachedProperty() {
-    return this[key] !== undefined ? this[key] :
-           this[key] = computer.call(this);
-  };
-}
-utils.cachedProperty = cachedProperty;
-
-function parseBytes(bytes) {
-  return typeof bytes === 'string' ? utils.toArray(bytes, 'hex') :
-                                     bytes;
-}
-utils.parseBytes = parseBytes;
-
-function intFromLE(bytes) {
-  return new bn(bytes, 'hex', 'le');
-}
-utils.intFromLE = intFromLE;
-});
-
-var brorand = function(length) { var result = new Uint8Array(length); (commonjsGlobal.crypto || commonjsGlobal.msCrypto).getRandomValues(result); return result; };
-
-'use strict';
-
-
-
-var getNAF = utils_1$1.getNAF;
-var getJSF = utils_1$1.getJSF;
-var assert$1 = utils_1$1.assert;
-
-function BaseCurve(type, conf) {
-  this.type = type;
-  this.p = new bn(conf.p, 16);
-
-  // Use Montgomery, when there is no fast reduction for the prime
-  this.red = conf.prime ? bn.red(conf.prime) : bn.mont(this.p);
-
-  // Useful for many curves
-  this.zero = new bn(0).toRed(this.red);
-  this.one = new bn(1).toRed(this.red);
-  this.two = new bn(2).toRed(this.red);
-
-  // Curve configuration, optional
-  this.n = conf.n && new bn(conf.n, 16);
-  this.g = conf.g && this.pointFromJSON(conf.g, conf.gRed);
-
-  // Temporary arrays
-  this._wnafT1 = new Array(4);
-  this._wnafT2 = new Array(4);
-  this._wnafT3 = new Array(4);
-  this._wnafT4 = new Array(4);
-
-  this._bitLength = this.n ? this.n.bitLength() : 0;
-
-  // Generalized Greg Maxwell's trick
-  var adjustCount = this.n && this.p.div(this.n);
-  if (!adjustCount || adjustCount.cmpn(100) > 0) {
-    this.redN = null;
-  } else {
-    this._maxwellTrick = true;
-    this.redN = this.n.toRed(this.red);
-  }
-}
-var base = BaseCurve;
-
-BaseCurve.prototype.point = function point() {
-  throw new Error('Not implemented');
-};
-
-BaseCurve.prototype.validate = function validate() {
-  throw new Error('Not implemented');
-};
-
-BaseCurve.prototype._fixedNafMul = function _fixedNafMul(p, k) {
-  assert$1(p.precomputed);
-  var doubles = p._getDoubles();
-
-  var naf = getNAF(k, 1, this._bitLength);
-  var I = (1 << (doubles.step + 1)) - (doubles.step % 2 === 0 ? 2 : 1);
-  I /= 3;
-
-  // Translate into more windowed form
-  var repr = [];
-  for (var j = 0; j < naf.length; j += doubles.step) {
-    var nafW = 0;
-    for (var k = j + doubles.step - 1; k >= j; k--)
-      nafW = (nafW << 1) + naf[k];
-    repr.push(nafW);
-  }
-
-  var a = this.jpoint(null, null, null);
-  var b = this.jpoint(null, null, null);
-  for (var i = I; i > 0; i--) {
-    for (var j = 0; j < repr.length; j++) {
-      var nafW = repr[j];
-      if (nafW === i)
-        b = b.mixedAdd(doubles.points[j]);
-      else if (nafW === -i)
-        b = b.mixedAdd(doubles.points[j].neg());
-    }
-    a = a.add(b);
-  }
-  return a.toP();
-};
-
-BaseCurve.prototype._wnafMul = function _wnafMul(p, k) {
-  var w = 4;
-
-  // Precompute window
-  var nafPoints = p._getNAFPoints(w);
-  w = nafPoints.wnd;
-  var wnd = nafPoints.points;
-
-  // Get NAF form
-  var naf = getNAF(k, w, this._bitLength);
-
-  // Add `this`*(N+1) for every w-NAF index
-  var acc = this.jpoint(null, null, null);
-  for (var i = naf.length - 1; i >= 0; i--) {
-    // Count zeroes
-    for (var k = 0; i >= 0 && naf[i] === 0; i--)
-      k++;
-    if (i >= 0)
-      k++;
-    acc = acc.dblp(k);
-
-    if (i < 0)
-      break;
-    var z = naf[i];
-    assert$1(z !== 0);
-    if (p.type === 'affine') {
-      // J +- P
-      if (z > 0)
-        acc = acc.mixedAdd(wnd[(z - 1) >> 1]);
-      else
-        acc = acc.mixedAdd(wnd[(-z - 1) >> 1].neg());
-    } else {
-      // J +- J
-      if (z > 0)
-        acc = acc.add(wnd[(z - 1) >> 1]);
-      else
-        acc = acc.add(wnd[(-z - 1) >> 1].neg());
-    }
-  }
-  return p.type === 'affine' ? acc.toP() : acc;
-};
-
-BaseCurve.prototype._wnafMulAdd = function _wnafMulAdd(defW,
-                                                       points,
-                                                       coeffs,
-                                                       len,
-                                                       jacobianResult) {
-  var wndWidth = this._wnafT1;
-  var wnd = this._wnafT2;
-  var naf = this._wnafT3;
-
-  // Fill all arrays
-  var max = 0;
-  for (var i = 0; i < len; i++) {
-    var p = points[i];
-    var nafPoints = p._getNAFPoints(defW);
-    wndWidth[i] = nafPoints.wnd;
-    wnd[i] = nafPoints.points;
-  }
-
-  // Comb small window NAFs
-  for (var i = len - 1; i >= 1; i -= 2) {
-    var a = i - 1;
-    var b = i;
-    if (wndWidth[a] !== 1 || wndWidth[b] !== 1) {
-      naf[a] = getNAF(coeffs[a], wndWidth[a], this._bitLength);
-      naf[b] = getNAF(coeffs[b], wndWidth[b], this._bitLength);
-      max = Math.max(naf[a].length, max);
-      max = Math.max(naf[b].length, max);
-      continue;
-    }
-
-    var comb = [
-      points[a], /* 1 */
-      null, /* 3 */
-      null, /* 5 */
-      points[b] /* 7 */
-    ];
-
-    // Try to avoid Projective points, if possible
-    if (points[a].y.cmp(points[b].y) === 0) {
-      comb[1] = points[a].add(points[b]);
-      comb[2] = points[a].toJ().mixedAdd(points[b].neg());
-    } else if (points[a].y.cmp(points[b].y.redNeg()) === 0) {
-      comb[1] = points[a].toJ().mixedAdd(points[b]);
-      comb[2] = points[a].add(points[b].neg());
-    } else {
-      comb[1] = points[a].toJ().mixedAdd(points[b]);
-      comb[2] = points[a].toJ().mixedAdd(points[b].neg());
-    }
-
-    var index = [
-      -3, /* -1 -1 */
-      -1, /* -1 0 */
-      -5, /* -1 1 */
-      -7, /* 0 -1 */
-      0, /* 0 0 */
-      7, /* 0 1 */
-      5, /* 1 -1 */
-      1, /* 1 0 */
-      3  /* 1 1 */
-    ];
-
-    var jsf = getJSF(coeffs[a], coeffs[b]);
-    max = Math.max(jsf[0].length, max);
-    naf[a] = new Array(max);
-    naf[b] = new Array(max);
-    for (var j = 0; j < max; j++) {
-      var ja = jsf[0][j] | 0;
-      var jb = jsf[1][j] | 0;
-
-      naf[a][j] = index[(ja + 1) * 3 + (jb + 1)];
-      naf[b][j] = 0;
-      wnd[a] = comb;
-    }
-  }
-
-  var acc = this.jpoint(null, null, null);
-  var tmp = this._wnafT4;
-  for (var i = max; i >= 0; i--) {
-    var k = 0;
-
-    while (i >= 0) {
-      var zero = true;
-      for (var j = 0; j < len; j++) {
-        tmp[j] = naf[j][i] | 0;
-        if (tmp[j] !== 0)
-          zero = false;
-      }
-      if (!zero)
-        break;
-      k++;
-      i--;
-    }
-    if (i >= 0)
-      k++;
-    acc = acc.dblp(k);
-    if (i < 0)
-      break;
-
-    for (var j = 0; j < len; j++) {
-      var z = tmp[j];
-      var p;
-      if (z === 0)
-        continue;
-      else if (z > 0)
-        p = wnd[j][(z - 1) >> 1];
-      else if (z < 0)
-        p = wnd[j][(-z - 1) >> 1].neg();
-
-      if (p.type === 'affine')
-        acc = acc.mixedAdd(p);
-      else
-        acc = acc.add(p);
-    }
-  }
-  // Zeroify references
-  for (var i = 0; i < len; i++)
-    wnd[i] = null;
-
-  if (jacobianResult)
-    return acc;
-  else
-    return acc.toP();
-};
-
-function BasePoint(curve, type) {
-  this.curve = curve;
-  this.type = type;
-  this.precomputed = null;
-}
-BaseCurve.BasePoint = BasePoint;
-
-BasePoint.prototype.eq = function eq(/*other*/) {
-  throw new Error('Not implemented');
-};
-
-BasePoint.prototype.validate = function validate() {
-  return this.curve.validate(this);
-};
-
-BaseCurve.prototype.decodePoint = function decodePoint(bytes, enc) {
-  bytes = utils_1$1.toArray(bytes, enc);
-
-  var len = this.p.byteLength();
-
-  // uncompressed, hybrid-odd, hybrid-even
-  if ((bytes[0] === 0x04 || bytes[0] === 0x06 || bytes[0] === 0x07) &&
-      bytes.length - 1 === 2 * len) {
-    if (bytes[0] === 0x06)
-      assert$1(bytes[bytes.length - 1] % 2 === 0);
-    else if (bytes[0] === 0x07)
-      assert$1(bytes[bytes.length - 1] % 2 === 1);
-
-    var res =  this.point(bytes.slice(1, 1 + len),
-                          bytes.slice(1 + len, 1 + 2 * len));
-
-    return res;
-  } else if ((bytes[0] === 0x02 || bytes[0] === 0x03) &&
-              bytes.length - 1 === len) {
-    return this.pointFromX(bytes.slice(1, 1 + len), bytes[0] === 0x03);
-  }
-  throw new Error('Unknown point format');
-};
-
-BasePoint.prototype.encodeCompressed = function encodeCompressed(enc) {
-  return this.encode(enc, true);
-};
-
-BasePoint.prototype._encode = function _encode(compact) {
-  var len = this.curve.p.byteLength();
-  var x = this.getX().toArray('be', len);
-
-  if (compact)
-    return [ this.getY().isEven() ? 0x02 : 0x03 ].concat(x);
-
-  return [ 0x04 ].concat(x, this.getY().toArray('be', len)) ;
-};
-
-BasePoint.prototype.encode = function encode(enc, compact) {
-  return utils_1$1.encode(this._encode(compact), enc);
-};
-
-BasePoint.prototype.precompute = function precompute(power) {
-  if (this.precomputed)
-    return this;
-
-  var precomputed = {
-    doubles: null,
-    naf: null,
-    beta: null
-  };
-  precomputed.naf = this._getNAFPoints(8);
-  precomputed.doubles = this._getDoubles(4, power);
-  precomputed.beta = this._getBeta();
-  this.precomputed = precomputed;
-
-  return this;
-};
-
-BasePoint.prototype._hasDoubles = function _hasDoubles(k) {
-  if (!this.precomputed)
-    return false;
-
-  var doubles = this.precomputed.doubles;
-  if (!doubles)
-    return false;
-
-  return doubles.points.length >= Math.ceil((k.bitLength() + 1) / doubles.step);
-};
-
-BasePoint.prototype._getDoubles = function _getDoubles(step, power) {
-  if (this.precomputed && this.precomputed.doubles)
-    return this.precomputed.doubles;
-
-  var doubles = [ this ];
-  var acc = this;
-  for (var i = 0; i < power; i += step) {
-    for (var j = 0; j < step; j++)
-      acc = acc.dbl();
-    doubles.push(acc);
-  }
-  return {
-    step: step,
-    points: doubles
-  };
-};
-
-BasePoint.prototype._getNAFPoints = function _getNAFPoints(wnd) {
-  if (this.precomputed && this.precomputed.naf)
-    return this.precomputed.naf;
-
-  var res = [ this ];
-  var max = (1 << wnd) - 1;
-  var dbl = max === 1 ? null : this.dbl();
-  for (var i = 1; i < max; i++)
-    res[i] = res[i - 1].add(dbl);
-  return {
-    wnd: wnd,
-    points: res
-  };
-};
-
-BasePoint.prototype._getBeta = function _getBeta() {
-  return null;
-};
-
-BasePoint.prototype.dblp = function dblp(k) {
-  var r = this;
-  for (var i = 0; i < k; i++)
-    r = r.dbl();
-  return r;
 };
 
 var inherits_browser = createCommonjsModule(function (module) {
@@ -14733,959 +14687,6 @@ if (typeof Object.create === 'function') {
     }
   };
 }
-});
-
-'use strict';
-
-
-
-
-
-
-var assert$2 = utils_1$1.assert;
-
-function ShortCurve(conf) {
-  base.call(this, 'short', conf);
-
-  this.a = new bn(conf.a, 16).toRed(this.red);
-  this.b = new bn(conf.b, 16).toRed(this.red);
-  this.tinv = this.two.redInvm();
-
-  this.zeroA = this.a.fromRed().cmpn(0) === 0;
-  this.threeA = this.a.fromRed().sub(this.p).cmpn(-3) === 0;
-
-  // If the curve is endomorphic, precalculate beta and lambda
-  this.endo = this._getEndomorphism(conf);
-  this._endoWnafT1 = new Array(4);
-  this._endoWnafT2 = new Array(4);
-}
-inherits_browser(ShortCurve, base);
-var short_1 = ShortCurve;
-
-ShortCurve.prototype._getEndomorphism = function _getEndomorphism(conf) {
-  // No efficient endomorphism
-  if (!this.zeroA || !this.g || !this.n || this.p.modn(3) !== 1)
-    return;
-
-  // Compute beta and lambda, that lambda * P = (beta * Px; Py)
-  var beta;
-  var lambda;
-  if (conf.beta) {
-    beta = new bn(conf.beta, 16).toRed(this.red);
-  } else {
-    var betas = this._getEndoRoots(this.p);
-    // Choose the smallest beta
-    beta = betas[0].cmp(betas[1]) < 0 ? betas[0] : betas[1];
-    beta = beta.toRed(this.red);
-  }
-  if (conf.lambda) {
-    lambda = new bn(conf.lambda, 16);
-  } else {
-    // Choose the lambda that is matching selected beta
-    var lambdas = this._getEndoRoots(this.n);
-    if (this.g.mul(lambdas[0]).x.cmp(this.g.x.redMul(beta)) === 0) {
-      lambda = lambdas[0];
-    } else {
-      lambda = lambdas[1];
-      assert$2(this.g.mul(lambda).x.cmp(this.g.x.redMul(beta)) === 0);
-    }
-  }
-
-  // Get basis vectors, used for balanced length-two representation
-  var basis;
-  if (conf.basis) {
-    basis = conf.basis.map(function(vec) {
-      return {
-        a: new bn(vec.a, 16),
-        b: new bn(vec.b, 16)
-      };
-    });
-  } else {
-    basis = this._getEndoBasis(lambda);
-  }
-
-  return {
-    beta: beta,
-    lambda: lambda,
-    basis: basis
-  };
-};
-
-ShortCurve.prototype._getEndoRoots = function _getEndoRoots(num) {
-  // Find roots of for x^2 + x + 1 in F
-  // Root = (-1 +- Sqrt(-3)) / 2
-  //
-  var red = num === this.p ? this.red : bn.mont(num);
-  var tinv = new bn(2).toRed(red).redInvm();
-  var ntinv = tinv.redNeg();
-
-  var s = new bn(3).toRed(red).redNeg().redSqrt().redMul(tinv);
-
-  var l1 = ntinv.redAdd(s).fromRed();
-  var l2 = ntinv.redSub(s).fromRed();
-  return [ l1, l2 ];
-};
-
-ShortCurve.prototype._getEndoBasis = function _getEndoBasis(lambda) {
-  // aprxSqrt >= sqrt(this.n)
-  var aprxSqrt = this.n.ushrn(Math.floor(this.n.bitLength() / 2));
-
-  // 3.74
-  // Run EGCD, until r(L + 1) < aprxSqrt
-  var u = lambda;
-  var v = this.n.clone();
-  var x1 = new bn(1);
-  var y1 = new bn(0);
-  var x2 = new bn(0);
-  var y2 = new bn(1);
-
-  // NOTE: all vectors are roots of: a + b * lambda = 0 (mod n)
-  var a0;
-  var b0;
-  // First vector
-  var a1;
-  var b1;
-  // Second vector
-  var a2;
-  var b2;
-
-  var prevR;
-  var i = 0;
-  var r;
-  var x;
-  while (u.cmpn(0) !== 0) {
-    var q = v.div(u);
-    r = v.sub(q.mul(u));
-    x = x2.sub(q.mul(x1));
-    var y = y2.sub(q.mul(y1));
-
-    if (!a1 && r.cmp(aprxSqrt) < 0) {
-      a0 = prevR.neg();
-      b0 = x1;
-      a1 = r.neg();
-      b1 = x;
-    } else if (a1 && ++i === 2) {
-      break;
-    }
-    prevR = r;
-
-    v = u;
-    u = r;
-    x2 = x1;
-    x1 = x;
-    y2 = y1;
-    y1 = y;
-  }
-  a2 = r.neg();
-  b2 = x;
-
-  var len1 = a1.sqr().add(b1.sqr());
-  var len2 = a2.sqr().add(b2.sqr());
-  if (len2.cmp(len1) >= 0) {
-    a2 = a0;
-    b2 = b0;
-  }
-
-  // Normalize signs
-  if (a1.negative) {
-    a1 = a1.neg();
-    b1 = b1.neg();
-  }
-  if (a2.negative) {
-    a2 = a2.neg();
-    b2 = b2.neg();
-  }
-
-  return [
-    { a: a1, b: b1 },
-    { a: a2, b: b2 }
-  ];
-};
-
-ShortCurve.prototype._endoSplit = function _endoSplit(k) {
-  var basis = this.endo.basis;
-  var v1 = basis[0];
-  var v2 = basis[1];
-
-  var c1 = v2.b.mul(k).divRound(this.n);
-  var c2 = v1.b.neg().mul(k).divRound(this.n);
-
-  var p1 = c1.mul(v1.a);
-  var p2 = c2.mul(v2.a);
-  var q1 = c1.mul(v1.b);
-  var q2 = c2.mul(v2.b);
-
-  // Calculate answer
-  var k1 = k.sub(p1).sub(p2);
-  var k2 = q1.add(q2).neg();
-  return { k1: k1, k2: k2 };
-};
-
-ShortCurve.prototype.pointFromX = function pointFromX(x, odd) {
-  x = new bn(x, 16);
-  if (!x.red)
-    x = x.toRed(this.red);
-
-  var y2 = x.redSqr().redMul(x).redIAdd(x.redMul(this.a)).redIAdd(this.b);
-  var y = y2.redSqrt();
-  if (y.redSqr().redSub(y2).cmp(this.zero) !== 0)
-    throw new Error('invalid point');
-
-  // XXX Is there any way to tell if the number is odd without converting it
-  // to non-red form?
-  var isOdd = y.fromRed().isOdd();
-  if (odd && !isOdd || !odd && isOdd)
-    y = y.redNeg();
-
-  return this.point(x, y);
-};
-
-ShortCurve.prototype.validate = function validate(point) {
-  if (point.inf)
-    return true;
-
-  var x = point.x;
-  var y = point.y;
-
-  var ax = this.a.redMul(x);
-  var rhs = x.redSqr().redMul(x).redIAdd(ax).redIAdd(this.b);
-  return y.redSqr().redISub(rhs).cmpn(0) === 0;
-};
-
-ShortCurve.prototype._endoWnafMulAdd =
-    function _endoWnafMulAdd(points, coeffs, jacobianResult) {
-  var npoints = this._endoWnafT1;
-  var ncoeffs = this._endoWnafT2;
-  for (var i = 0; i < points.length; i++) {
-    var split = this._endoSplit(coeffs[i]);
-    var p = points[i];
-    var beta = p._getBeta();
-
-    if (split.k1.negative) {
-      split.k1.ineg();
-      p = p.neg(true);
-    }
-    if (split.k2.negative) {
-      split.k2.ineg();
-      beta = beta.neg(true);
-    }
-
-    npoints[i * 2] = p;
-    npoints[i * 2 + 1] = beta;
-    ncoeffs[i * 2] = split.k1;
-    ncoeffs[i * 2 + 1] = split.k2;
-  }
-  var res = this._wnafMulAdd(1, npoints, ncoeffs, i * 2, jacobianResult);
-
-  // Clean-up references to points and coefficients
-  for (var j = 0; j < i * 2; j++) {
-    npoints[j] = null;
-    ncoeffs[j] = null;
-  }
-  return res;
-};
-
-function Point(curve, x, y, isRed) {
-  base.BasePoint.call(this, curve, 'affine');
-  if (x === null && y === null) {
-    this.x = null;
-    this.y = null;
-    this.inf = true;
-  } else {
-    this.x = new bn(x, 16);
-    this.y = new bn(y, 16);
-    // Force redgomery representation when loading from JSON
-    if (isRed) {
-      this.x.forceRed(this.curve.red);
-      this.y.forceRed(this.curve.red);
-    }
-    if (!this.x.red)
-      this.x = this.x.toRed(this.curve.red);
-    if (!this.y.red)
-      this.y = this.y.toRed(this.curve.red);
-    this.inf = false;
-  }
-}
-inherits_browser(Point, base.BasePoint);
-
-ShortCurve.prototype.point = function point(x, y, isRed) {
-  return new Point(this, x, y, isRed);
-};
-
-ShortCurve.prototype.pointFromJSON = function pointFromJSON(obj, red) {
-  return Point.fromJSON(this, obj, red);
-};
-
-Point.prototype._getBeta = function _getBeta() {
-  if (!this.curve.endo)
-    return;
-
-  var pre = this.precomputed;
-  if (pre && pre.beta)
-    return pre.beta;
-
-  var beta = this.curve.point(this.x.redMul(this.curve.endo.beta), this.y);
-  if (pre) {
-    var curve = this.curve;
-    var endoMul = function(p) {
-      return curve.point(p.x.redMul(curve.endo.beta), p.y);
-    };
-    pre.beta = beta;
-    beta.precomputed = {
-      beta: null,
-      naf: pre.naf && {
-        wnd: pre.naf.wnd,
-        points: pre.naf.points.map(endoMul)
-      },
-      doubles: pre.doubles && {
-        step: pre.doubles.step,
-        points: pre.doubles.points.map(endoMul)
-      }
-    };
-  }
-  return beta;
-};
-
-Point.prototype.toJSON = function toJSON() {
-  if (!this.precomputed)
-    return [ this.x, this.y ];
-
-  return [ this.x, this.y, this.precomputed && {
-    doubles: this.precomputed.doubles && {
-      step: this.precomputed.doubles.step,
-      points: this.precomputed.doubles.points.slice(1)
-    },
-    naf: this.precomputed.naf && {
-      wnd: this.precomputed.naf.wnd,
-      points: this.precomputed.naf.points.slice(1)
-    }
-  } ];
-};
-
-Point.fromJSON = function fromJSON(curve, obj, red) {
-  if (typeof obj === 'string')
-    obj = JSON.parse(obj);
-  var res = curve.point(obj[0], obj[1], red);
-  if (!obj[2])
-    return res;
-
-  function obj2point(obj) {
-    return curve.point(obj[0], obj[1], red);
-  }
-
-  var pre = obj[2];
-  res.precomputed = {
-    beta: null,
-    doubles: pre.doubles && {
-      step: pre.doubles.step,
-      points: [ res ].concat(pre.doubles.points.map(obj2point))
-    },
-    naf: pre.naf && {
-      wnd: pre.naf.wnd,
-      points: [ res ].concat(pre.naf.points.map(obj2point))
-    }
-  };
-  return res;
-};
-
-Point.prototype.inspect = function inspect() {
-  if (this.isInfinity())
-    return '<EC Point Infinity>';
-  return '<EC Point x: ' + this.x.fromRed().toString(16, 2) +
-      ' y: ' + this.y.fromRed().toString(16, 2) + '>';
-};
-
-Point.prototype.isInfinity = function isInfinity() {
-  return this.inf;
-};
-
-Point.prototype.add = function add(p) {
-  // O + P = P
-  if (this.inf)
-    return p;
-
-  // P + O = P
-  if (p.inf)
-    return this;
-
-  // P + P = 2P
-  if (this.eq(p))
-    return this.dbl();
-
-  // P + (-P) = O
-  if (this.neg().eq(p))
-    return this.curve.point(null, null);
-
-  // P + Q = O
-  if (this.x.cmp(p.x) === 0)
-    return this.curve.point(null, null);
-
-  var c = this.y.redSub(p.y);
-  if (c.cmpn(0) !== 0)
-    c = c.redMul(this.x.redSub(p.x).redInvm());
-  var nx = c.redSqr().redISub(this.x).redISub(p.x);
-  var ny = c.redMul(this.x.redSub(nx)).redISub(this.y);
-  return this.curve.point(nx, ny);
-};
-
-Point.prototype.dbl = function dbl() {
-  if (this.inf)
-    return this;
-
-  // 2P = O
-  var ys1 = this.y.redAdd(this.y);
-  if (ys1.cmpn(0) === 0)
-    return this.curve.point(null, null);
-
-  var a = this.curve.a;
-
-  var x2 = this.x.redSqr();
-  var dyinv = ys1.redInvm();
-  var c = x2.redAdd(x2).redIAdd(x2).redIAdd(a).redMul(dyinv);
-
-  var nx = c.redSqr().redISub(this.x.redAdd(this.x));
-  var ny = c.redMul(this.x.redSub(nx)).redISub(this.y);
-  return this.curve.point(nx, ny);
-};
-
-Point.prototype.getX = function getX() {
-  return this.x.fromRed();
-};
-
-Point.prototype.getY = function getY() {
-  return this.y.fromRed();
-};
-
-Point.prototype.mul = function mul(k) {
-  k = new bn(k, 16);
-  if (this.isInfinity())
-    return this;
-  else if (this._hasDoubles(k))
-    return this.curve._fixedNafMul(this, k);
-  else if (this.curve.endo)
-    return this.curve._endoWnafMulAdd([ this ], [ k ]);
-  else
-    return this.curve._wnafMul(this, k);
-};
-
-Point.prototype.mulAdd = function mulAdd(k1, p2, k2) {
-  var points = [ this, p2 ];
-  var coeffs = [ k1, k2 ];
-  if (this.curve.endo)
-    return this.curve._endoWnafMulAdd(points, coeffs);
-  else
-    return this.curve._wnafMulAdd(1, points, coeffs, 2);
-};
-
-Point.prototype.jmulAdd = function jmulAdd(k1, p2, k2) {
-  var points = [ this, p2 ];
-  var coeffs = [ k1, k2 ];
-  if (this.curve.endo)
-    return this.curve._endoWnafMulAdd(points, coeffs, true);
-  else
-    return this.curve._wnafMulAdd(1, points, coeffs, 2, true);
-};
-
-Point.prototype.eq = function eq(p) {
-  return this === p ||
-         this.inf === p.inf &&
-             (this.inf || this.x.cmp(p.x) === 0 && this.y.cmp(p.y) === 0);
-};
-
-Point.prototype.neg = function neg(_precompute) {
-  if (this.inf)
-    return this;
-
-  var res = this.curve.point(this.x, this.y.redNeg());
-  if (_precompute && this.precomputed) {
-    var pre = this.precomputed;
-    var negate = function(p) {
-      return p.neg();
-    };
-    res.precomputed = {
-      naf: pre.naf && {
-        wnd: pre.naf.wnd,
-        points: pre.naf.points.map(negate)
-      },
-      doubles: pre.doubles && {
-        step: pre.doubles.step,
-        points: pre.doubles.points.map(negate)
-      }
-    };
-  }
-  return res;
-};
-
-Point.prototype.toJ = function toJ() {
-  if (this.inf)
-    return this.curve.jpoint(null, null, null);
-
-  var res = this.curve.jpoint(this.x, this.y, this.curve.one);
-  return res;
-};
-
-function JPoint(curve, x, y, z) {
-  base.BasePoint.call(this, curve, 'jacobian');
-  if (x === null && y === null && z === null) {
-    this.x = this.curve.one;
-    this.y = this.curve.one;
-    this.z = new bn(0);
-  } else {
-    this.x = new bn(x, 16);
-    this.y = new bn(y, 16);
-    this.z = new bn(z, 16);
-  }
-  if (!this.x.red)
-    this.x = this.x.toRed(this.curve.red);
-  if (!this.y.red)
-    this.y = this.y.toRed(this.curve.red);
-  if (!this.z.red)
-    this.z = this.z.toRed(this.curve.red);
-
-  this.zOne = this.z === this.curve.one;
-}
-inherits_browser(JPoint, base.BasePoint);
-
-ShortCurve.prototype.jpoint = function jpoint(x, y, z) {
-  return new JPoint(this, x, y, z);
-};
-
-JPoint.prototype.toP = function toP() {
-  if (this.isInfinity())
-    return this.curve.point(null, null);
-
-  var zinv = this.z.redInvm();
-  var zinv2 = zinv.redSqr();
-  var ax = this.x.redMul(zinv2);
-  var ay = this.y.redMul(zinv2).redMul(zinv);
-
-  return this.curve.point(ax, ay);
-};
-
-JPoint.prototype.neg = function neg() {
-  return this.curve.jpoint(this.x, this.y.redNeg(), this.z);
-};
-
-JPoint.prototype.add = function add(p) {
-  // O + P = P
-  if (this.isInfinity())
-    return p;
-
-  // P + O = P
-  if (p.isInfinity())
-    return this;
-
-  // 12M + 4S + 7A
-  var pz2 = p.z.redSqr();
-  var z2 = this.z.redSqr();
-  var u1 = this.x.redMul(pz2);
-  var u2 = p.x.redMul(z2);
-  var s1 = this.y.redMul(pz2.redMul(p.z));
-  var s2 = p.y.redMul(z2.redMul(this.z));
-
-  var h = u1.redSub(u2);
-  var r = s1.redSub(s2);
-  if (h.cmpn(0) === 0) {
-    if (r.cmpn(0) !== 0)
-      return this.curve.jpoint(null, null, null);
-    else
-      return this.dbl();
-  }
-
-  var h2 = h.redSqr();
-  var h3 = h2.redMul(h);
-  var v = u1.redMul(h2);
-
-  var nx = r.redSqr().redIAdd(h3).redISub(v).redISub(v);
-  var ny = r.redMul(v.redISub(nx)).redISub(s1.redMul(h3));
-  var nz = this.z.redMul(p.z).redMul(h);
-
-  return this.curve.jpoint(nx, ny, nz);
-};
-
-JPoint.prototype.mixedAdd = function mixedAdd(p) {
-  // O + P = P
-  if (this.isInfinity())
-    return p.toJ();
-
-  // P + O = P
-  if (p.isInfinity())
-    return this;
-
-  // 8M + 3S + 7A
-  var z2 = this.z.redSqr();
-  var u1 = this.x;
-  var u2 = p.x.redMul(z2);
-  var s1 = this.y;
-  var s2 = p.y.redMul(z2).redMul(this.z);
-
-  var h = u1.redSub(u2);
-  var r = s1.redSub(s2);
-  if (h.cmpn(0) === 0) {
-    if (r.cmpn(0) !== 0)
-      return this.curve.jpoint(null, null, null);
-    else
-      return this.dbl();
-  }
-
-  var h2 = h.redSqr();
-  var h3 = h2.redMul(h);
-  var v = u1.redMul(h2);
-
-  var nx = r.redSqr().redIAdd(h3).redISub(v).redISub(v);
-  var ny = r.redMul(v.redISub(nx)).redISub(s1.redMul(h3));
-  var nz = this.z.redMul(h);
-
-  return this.curve.jpoint(nx, ny, nz);
-};
-
-JPoint.prototype.dblp = function dblp(pow) {
-  if (pow === 0)
-    return this;
-  if (this.isInfinity())
-    return this;
-  if (!pow)
-    return this.dbl();
-
-  if (this.curve.zeroA || this.curve.threeA) {
-    var r = this;
-    for (var i = 0; i < pow; i++)
-      r = r.dbl();
-    return r;
-  }
-
-  // 1M + 2S + 1A + N * (4S + 5M + 8A)
-  // N = 1 => 6M + 6S + 9A
-  var a = this.curve.a;
-  var tinv = this.curve.tinv;
-
-  var jx = this.x;
-  var jy = this.y;
-  var jz = this.z;
-  var jz4 = jz.redSqr().redSqr();
-
-  // Reuse results
-  var jyd = jy.redAdd(jy);
-  for (var i = 0; i < pow; i++) {
-    var jx2 = jx.redSqr();
-    var jyd2 = jyd.redSqr();
-    var jyd4 = jyd2.redSqr();
-    var c = jx2.redAdd(jx2).redIAdd(jx2).redIAdd(a.redMul(jz4));
-
-    var t1 = jx.redMul(jyd2);
-    var nx = c.redSqr().redISub(t1.redAdd(t1));
-    var t2 = t1.redISub(nx);
-    var dny = c.redMul(t2);
-    dny = dny.redIAdd(dny).redISub(jyd4);
-    var nz = jyd.redMul(jz);
-    if (i + 1 < pow)
-      jz4 = jz4.redMul(jyd4);
-
-    jx = nx;
-    jz = nz;
-    jyd = dny;
-  }
-
-  return this.curve.jpoint(jx, jyd.redMul(tinv), jz);
-};
-
-JPoint.prototype.dbl = function dbl() {
-  if (this.isInfinity())
-    return this;
-
-  if (this.curve.zeroA)
-    return this._zeroDbl();
-  else if (this.curve.threeA)
-    return this._threeDbl();
-  else
-    return this._dbl();
-};
-
-JPoint.prototype._zeroDbl = function _zeroDbl() {
-  var nx;
-  var ny;
-  var nz;
-  // Z = 1
-  if (this.zOne) {
-    // hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html
-    //     #doubling-mdbl-2007-bl
-    // 1M + 5S + 14A
-
-    // XX = X1^2
-    var xx = this.x.redSqr();
-    // YY = Y1^2
-    var yy = this.y.redSqr();
-    // YYYY = YY^2
-    var yyyy = yy.redSqr();
-    // S = 2 * ((X1 + YY)^2 - XX - YYYY)
-    var s = this.x.redAdd(yy).redSqr().redISub(xx).redISub(yyyy);
-    s = s.redIAdd(s);
-    // M = 3 * XX + a; a = 0
-    var m = xx.redAdd(xx).redIAdd(xx);
-    // T = M ^ 2 - 2*S
-    var t = m.redSqr().redISub(s).redISub(s);
-
-    // 8 * YYYY
-    var yyyy8 = yyyy.redIAdd(yyyy);
-    yyyy8 = yyyy8.redIAdd(yyyy8);
-    yyyy8 = yyyy8.redIAdd(yyyy8);
-
-    // X3 = T
-    nx = t;
-    // Y3 = M * (S - T) - 8 * YYYY
-    ny = m.redMul(s.redISub(t)).redISub(yyyy8);
-    // Z3 = 2*Y1
-    nz = this.y.redAdd(this.y);
-  } else {
-    // hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html
-    //     #doubling-dbl-2009-l
-    // 2M + 5S + 13A
-
-    // A = X1^2
-    var a = this.x.redSqr();
-    // B = Y1^2
-    var b = this.y.redSqr();
-    // C = B^2
-    var c = b.redSqr();
-    // D = 2 * ((X1 + B)^2 - A - C)
-    var d = this.x.redAdd(b).redSqr().redISub(a).redISub(c);
-    d = d.redIAdd(d);
-    // E = 3 * A
-    var e = a.redAdd(a).redIAdd(a);
-    // F = E^2
-    var f = e.redSqr();
-
-    // 8 * C
-    var c8 = c.redIAdd(c);
-    c8 = c8.redIAdd(c8);
-    c8 = c8.redIAdd(c8);
-
-    // X3 = F - 2 * D
-    nx = f.redISub(d).redISub(d);
-    // Y3 = E * (D - X3) - 8 * C
-    ny = e.redMul(d.redISub(nx)).redISub(c8);
-    // Z3 = 2 * Y1 * Z1
-    nz = this.y.redMul(this.z);
-    nz = nz.redIAdd(nz);
-  }
-
-  return this.curve.jpoint(nx, ny, nz);
-};
-
-JPoint.prototype._threeDbl = function _threeDbl() {
-  var nx;
-  var ny;
-  var nz;
-  // Z = 1
-  if (this.zOne) {
-    // hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html
-    //     #doubling-mdbl-2007-bl
-    // 1M + 5S + 15A
-
-    // XX = X1^2
-    var xx = this.x.redSqr();
-    // YY = Y1^2
-    var yy = this.y.redSqr();
-    // YYYY = YY^2
-    var yyyy = yy.redSqr();
-    // S = 2 * ((X1 + YY)^2 - XX - YYYY)
-    var s = this.x.redAdd(yy).redSqr().redISub(xx).redISub(yyyy);
-    s = s.redIAdd(s);
-    // M = 3 * XX + a
-    var m = xx.redAdd(xx).redIAdd(xx).redIAdd(this.curve.a);
-    // T = M^2 - 2 * S
-    var t = m.redSqr().redISub(s).redISub(s);
-    // X3 = T
-    nx = t;
-    // Y3 = M * (S - T) - 8 * YYYY
-    var yyyy8 = yyyy.redIAdd(yyyy);
-    yyyy8 = yyyy8.redIAdd(yyyy8);
-    yyyy8 = yyyy8.redIAdd(yyyy8);
-    ny = m.redMul(s.redISub(t)).redISub(yyyy8);
-    // Z3 = 2 * Y1
-    nz = this.y.redAdd(this.y);
-  } else {
-    // hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html#doubling-dbl-2001-b
-    // 3M + 5S
-
-    // delta = Z1^2
-    var delta = this.z.redSqr();
-    // gamma = Y1^2
-    var gamma = this.y.redSqr();
-    // beta = X1 * gamma
-    var beta = this.x.redMul(gamma);
-    // alpha = 3 * (X1 - delta) * (X1 + delta)
-    var alpha = this.x.redSub(delta).redMul(this.x.redAdd(delta));
-    alpha = alpha.redAdd(alpha).redIAdd(alpha);
-    // X3 = alpha^2 - 8 * beta
-    var beta4 = beta.redIAdd(beta);
-    beta4 = beta4.redIAdd(beta4);
-    var beta8 = beta4.redAdd(beta4);
-    nx = alpha.redSqr().redISub(beta8);
-    // Z3 = (Y1 + Z1)^2 - gamma - delta
-    nz = this.y.redAdd(this.z).redSqr().redISub(gamma).redISub(delta);
-    // Y3 = alpha * (4 * beta - X3) - 8 * gamma^2
-    var ggamma8 = gamma.redSqr();
-    ggamma8 = ggamma8.redIAdd(ggamma8);
-    ggamma8 = ggamma8.redIAdd(ggamma8);
-    ggamma8 = ggamma8.redIAdd(ggamma8);
-    ny = alpha.redMul(beta4.redISub(nx)).redISub(ggamma8);
-  }
-
-  return this.curve.jpoint(nx, ny, nz);
-};
-
-JPoint.prototype._dbl = function _dbl() {
-  var a = this.curve.a;
-
-  // 4M + 6S + 10A
-  var jx = this.x;
-  var jy = this.y;
-  var jz = this.z;
-  var jz4 = jz.redSqr().redSqr();
-
-  var jx2 = jx.redSqr();
-  var jy2 = jy.redSqr();
-
-  var c = jx2.redAdd(jx2).redIAdd(jx2).redIAdd(a.redMul(jz4));
-
-  var jxd4 = jx.redAdd(jx);
-  jxd4 = jxd4.redIAdd(jxd4);
-  var t1 = jxd4.redMul(jy2);
-  var nx = c.redSqr().redISub(t1.redAdd(t1));
-  var t2 = t1.redISub(nx);
-
-  var jyd8 = jy2.redSqr();
-  jyd8 = jyd8.redIAdd(jyd8);
-  jyd8 = jyd8.redIAdd(jyd8);
-  jyd8 = jyd8.redIAdd(jyd8);
-  var ny = c.redMul(t2).redISub(jyd8);
-  var nz = jy.redAdd(jy).redMul(jz);
-
-  return this.curve.jpoint(nx, ny, nz);
-};
-
-JPoint.prototype.trpl = function trpl() {
-  if (!this.curve.zeroA)
-    return this.dbl().add(this);
-
-  // hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#tripling-tpl-2007-bl
-  // 5M + 10S + ...
-
-  // XX = X1^2
-  var xx = this.x.redSqr();
-  // YY = Y1^2
-  var yy = this.y.redSqr();
-  // ZZ = Z1^2
-  var zz = this.z.redSqr();
-  // YYYY = YY^2
-  var yyyy = yy.redSqr();
-  // M = 3 * XX + a * ZZ2; a = 0
-  var m = xx.redAdd(xx).redIAdd(xx);
-  // MM = M^2
-  var mm = m.redSqr();
-  // E = 6 * ((X1 + YY)^2 - XX - YYYY) - MM
-  var e = this.x.redAdd(yy).redSqr().redISub(xx).redISub(yyyy);
-  e = e.redIAdd(e);
-  e = e.redAdd(e).redIAdd(e);
-  e = e.redISub(mm);
-  // EE = E^2
-  var ee = e.redSqr();
-  // T = 16*YYYY
-  var t = yyyy.redIAdd(yyyy);
-  t = t.redIAdd(t);
-  t = t.redIAdd(t);
-  t = t.redIAdd(t);
-  // U = (M + E)^2 - MM - EE - T
-  var u = m.redIAdd(e).redSqr().redISub(mm).redISub(ee).redISub(t);
-  // X3 = 4 * (X1 * EE - 4 * YY * U)
-  var yyu4 = yy.redMul(u);
-  yyu4 = yyu4.redIAdd(yyu4);
-  yyu4 = yyu4.redIAdd(yyu4);
-  var nx = this.x.redMul(ee).redISub(yyu4);
-  nx = nx.redIAdd(nx);
-  nx = nx.redIAdd(nx);
-  // Y3 = 8 * Y1 * (U * (T - U) - E * EE)
-  var ny = this.y.redMul(u.redMul(t.redISub(u)).redISub(e.redMul(ee)));
-  ny = ny.redIAdd(ny);
-  ny = ny.redIAdd(ny);
-  ny = ny.redIAdd(ny);
-  // Z3 = (Z1 + E)^2 - ZZ - EE
-  var nz = this.z.redAdd(e).redSqr().redISub(zz).redISub(ee);
-
-  return this.curve.jpoint(nx, ny, nz);
-};
-
-JPoint.prototype.mul = function mul(k, kbase) {
-  k = new bn(k, kbase);
-
-  return this.curve._wnafMul(this, k);
-};
-
-JPoint.prototype.eq = function eq(p) {
-  if (p.type === 'affine')
-    return this.eq(p.toJ());
-
-  if (this === p)
-    return true;
-
-  // x1 * z2^2 == x2 * z1^2
-  var z2 = this.z.redSqr();
-  var pz2 = p.z.redSqr();
-  if (this.x.redMul(pz2).redISub(p.x.redMul(z2)).cmpn(0) !== 0)
-    return false;
-
-  // y1 * z2^3 == y2 * z1^3
-  var z3 = z2.redMul(this.z);
-  var pz3 = pz2.redMul(p.z);
-  return this.y.redMul(pz3).redISub(p.y.redMul(z3)).cmpn(0) === 0;
-};
-
-JPoint.prototype.eqXToP = function eqXToP(x) {
-  var zs = this.z.redSqr();
-  var rx = x.toRed(this.curve.red).redMul(zs);
-  if (this.x.cmp(rx) === 0)
-    return true;
-
-  var xc = x.clone();
-  var t = this.curve.redN.redMul(zs);
-  for (;;) {
-    xc.iadd(this.curve.n);
-    if (xc.cmp(this.curve.p) >= 0)
-      return false;
-
-    rx.redIAdd(t);
-    if (this.x.cmp(rx) === 0)
-      return true;
-  }
-};
-
-JPoint.prototype.inspect = function inspect() {
-  if (this.isInfinity())
-    return '<EC JPoint Infinity>';
-  return '<EC JPoint x: ' + this.x.toString(16, 2) +
-      ' y: ' + this.y.toString(16, 2) +
-      ' z: ' + this.z.toString(16, 2) + '>';
-};
-
-JPoint.prototype.isInfinity = function isInfinity() {
-  // XXX This code assumes that zero is always zero in red
-  return this.z.cmpn(0) === 0;
-};
-
-var mont = {};
-
-var edwards = {};
-
-var curve_1 = createCommonjsModule(function (module, exports) {
-'use strict';
-
-var curve = exports;
-
-curve.base = base;
-curve.short = short_1;
-curve.mont = mont;
-curve.edwards = edwards;
 });
 
 'use strict';
@@ -16834,9 +15835,1600 @@ var hash_3 = hash_1.ripemd160;
 var hash_4 = hash_1.sha256;
 var hash_5 = hash_1.sha512;
 
-var secp256k1 = undefined;
+var commonjsGlobal$1 = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
-var curves_1 = createCommonjsModule(function (module, exports) {
+function getDefaultExportFromCjs (x) {
+	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
+}
+
+function createCommonjsModule$1(fn, basedir, module) {
+	return module = {
+		path: basedir,
+		exports: {},
+		require: function (path, base) {
+			return commonjsRequire$1(path, (base === undefined || base === null) ? module.path : base);
+		}
+	}, fn(module, module.exports), module.exports;
+}
+
+function getDefaultExportFromNamespaceIfPresent (n) {
+	return n && Object.prototype.hasOwnProperty.call(n, 'default') ? n['default'] : n;
+}
+
+function getDefaultExportFromNamespaceIfNotNamed (n) {
+	return n && Object.prototype.hasOwnProperty.call(n, 'default') && Object.keys(n).length === 1 ? n['default'] : n;
+}
+
+function getAugmentedNamespace(n) {
+	if (n.__esModule) return n;
+	var a = Object.defineProperty({}, '__esModule', {value: true});
+	Object.keys(n).forEach(function (k) {
+		var d = Object.getOwnPropertyDescriptor(n, k);
+		Object.defineProperty(a, k, d.get ? d : {
+			enumerable: true,
+			get: function () {
+				return n[k];
+			}
+		});
+	});
+	return a;
+}
+
+function commonjsRequire$1 () {
+	throw new Error('Dynamic requires are not currently supported by @rollup/plugin-commonjs');
+}
+
+var minimalisticAssert$1 = assert$1;
+
+function assert$1(val, msg) {
+  if (!val)
+    throw new Error(msg || 'Assertion failed');
+}
+
+assert$1.equal = function assertEqual(l, r, msg) {
+  if (l != r)
+    throw new Error(msg || ('Assertion failed: ' + l + ' != ' + r));
+};
+
+var utils_1 = createCommonjsModule$1(function (module, exports) {
+'use strict';
+
+var utils = exports;
+
+function toArray(msg, enc) {
+  if (Array.isArray(msg))
+    return msg.slice();
+  if (!msg)
+    return [];
+  var res = [];
+  if (typeof msg !== 'string') {
+    for (var i = 0; i < msg.length; i++)
+      res[i] = msg[i] | 0;
+    return res;
+  }
+  if (enc === 'hex') {
+    msg = msg.replace(/[^a-z0-9]+/ig, '');
+    if (msg.length % 2 !== 0)
+      msg = '0' + msg;
+    for (var i = 0; i < msg.length; i += 2)
+      res.push(parseInt(msg[i] + msg[i + 1], 16));
+  } else {
+    for (var i = 0; i < msg.length; i++) {
+      var c = msg.charCodeAt(i);
+      var hi = c >> 8;
+      var lo = c & 0xff;
+      if (hi)
+        res.push(hi, lo);
+      else
+        res.push(lo);
+    }
+  }
+  return res;
+}
+utils.toArray = toArray;
+
+function zero2(word) {
+  if (word.length === 1)
+    return '0' + word;
+  else
+    return word;
+}
+utils.zero2 = zero2;
+
+function toHex(msg) {
+  var res = '';
+  for (var i = 0; i < msg.length; i++)
+    res += zero2(msg[i].toString(16));
+  return res;
+}
+utils.toHex = toHex;
+
+utils.encode = function encode(arr, enc) {
+  if (enc === 'hex')
+    return toHex(arr);
+  else
+    return arr;
+};
+});
+
+var utils_1$1 = createCommonjsModule$1(function (module, exports) {
+'use strict';
+
+var utils = exports;
+
+
+
+
+utils.assert = minimalisticAssert$1;
+utils.toArray = utils_1.toArray;
+utils.zero2 = utils_1.zero2;
+utils.toHex = utils_1.toHex;
+utils.encode = utils_1.encode;
+
+// Represent num in a w-NAF form
+function getNAF(num, w, bits) {
+  var naf = new Array(Math.max(num.bitLength(), bits) + 1);
+  naf.fill(0);
+
+  var ws = 1 << (w + 1);
+  var k = num.clone();
+
+  for (var i = 0; i < naf.length; i++) {
+    var z;
+    var mod = k.andln(ws - 1);
+    if (k.isOdd()) {
+      if (mod > (ws >> 1) - 1)
+        z = (ws >> 1) - mod;
+      else
+        z = mod;
+      k.isubn(z);
+    } else {
+      z = 0;
+    }
+
+    naf[i] = z;
+    k.iushrn(1);
+  }
+
+  return naf;
+}
+utils.getNAF = getNAF;
+
+// Represent k1, k2 in a Joint Sparse Form
+function getJSF(k1, k2) {
+  var jsf = [
+    [],
+    []
+  ];
+
+  k1 = k1.clone();
+  k2 = k2.clone();
+  var d1 = 0;
+  var d2 = 0;
+  while (k1.cmpn(-d1) > 0 || k2.cmpn(-d2) > 0) {
+
+    // First phase
+    var m14 = (k1.andln(3) + d1) & 3;
+    var m24 = (k2.andln(3) + d2) & 3;
+    if (m14 === 3)
+      m14 = -1;
+    if (m24 === 3)
+      m24 = -1;
+    var u1;
+    if ((m14 & 1) === 0) {
+      u1 = 0;
+    } else {
+      var m8 = (k1.andln(7) + d1) & 7;
+      if ((m8 === 3 || m8 === 5) && m24 === 2)
+        u1 = -m14;
+      else
+        u1 = m14;
+    }
+    jsf[0].push(u1);
+
+    var u2;
+    if ((m24 & 1) === 0) {
+      u2 = 0;
+    } else {
+      var m8 = (k2.andln(7) + d2) & 7;
+      if ((m8 === 3 || m8 === 5) && m14 === 2)
+        u2 = -m24;
+      else
+        u2 = m24;
+    }
+    jsf[1].push(u2);
+
+    // Second phase
+    if (2 * d1 === u1 + 1)
+      d1 = 1 - d1;
+    if (2 * d2 === u2 + 1)
+      d2 = 1 - d2;
+    k1.iushrn(1);
+    k2.iushrn(1);
+  }
+
+  return jsf;
+}
+utils.getJSF = getJSF;
+
+function cachedProperty(obj, name, computer) {
+  var key = '_' + name;
+  obj.prototype[name] = function cachedProperty() {
+    return this[key] !== undefined ? this[key] :
+           this[key] = computer.call(this);
+  };
+}
+utils.cachedProperty = cachedProperty;
+
+function parseBytes(bytes) {
+  return typeof bytes === 'string' ? utils.toArray(bytes, 'hex') :
+                                     bytes;
+}
+utils.parseBytes = parseBytes;
+
+function intFromLE(bytes) {
+  return new bn(bytes, 'hex', 'le');
+}
+utils.intFromLE = intFromLE;
+});
+
+'use strict';
+
+
+
+var getNAF = utils_1$1.getNAF;
+var getJSF = utils_1$1.getJSF;
+var assert$1$1 = utils_1$1.assert;
+
+function BaseCurve(type, conf) {
+  this.type = type;
+  this.p = new bn(conf.p, 16);
+
+  // Use Montgomery, when there is no fast reduction for the prime
+  this.red = conf.prime ? bn.red(conf.prime) : bn.mont(this.p);
+
+  // Useful for many curves
+  this.zero = new bn(0).toRed(this.red);
+  this.one = new bn(1).toRed(this.red);
+  this.two = new bn(2).toRed(this.red);
+
+  // Curve configuration, optional
+  this.n = conf.n && new bn(conf.n, 16);
+  this.g = conf.g && this.pointFromJSON(conf.g, conf.gRed);
+
+  // Temporary arrays
+  this._wnafT1 = new Array(4);
+  this._wnafT2 = new Array(4);
+  this._wnafT3 = new Array(4);
+  this._wnafT4 = new Array(4);
+
+  this._bitLength = this.n ? this.n.bitLength() : 0;
+
+  // Generalized Greg Maxwell's trick
+  var adjustCount = this.n && this.p.div(this.n);
+  if (!adjustCount || adjustCount.cmpn(100) > 0) {
+    this.redN = null;
+  } else {
+    this._maxwellTrick = true;
+    this.redN = this.n.toRed(this.red);
+  }
+}
+var base = BaseCurve;
+
+BaseCurve.prototype.point = function point() {
+  throw new Error('Not implemented');
+};
+
+BaseCurve.prototype.validate = function validate() {
+  throw new Error('Not implemented');
+};
+
+BaseCurve.prototype._fixedNafMul = function _fixedNafMul(p, k) {
+  assert$1$1(p.precomputed);
+  var doubles = p._getDoubles();
+
+  var naf = getNAF(k, 1, this._bitLength);
+  var I = (1 << (doubles.step + 1)) - (doubles.step % 2 === 0 ? 2 : 1);
+  I /= 3;
+
+  // Translate into more windowed form
+  var repr = [];
+  for (var j = 0; j < naf.length; j += doubles.step) {
+    var nafW = 0;
+    for (var k = j + doubles.step - 1; k >= j; k--)
+      nafW = (nafW << 1) + naf[k];
+    repr.push(nafW);
+  }
+
+  var a = this.jpoint(null, null, null);
+  var b = this.jpoint(null, null, null);
+  for (var i = I; i > 0; i--) {
+    for (var j = 0; j < repr.length; j++) {
+      var nafW = repr[j];
+      if (nafW === i)
+        b = b.mixedAdd(doubles.points[j]);
+      else if (nafW === -i)
+        b = b.mixedAdd(doubles.points[j].neg());
+    }
+    a = a.add(b);
+  }
+  return a.toP();
+};
+
+BaseCurve.prototype._wnafMul = function _wnafMul(p, k) {
+  var w = 4;
+
+  // Precompute window
+  var nafPoints = p._getNAFPoints(w);
+  w = nafPoints.wnd;
+  var wnd = nafPoints.points;
+
+  // Get NAF form
+  var naf = getNAF(k, w, this._bitLength);
+
+  // Add `this`*(N+1) for every w-NAF index
+  var acc = this.jpoint(null, null, null);
+  for (var i = naf.length - 1; i >= 0; i--) {
+    // Count zeroes
+    for (var k = 0; i >= 0 && naf[i] === 0; i--)
+      k++;
+    if (i >= 0)
+      k++;
+    acc = acc.dblp(k);
+
+    if (i < 0)
+      break;
+    var z = naf[i];
+    assert$1$1(z !== 0);
+    if (p.type === 'affine') {
+      // J +- P
+      if (z > 0)
+        acc = acc.mixedAdd(wnd[(z - 1) >> 1]);
+      else
+        acc = acc.mixedAdd(wnd[(-z - 1) >> 1].neg());
+    } else {
+      // J +- J
+      if (z > 0)
+        acc = acc.add(wnd[(z - 1) >> 1]);
+      else
+        acc = acc.add(wnd[(-z - 1) >> 1].neg());
+    }
+  }
+  return p.type === 'affine' ? acc.toP() : acc;
+};
+
+BaseCurve.prototype._wnafMulAdd = function _wnafMulAdd(defW,
+                                                       points,
+                                                       coeffs,
+                                                       len,
+                                                       jacobianResult) {
+  var wndWidth = this._wnafT1;
+  var wnd = this._wnafT2;
+  var naf = this._wnafT3;
+
+  // Fill all arrays
+  var max = 0;
+  for (var i = 0; i < len; i++) {
+    var p = points[i];
+    var nafPoints = p._getNAFPoints(defW);
+    wndWidth[i] = nafPoints.wnd;
+    wnd[i] = nafPoints.points;
+  }
+
+  // Comb small window NAFs
+  for (var i = len - 1; i >= 1; i -= 2) {
+    var a = i - 1;
+    var b = i;
+    if (wndWidth[a] !== 1 || wndWidth[b] !== 1) {
+      naf[a] = getNAF(coeffs[a], wndWidth[a], this._bitLength);
+      naf[b] = getNAF(coeffs[b], wndWidth[b], this._bitLength);
+      max = Math.max(naf[a].length, max);
+      max = Math.max(naf[b].length, max);
+      continue;
+    }
+
+    var comb = [
+      points[a], /* 1 */
+      null, /* 3 */
+      null, /* 5 */
+      points[b] /* 7 */
+    ];
+
+    // Try to avoid Projective points, if possible
+    if (points[a].y.cmp(points[b].y) === 0) {
+      comb[1] = points[a].add(points[b]);
+      comb[2] = points[a].toJ().mixedAdd(points[b].neg());
+    } else if (points[a].y.cmp(points[b].y.redNeg()) === 0) {
+      comb[1] = points[a].toJ().mixedAdd(points[b]);
+      comb[2] = points[a].add(points[b].neg());
+    } else {
+      comb[1] = points[a].toJ().mixedAdd(points[b]);
+      comb[2] = points[a].toJ().mixedAdd(points[b].neg());
+    }
+
+    var index = [
+      -3, /* -1 -1 */
+      -1, /* -1 0 */
+      -5, /* -1 1 */
+      -7, /* 0 -1 */
+      0, /* 0 0 */
+      7, /* 0 1 */
+      5, /* 1 -1 */
+      1, /* 1 0 */
+      3  /* 1 1 */
+    ];
+
+    var jsf = getJSF(coeffs[a], coeffs[b]);
+    max = Math.max(jsf[0].length, max);
+    naf[a] = new Array(max);
+    naf[b] = new Array(max);
+    for (var j = 0; j < max; j++) {
+      var ja = jsf[0][j] | 0;
+      var jb = jsf[1][j] | 0;
+
+      naf[a][j] = index[(ja + 1) * 3 + (jb + 1)];
+      naf[b][j] = 0;
+      wnd[a] = comb;
+    }
+  }
+
+  var acc = this.jpoint(null, null, null);
+  var tmp = this._wnafT4;
+  for (var i = max; i >= 0; i--) {
+    var k = 0;
+
+    while (i >= 0) {
+      var zero = true;
+      for (var j = 0; j < len; j++) {
+        tmp[j] = naf[j][i] | 0;
+        if (tmp[j] !== 0)
+          zero = false;
+      }
+      if (!zero)
+        break;
+      k++;
+      i--;
+    }
+    if (i >= 0)
+      k++;
+    acc = acc.dblp(k);
+    if (i < 0)
+      break;
+
+    for (var j = 0; j < len; j++) {
+      var z = tmp[j];
+      var p;
+      if (z === 0)
+        continue;
+      else if (z > 0)
+        p = wnd[j][(z - 1) >> 1];
+      else if (z < 0)
+        p = wnd[j][(-z - 1) >> 1].neg();
+
+      if (p.type === 'affine')
+        acc = acc.mixedAdd(p);
+      else
+        acc = acc.add(p);
+    }
+  }
+  // Zeroify references
+  for (var i = 0; i < len; i++)
+    wnd[i] = null;
+
+  if (jacobianResult)
+    return acc;
+  else
+    return acc.toP();
+};
+
+function BasePoint(curve, type) {
+  this.curve = curve;
+  this.type = type;
+  this.precomputed = null;
+}
+BaseCurve.BasePoint = BasePoint;
+
+BasePoint.prototype.eq = function eq(/*other*/) {
+  throw new Error('Not implemented');
+};
+
+BasePoint.prototype.validate = function validate() {
+  return this.curve.validate(this);
+};
+
+BaseCurve.prototype.decodePoint = function decodePoint(bytes, enc) {
+  bytes = utils_1$1.toArray(bytes, enc);
+
+  var len = this.p.byteLength();
+
+  // uncompressed, hybrid-odd, hybrid-even
+  if ((bytes[0] === 0x04 || bytes[0] === 0x06 || bytes[0] === 0x07) &&
+      bytes.length - 1 === 2 * len) {
+    if (bytes[0] === 0x06)
+      assert$1$1(bytes[bytes.length - 1] % 2 === 0);
+    else if (bytes[0] === 0x07)
+      assert$1$1(bytes[bytes.length - 1] % 2 === 1);
+
+    var res =  this.point(bytes.slice(1, 1 + len),
+                          bytes.slice(1 + len, 1 + 2 * len));
+
+    return res;
+  } else if ((bytes[0] === 0x02 || bytes[0] === 0x03) &&
+              bytes.length - 1 === len) {
+    return this.pointFromX(bytes.slice(1, 1 + len), bytes[0] === 0x03);
+  }
+  throw new Error('Unknown point format');
+};
+
+BasePoint.prototype.encodeCompressed = function encodeCompressed(enc) {
+  return this.encode(enc, true);
+};
+
+BasePoint.prototype._encode = function _encode(compact) {
+  var len = this.curve.p.byteLength();
+  var x = this.getX().toArray('be', len);
+
+  if (compact)
+    return [ this.getY().isEven() ? 0x02 : 0x03 ].concat(x);
+
+  return [ 0x04 ].concat(x, this.getY().toArray('be', len)) ;
+};
+
+BasePoint.prototype.encode = function encode(enc, compact) {
+  return utils_1$1.encode(this._encode(compact), enc);
+};
+
+BasePoint.prototype.precompute = function precompute(power) {
+  if (this.precomputed)
+    return this;
+
+  var precomputed = {
+    doubles: null,
+    naf: null,
+    beta: null
+  };
+  precomputed.naf = this._getNAFPoints(8);
+  precomputed.doubles = this._getDoubles(4, power);
+  precomputed.beta = this._getBeta();
+  this.precomputed = precomputed;
+
+  return this;
+};
+
+BasePoint.prototype._hasDoubles = function _hasDoubles(k) {
+  if (!this.precomputed)
+    return false;
+
+  var doubles = this.precomputed.doubles;
+  if (!doubles)
+    return false;
+
+  return doubles.points.length >= Math.ceil((k.bitLength() + 1) / doubles.step);
+};
+
+BasePoint.prototype._getDoubles = function _getDoubles(step, power) {
+  if (this.precomputed && this.precomputed.doubles)
+    return this.precomputed.doubles;
+
+  var doubles = [ this ];
+  var acc = this;
+  for (var i = 0; i < power; i += step) {
+    for (var j = 0; j < step; j++)
+      acc = acc.dbl();
+    doubles.push(acc);
+  }
+  return {
+    step: step,
+    points: doubles
+  };
+};
+
+BasePoint.prototype._getNAFPoints = function _getNAFPoints(wnd) {
+  if (this.precomputed && this.precomputed.naf)
+    return this.precomputed.naf;
+
+  var res = [ this ];
+  var max = (1 << wnd) - 1;
+  var dbl = max === 1 ? null : this.dbl();
+  for (var i = 1; i < max; i++)
+    res[i] = res[i - 1].add(dbl);
+  return {
+    wnd: wnd,
+    points: res
+  };
+};
+
+BasePoint.prototype._getBeta = function _getBeta() {
+  return null;
+};
+
+BasePoint.prototype.dblp = function dblp(k) {
+  var r = this;
+  for (var i = 0; i < k; i++)
+    r = r.dbl();
+  return r;
+};
+
+var inherits_browser$1 = createCommonjsModule$1(function (module) {
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    if (superCtor) {
+      ctor.super_ = superCtor;
+      ctor.prototype = Object.create(superCtor.prototype, {
+        constructor: {
+          value: ctor,
+          enumerable: false,
+          writable: true,
+          configurable: true
+        }
+      });
+    }
+  };
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    if (superCtor) {
+      ctor.super_ = superCtor;
+      var TempCtor = function () {};
+      TempCtor.prototype = superCtor.prototype;
+      ctor.prototype = new TempCtor();
+      ctor.prototype.constructor = ctor;
+    }
+  };
+}
+});
+
+'use strict';
+
+
+
+
+
+
+var assert$2 = utils_1$1.assert;
+
+function ShortCurve(conf) {
+  base.call(this, 'short', conf);
+
+  this.a = new bn(conf.a, 16).toRed(this.red);
+  this.b = new bn(conf.b, 16).toRed(this.red);
+  this.tinv = this.two.redInvm();
+
+  this.zeroA = this.a.fromRed().cmpn(0) === 0;
+  this.threeA = this.a.fromRed().sub(this.p).cmpn(-3) === 0;
+
+  // If the curve is endomorphic, precalculate beta and lambda
+  this.endo = this._getEndomorphism(conf);
+  this._endoWnafT1 = new Array(4);
+  this._endoWnafT2 = new Array(4);
+}
+inherits_browser$1(ShortCurve, base);
+var short_1 = ShortCurve;
+
+ShortCurve.prototype._getEndomorphism = function _getEndomorphism(conf) {
+  // No efficient endomorphism
+  if (!this.zeroA || !this.g || !this.n || this.p.modn(3) !== 1)
+    return;
+
+  // Compute beta and lambda, that lambda * P = (beta * Px; Py)
+  var beta;
+  var lambda;
+  if (conf.beta) {
+    beta = new bn(conf.beta, 16).toRed(this.red);
+  } else {
+    var betas = this._getEndoRoots(this.p);
+    // Choose the smallest beta
+    beta = betas[0].cmp(betas[1]) < 0 ? betas[0] : betas[1];
+    beta = beta.toRed(this.red);
+  }
+  if (conf.lambda) {
+    lambda = new bn(conf.lambda, 16);
+  } else {
+    // Choose the lambda that is matching selected beta
+    var lambdas = this._getEndoRoots(this.n);
+    if (this.g.mul(lambdas[0]).x.cmp(this.g.x.redMul(beta)) === 0) {
+      lambda = lambdas[0];
+    } else {
+      lambda = lambdas[1];
+      assert$2(this.g.mul(lambda).x.cmp(this.g.x.redMul(beta)) === 0);
+    }
+  }
+
+  // Get basis vectors, used for balanced length-two representation
+  var basis;
+  if (conf.basis) {
+    basis = conf.basis.map(function(vec) {
+      return {
+        a: new bn(vec.a, 16),
+        b: new bn(vec.b, 16)
+      };
+    });
+  } else {
+    basis = this._getEndoBasis(lambda);
+  }
+
+  return {
+    beta: beta,
+    lambda: lambda,
+    basis: basis
+  };
+};
+
+ShortCurve.prototype._getEndoRoots = function _getEndoRoots(num) {
+  // Find roots of for x^2 + x + 1 in F
+  // Root = (-1 +- Sqrt(-3)) / 2
+  //
+  var red = num === this.p ? this.red : bn.mont(num);
+  var tinv = new bn(2).toRed(red).redInvm();
+  var ntinv = tinv.redNeg();
+
+  var s = new bn(3).toRed(red).redNeg().redSqrt().redMul(tinv);
+
+  var l1 = ntinv.redAdd(s).fromRed();
+  var l2 = ntinv.redSub(s).fromRed();
+  return [ l1, l2 ];
+};
+
+ShortCurve.prototype._getEndoBasis = function _getEndoBasis(lambda) {
+  // aprxSqrt >= sqrt(this.n)
+  var aprxSqrt = this.n.ushrn(Math.floor(this.n.bitLength() / 2));
+
+  // 3.74
+  // Run EGCD, until r(L + 1) < aprxSqrt
+  var u = lambda;
+  var v = this.n.clone();
+  var x1 = new bn(1);
+  var y1 = new bn(0);
+  var x2 = new bn(0);
+  var y2 = new bn(1);
+
+  // NOTE: all vectors are roots of: a + b * lambda = 0 (mod n)
+  var a0;
+  var b0;
+  // First vector
+  var a1;
+  var b1;
+  // Second vector
+  var a2;
+  var b2;
+
+  var prevR;
+  var i = 0;
+  var r;
+  var x;
+  while (u.cmpn(0) !== 0) {
+    var q = v.div(u);
+    r = v.sub(q.mul(u));
+    x = x2.sub(q.mul(x1));
+    var y = y2.sub(q.mul(y1));
+
+    if (!a1 && r.cmp(aprxSqrt) < 0) {
+      a0 = prevR.neg();
+      b0 = x1;
+      a1 = r.neg();
+      b1 = x;
+    } else if (a1 && ++i === 2) {
+      break;
+    }
+    prevR = r;
+
+    v = u;
+    u = r;
+    x2 = x1;
+    x1 = x;
+    y2 = y1;
+    y1 = y;
+  }
+  a2 = r.neg();
+  b2 = x;
+
+  var len1 = a1.sqr().add(b1.sqr());
+  var len2 = a2.sqr().add(b2.sqr());
+  if (len2.cmp(len1) >= 0) {
+    a2 = a0;
+    b2 = b0;
+  }
+
+  // Normalize signs
+  if (a1.negative) {
+    a1 = a1.neg();
+    b1 = b1.neg();
+  }
+  if (a2.negative) {
+    a2 = a2.neg();
+    b2 = b2.neg();
+  }
+
+  return [
+    { a: a1, b: b1 },
+    { a: a2, b: b2 }
+  ];
+};
+
+ShortCurve.prototype._endoSplit = function _endoSplit(k) {
+  var basis = this.endo.basis;
+  var v1 = basis[0];
+  var v2 = basis[1];
+
+  var c1 = v2.b.mul(k).divRound(this.n);
+  var c2 = v1.b.neg().mul(k).divRound(this.n);
+
+  var p1 = c1.mul(v1.a);
+  var p2 = c2.mul(v2.a);
+  var q1 = c1.mul(v1.b);
+  var q2 = c2.mul(v2.b);
+
+  // Calculate answer
+  var k1 = k.sub(p1).sub(p2);
+  var k2 = q1.add(q2).neg();
+  return { k1: k1, k2: k2 };
+};
+
+ShortCurve.prototype.pointFromX = function pointFromX(x, odd) {
+  x = new bn(x, 16);
+  if (!x.red)
+    x = x.toRed(this.red);
+
+  var y2 = x.redSqr().redMul(x).redIAdd(x.redMul(this.a)).redIAdd(this.b);
+  var y = y2.redSqrt();
+  if (y.redSqr().redSub(y2).cmp(this.zero) !== 0)
+    throw new Error('invalid point');
+
+  // XXX Is there any way to tell if the number is odd without converting it
+  // to non-red form?
+  var isOdd = y.fromRed().isOdd();
+  if (odd && !isOdd || !odd && isOdd)
+    y = y.redNeg();
+
+  return this.point(x, y);
+};
+
+ShortCurve.prototype.validate = function validate(point) {
+  if (point.inf)
+    return true;
+
+  var x = point.x;
+  var y = point.y;
+
+  var ax = this.a.redMul(x);
+  var rhs = x.redSqr().redMul(x).redIAdd(ax).redIAdd(this.b);
+  return y.redSqr().redISub(rhs).cmpn(0) === 0;
+};
+
+ShortCurve.prototype._endoWnafMulAdd =
+    function _endoWnafMulAdd(points, coeffs, jacobianResult) {
+  var npoints = this._endoWnafT1;
+  var ncoeffs = this._endoWnafT2;
+  for (var i = 0; i < points.length; i++) {
+    var split = this._endoSplit(coeffs[i]);
+    var p = points[i];
+    var beta = p._getBeta();
+
+    if (split.k1.negative) {
+      split.k1.ineg();
+      p = p.neg(true);
+    }
+    if (split.k2.negative) {
+      split.k2.ineg();
+      beta = beta.neg(true);
+    }
+
+    npoints[i * 2] = p;
+    npoints[i * 2 + 1] = beta;
+    ncoeffs[i * 2] = split.k1;
+    ncoeffs[i * 2 + 1] = split.k2;
+  }
+  var res = this._wnafMulAdd(1, npoints, ncoeffs, i * 2, jacobianResult);
+
+  // Clean-up references to points and coefficients
+  for (var j = 0; j < i * 2; j++) {
+    npoints[j] = null;
+    ncoeffs[j] = null;
+  }
+  return res;
+};
+
+function Point(curve, x, y, isRed) {
+  base.BasePoint.call(this, curve, 'affine');
+  if (x === null && y === null) {
+    this.x = null;
+    this.y = null;
+    this.inf = true;
+  } else {
+    this.x = new bn(x, 16);
+    this.y = new bn(y, 16);
+    // Force redgomery representation when loading from JSON
+    if (isRed) {
+      this.x.forceRed(this.curve.red);
+      this.y.forceRed(this.curve.red);
+    }
+    if (!this.x.red)
+      this.x = this.x.toRed(this.curve.red);
+    if (!this.y.red)
+      this.y = this.y.toRed(this.curve.red);
+    this.inf = false;
+  }
+}
+inherits_browser$1(Point, base.BasePoint);
+
+ShortCurve.prototype.point = function point(x, y, isRed) {
+  return new Point(this, x, y, isRed);
+};
+
+ShortCurve.prototype.pointFromJSON = function pointFromJSON(obj, red) {
+  return Point.fromJSON(this, obj, red);
+};
+
+Point.prototype._getBeta = function _getBeta() {
+  if (!this.curve.endo)
+    return;
+
+  var pre = this.precomputed;
+  if (pre && pre.beta)
+    return pre.beta;
+
+  var beta = this.curve.point(this.x.redMul(this.curve.endo.beta), this.y);
+  if (pre) {
+    var curve = this.curve;
+    var endoMul = function(p) {
+      return curve.point(p.x.redMul(curve.endo.beta), p.y);
+    };
+    pre.beta = beta;
+    beta.precomputed = {
+      beta: null,
+      naf: pre.naf && {
+        wnd: pre.naf.wnd,
+        points: pre.naf.points.map(endoMul)
+      },
+      doubles: pre.doubles && {
+        step: pre.doubles.step,
+        points: pre.doubles.points.map(endoMul)
+      }
+    };
+  }
+  return beta;
+};
+
+Point.prototype.toJSON = function toJSON() {
+  if (!this.precomputed)
+    return [ this.x, this.y ];
+
+  return [ this.x, this.y, this.precomputed && {
+    doubles: this.precomputed.doubles && {
+      step: this.precomputed.doubles.step,
+      points: this.precomputed.doubles.points.slice(1)
+    },
+    naf: this.precomputed.naf && {
+      wnd: this.precomputed.naf.wnd,
+      points: this.precomputed.naf.points.slice(1)
+    }
+  } ];
+};
+
+Point.fromJSON = function fromJSON(curve, obj, red) {
+  if (typeof obj === 'string')
+    obj = JSON.parse(obj);
+  var res = curve.point(obj[0], obj[1], red);
+  if (!obj[2])
+    return res;
+
+  function obj2point(obj) {
+    return curve.point(obj[0], obj[1], red);
+  }
+
+  var pre = obj[2];
+  res.precomputed = {
+    beta: null,
+    doubles: pre.doubles && {
+      step: pre.doubles.step,
+      points: [ res ].concat(pre.doubles.points.map(obj2point))
+    },
+    naf: pre.naf && {
+      wnd: pre.naf.wnd,
+      points: [ res ].concat(pre.naf.points.map(obj2point))
+    }
+  };
+  return res;
+};
+
+Point.prototype.inspect = function inspect() {
+  if (this.isInfinity())
+    return '<EC Point Infinity>';
+  return '<EC Point x: ' + this.x.fromRed().toString(16, 2) +
+      ' y: ' + this.y.fromRed().toString(16, 2) + '>';
+};
+
+Point.prototype.isInfinity = function isInfinity() {
+  return this.inf;
+};
+
+Point.prototype.add = function add(p) {
+  // O + P = P
+  if (this.inf)
+    return p;
+
+  // P + O = P
+  if (p.inf)
+    return this;
+
+  // P + P = 2P
+  if (this.eq(p))
+    return this.dbl();
+
+  // P + (-P) = O
+  if (this.neg().eq(p))
+    return this.curve.point(null, null);
+
+  // P + Q = O
+  if (this.x.cmp(p.x) === 0)
+    return this.curve.point(null, null);
+
+  var c = this.y.redSub(p.y);
+  if (c.cmpn(0) !== 0)
+    c = c.redMul(this.x.redSub(p.x).redInvm());
+  var nx = c.redSqr().redISub(this.x).redISub(p.x);
+  var ny = c.redMul(this.x.redSub(nx)).redISub(this.y);
+  return this.curve.point(nx, ny);
+};
+
+Point.prototype.dbl = function dbl() {
+  if (this.inf)
+    return this;
+
+  // 2P = O
+  var ys1 = this.y.redAdd(this.y);
+  if (ys1.cmpn(0) === 0)
+    return this.curve.point(null, null);
+
+  var a = this.curve.a;
+
+  var x2 = this.x.redSqr();
+  var dyinv = ys1.redInvm();
+  var c = x2.redAdd(x2).redIAdd(x2).redIAdd(a).redMul(dyinv);
+
+  var nx = c.redSqr().redISub(this.x.redAdd(this.x));
+  var ny = c.redMul(this.x.redSub(nx)).redISub(this.y);
+  return this.curve.point(nx, ny);
+};
+
+Point.prototype.getX = function getX() {
+  return this.x.fromRed();
+};
+
+Point.prototype.getY = function getY() {
+  return this.y.fromRed();
+};
+
+Point.prototype.mul = function mul(k) {
+  k = new bn(k, 16);
+  if (this.isInfinity())
+    return this;
+  else if (this._hasDoubles(k))
+    return this.curve._fixedNafMul(this, k);
+  else if (this.curve.endo)
+    return this.curve._endoWnafMulAdd([ this ], [ k ]);
+  else
+    return this.curve._wnafMul(this, k);
+};
+
+Point.prototype.mulAdd = function mulAdd(k1, p2, k2) {
+  var points = [ this, p2 ];
+  var coeffs = [ k1, k2 ];
+  if (this.curve.endo)
+    return this.curve._endoWnafMulAdd(points, coeffs);
+  else
+    return this.curve._wnafMulAdd(1, points, coeffs, 2);
+};
+
+Point.prototype.jmulAdd = function jmulAdd(k1, p2, k2) {
+  var points = [ this, p2 ];
+  var coeffs = [ k1, k2 ];
+  if (this.curve.endo)
+    return this.curve._endoWnafMulAdd(points, coeffs, true);
+  else
+    return this.curve._wnafMulAdd(1, points, coeffs, 2, true);
+};
+
+Point.prototype.eq = function eq(p) {
+  return this === p ||
+         this.inf === p.inf &&
+             (this.inf || this.x.cmp(p.x) === 0 && this.y.cmp(p.y) === 0);
+};
+
+Point.prototype.neg = function neg(_precompute) {
+  if (this.inf)
+    return this;
+
+  var res = this.curve.point(this.x, this.y.redNeg());
+  if (_precompute && this.precomputed) {
+    var pre = this.precomputed;
+    var negate = function(p) {
+      return p.neg();
+    };
+    res.precomputed = {
+      naf: pre.naf && {
+        wnd: pre.naf.wnd,
+        points: pre.naf.points.map(negate)
+      },
+      doubles: pre.doubles && {
+        step: pre.doubles.step,
+        points: pre.doubles.points.map(negate)
+      }
+    };
+  }
+  return res;
+};
+
+Point.prototype.toJ = function toJ() {
+  if (this.inf)
+    return this.curve.jpoint(null, null, null);
+
+  var res = this.curve.jpoint(this.x, this.y, this.curve.one);
+  return res;
+};
+
+function JPoint(curve, x, y, z) {
+  base.BasePoint.call(this, curve, 'jacobian');
+  if (x === null && y === null && z === null) {
+    this.x = this.curve.one;
+    this.y = this.curve.one;
+    this.z = new bn(0);
+  } else {
+    this.x = new bn(x, 16);
+    this.y = new bn(y, 16);
+    this.z = new bn(z, 16);
+  }
+  if (!this.x.red)
+    this.x = this.x.toRed(this.curve.red);
+  if (!this.y.red)
+    this.y = this.y.toRed(this.curve.red);
+  if (!this.z.red)
+    this.z = this.z.toRed(this.curve.red);
+
+  this.zOne = this.z === this.curve.one;
+}
+inherits_browser$1(JPoint, base.BasePoint);
+
+ShortCurve.prototype.jpoint = function jpoint(x, y, z) {
+  return new JPoint(this, x, y, z);
+};
+
+JPoint.prototype.toP = function toP() {
+  if (this.isInfinity())
+    return this.curve.point(null, null);
+
+  var zinv = this.z.redInvm();
+  var zinv2 = zinv.redSqr();
+  var ax = this.x.redMul(zinv2);
+  var ay = this.y.redMul(zinv2).redMul(zinv);
+
+  return this.curve.point(ax, ay);
+};
+
+JPoint.prototype.neg = function neg() {
+  return this.curve.jpoint(this.x, this.y.redNeg(), this.z);
+};
+
+JPoint.prototype.add = function add(p) {
+  // O + P = P
+  if (this.isInfinity())
+    return p;
+
+  // P + O = P
+  if (p.isInfinity())
+    return this;
+
+  // 12M + 4S + 7A
+  var pz2 = p.z.redSqr();
+  var z2 = this.z.redSqr();
+  var u1 = this.x.redMul(pz2);
+  var u2 = p.x.redMul(z2);
+  var s1 = this.y.redMul(pz2.redMul(p.z));
+  var s2 = p.y.redMul(z2.redMul(this.z));
+
+  var h = u1.redSub(u2);
+  var r = s1.redSub(s2);
+  if (h.cmpn(0) === 0) {
+    if (r.cmpn(0) !== 0)
+      return this.curve.jpoint(null, null, null);
+    else
+      return this.dbl();
+  }
+
+  var h2 = h.redSqr();
+  var h3 = h2.redMul(h);
+  var v = u1.redMul(h2);
+
+  var nx = r.redSqr().redIAdd(h3).redISub(v).redISub(v);
+  var ny = r.redMul(v.redISub(nx)).redISub(s1.redMul(h3));
+  var nz = this.z.redMul(p.z).redMul(h);
+
+  return this.curve.jpoint(nx, ny, nz);
+};
+
+JPoint.prototype.mixedAdd = function mixedAdd(p) {
+  // O + P = P
+  if (this.isInfinity())
+    return p.toJ();
+
+  // P + O = P
+  if (p.isInfinity())
+    return this;
+
+  // 8M + 3S + 7A
+  var z2 = this.z.redSqr();
+  var u1 = this.x;
+  var u2 = p.x.redMul(z2);
+  var s1 = this.y;
+  var s2 = p.y.redMul(z2).redMul(this.z);
+
+  var h = u1.redSub(u2);
+  var r = s1.redSub(s2);
+  if (h.cmpn(0) === 0) {
+    if (r.cmpn(0) !== 0)
+      return this.curve.jpoint(null, null, null);
+    else
+      return this.dbl();
+  }
+
+  var h2 = h.redSqr();
+  var h3 = h2.redMul(h);
+  var v = u1.redMul(h2);
+
+  var nx = r.redSqr().redIAdd(h3).redISub(v).redISub(v);
+  var ny = r.redMul(v.redISub(nx)).redISub(s1.redMul(h3));
+  var nz = this.z.redMul(h);
+
+  return this.curve.jpoint(nx, ny, nz);
+};
+
+JPoint.prototype.dblp = function dblp(pow) {
+  if (pow === 0)
+    return this;
+  if (this.isInfinity())
+    return this;
+  if (!pow)
+    return this.dbl();
+
+  if (this.curve.zeroA || this.curve.threeA) {
+    var r = this;
+    for (var i = 0; i < pow; i++)
+      r = r.dbl();
+    return r;
+  }
+
+  // 1M + 2S + 1A + N * (4S + 5M + 8A)
+  // N = 1 => 6M + 6S + 9A
+  var a = this.curve.a;
+  var tinv = this.curve.tinv;
+
+  var jx = this.x;
+  var jy = this.y;
+  var jz = this.z;
+  var jz4 = jz.redSqr().redSqr();
+
+  // Reuse results
+  var jyd = jy.redAdd(jy);
+  for (var i = 0; i < pow; i++) {
+    var jx2 = jx.redSqr();
+    var jyd2 = jyd.redSqr();
+    var jyd4 = jyd2.redSqr();
+    var c = jx2.redAdd(jx2).redIAdd(jx2).redIAdd(a.redMul(jz4));
+
+    var t1 = jx.redMul(jyd2);
+    var nx = c.redSqr().redISub(t1.redAdd(t1));
+    var t2 = t1.redISub(nx);
+    var dny = c.redMul(t2);
+    dny = dny.redIAdd(dny).redISub(jyd4);
+    var nz = jyd.redMul(jz);
+    if (i + 1 < pow)
+      jz4 = jz4.redMul(jyd4);
+
+    jx = nx;
+    jz = nz;
+    jyd = dny;
+  }
+
+  return this.curve.jpoint(jx, jyd.redMul(tinv), jz);
+};
+
+JPoint.prototype.dbl = function dbl() {
+  if (this.isInfinity())
+    return this;
+
+  if (this.curve.zeroA)
+    return this._zeroDbl();
+  else if (this.curve.threeA)
+    return this._threeDbl();
+  else
+    return this._dbl();
+};
+
+JPoint.prototype._zeroDbl = function _zeroDbl() {
+  var nx;
+  var ny;
+  var nz;
+  // Z = 1
+  if (this.zOne) {
+    // hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html
+    //     #doubling-mdbl-2007-bl
+    // 1M + 5S + 14A
+
+    // XX = X1^2
+    var xx = this.x.redSqr();
+    // YY = Y1^2
+    var yy = this.y.redSqr();
+    // YYYY = YY^2
+    var yyyy = yy.redSqr();
+    // S = 2 * ((X1 + YY)^2 - XX - YYYY)
+    var s = this.x.redAdd(yy).redSqr().redISub(xx).redISub(yyyy);
+    s = s.redIAdd(s);
+    // M = 3 * XX + a; a = 0
+    var m = xx.redAdd(xx).redIAdd(xx);
+    // T = M ^ 2 - 2*S
+    var t = m.redSqr().redISub(s).redISub(s);
+
+    // 8 * YYYY
+    var yyyy8 = yyyy.redIAdd(yyyy);
+    yyyy8 = yyyy8.redIAdd(yyyy8);
+    yyyy8 = yyyy8.redIAdd(yyyy8);
+
+    // X3 = T
+    nx = t;
+    // Y3 = M * (S - T) - 8 * YYYY
+    ny = m.redMul(s.redISub(t)).redISub(yyyy8);
+    // Z3 = 2*Y1
+    nz = this.y.redAdd(this.y);
+  } else {
+    // hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html
+    //     #doubling-dbl-2009-l
+    // 2M + 5S + 13A
+
+    // A = X1^2
+    var a = this.x.redSqr();
+    // B = Y1^2
+    var b = this.y.redSqr();
+    // C = B^2
+    var c = b.redSqr();
+    // D = 2 * ((X1 + B)^2 - A - C)
+    var d = this.x.redAdd(b).redSqr().redISub(a).redISub(c);
+    d = d.redIAdd(d);
+    // E = 3 * A
+    var e = a.redAdd(a).redIAdd(a);
+    // F = E^2
+    var f = e.redSqr();
+
+    // 8 * C
+    var c8 = c.redIAdd(c);
+    c8 = c8.redIAdd(c8);
+    c8 = c8.redIAdd(c8);
+
+    // X3 = F - 2 * D
+    nx = f.redISub(d).redISub(d);
+    // Y3 = E * (D - X3) - 8 * C
+    ny = e.redMul(d.redISub(nx)).redISub(c8);
+    // Z3 = 2 * Y1 * Z1
+    nz = this.y.redMul(this.z);
+    nz = nz.redIAdd(nz);
+  }
+
+  return this.curve.jpoint(nx, ny, nz);
+};
+
+JPoint.prototype._threeDbl = function _threeDbl() {
+  var nx;
+  var ny;
+  var nz;
+  // Z = 1
+  if (this.zOne) {
+    // hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html
+    //     #doubling-mdbl-2007-bl
+    // 1M + 5S + 15A
+
+    // XX = X1^2
+    var xx = this.x.redSqr();
+    // YY = Y1^2
+    var yy = this.y.redSqr();
+    // YYYY = YY^2
+    var yyyy = yy.redSqr();
+    // S = 2 * ((X1 + YY)^2 - XX - YYYY)
+    var s = this.x.redAdd(yy).redSqr().redISub(xx).redISub(yyyy);
+    s = s.redIAdd(s);
+    // M = 3 * XX + a
+    var m = xx.redAdd(xx).redIAdd(xx).redIAdd(this.curve.a);
+    // T = M^2 - 2 * S
+    var t = m.redSqr().redISub(s).redISub(s);
+    // X3 = T
+    nx = t;
+    // Y3 = M * (S - T) - 8 * YYYY
+    var yyyy8 = yyyy.redIAdd(yyyy);
+    yyyy8 = yyyy8.redIAdd(yyyy8);
+    yyyy8 = yyyy8.redIAdd(yyyy8);
+    ny = m.redMul(s.redISub(t)).redISub(yyyy8);
+    // Z3 = 2 * Y1
+    nz = this.y.redAdd(this.y);
+  } else {
+    // hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html#doubling-dbl-2001-b
+    // 3M + 5S
+
+    // delta = Z1^2
+    var delta = this.z.redSqr();
+    // gamma = Y1^2
+    var gamma = this.y.redSqr();
+    // beta = X1 * gamma
+    var beta = this.x.redMul(gamma);
+    // alpha = 3 * (X1 - delta) * (X1 + delta)
+    var alpha = this.x.redSub(delta).redMul(this.x.redAdd(delta));
+    alpha = alpha.redAdd(alpha).redIAdd(alpha);
+    // X3 = alpha^2 - 8 * beta
+    var beta4 = beta.redIAdd(beta);
+    beta4 = beta4.redIAdd(beta4);
+    var beta8 = beta4.redAdd(beta4);
+    nx = alpha.redSqr().redISub(beta8);
+    // Z3 = (Y1 + Z1)^2 - gamma - delta
+    nz = this.y.redAdd(this.z).redSqr().redISub(gamma).redISub(delta);
+    // Y3 = alpha * (4 * beta - X3) - 8 * gamma^2
+    var ggamma8 = gamma.redSqr();
+    ggamma8 = ggamma8.redIAdd(ggamma8);
+    ggamma8 = ggamma8.redIAdd(ggamma8);
+    ggamma8 = ggamma8.redIAdd(ggamma8);
+    ny = alpha.redMul(beta4.redISub(nx)).redISub(ggamma8);
+  }
+
+  return this.curve.jpoint(nx, ny, nz);
+};
+
+JPoint.prototype._dbl = function _dbl() {
+  var a = this.curve.a;
+
+  // 4M + 6S + 10A
+  var jx = this.x;
+  var jy = this.y;
+  var jz = this.z;
+  var jz4 = jz.redSqr().redSqr();
+
+  var jx2 = jx.redSqr();
+  var jy2 = jy.redSqr();
+
+  var c = jx2.redAdd(jx2).redIAdd(jx2).redIAdd(a.redMul(jz4));
+
+  var jxd4 = jx.redAdd(jx);
+  jxd4 = jxd4.redIAdd(jxd4);
+  var t1 = jxd4.redMul(jy2);
+  var nx = c.redSqr().redISub(t1.redAdd(t1));
+  var t2 = t1.redISub(nx);
+
+  var jyd8 = jy2.redSqr();
+  jyd8 = jyd8.redIAdd(jyd8);
+  jyd8 = jyd8.redIAdd(jyd8);
+  jyd8 = jyd8.redIAdd(jyd8);
+  var ny = c.redMul(t2).redISub(jyd8);
+  var nz = jy.redAdd(jy).redMul(jz);
+
+  return this.curve.jpoint(nx, ny, nz);
+};
+
+JPoint.prototype.trpl = function trpl() {
+  if (!this.curve.zeroA)
+    return this.dbl().add(this);
+
+  // hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#tripling-tpl-2007-bl
+  // 5M + 10S + ...
+
+  // XX = X1^2
+  var xx = this.x.redSqr();
+  // YY = Y1^2
+  var yy = this.y.redSqr();
+  // ZZ = Z1^2
+  var zz = this.z.redSqr();
+  // YYYY = YY^2
+  var yyyy = yy.redSqr();
+  // M = 3 * XX + a * ZZ2; a = 0
+  var m = xx.redAdd(xx).redIAdd(xx);
+  // MM = M^2
+  var mm = m.redSqr();
+  // E = 6 * ((X1 + YY)^2 - XX - YYYY) - MM
+  var e = this.x.redAdd(yy).redSqr().redISub(xx).redISub(yyyy);
+  e = e.redIAdd(e);
+  e = e.redAdd(e).redIAdd(e);
+  e = e.redISub(mm);
+  // EE = E^2
+  var ee = e.redSqr();
+  // T = 16*YYYY
+  var t = yyyy.redIAdd(yyyy);
+  t = t.redIAdd(t);
+  t = t.redIAdd(t);
+  t = t.redIAdd(t);
+  // U = (M + E)^2 - MM - EE - T
+  var u = m.redIAdd(e).redSqr().redISub(mm).redISub(ee).redISub(t);
+  // X3 = 4 * (X1 * EE - 4 * YY * U)
+  var yyu4 = yy.redMul(u);
+  yyu4 = yyu4.redIAdd(yyu4);
+  yyu4 = yyu4.redIAdd(yyu4);
+  var nx = this.x.redMul(ee).redISub(yyu4);
+  nx = nx.redIAdd(nx);
+  nx = nx.redIAdd(nx);
+  // Y3 = 8 * Y1 * (U * (T - U) - E * EE)
+  var ny = this.y.redMul(u.redMul(t.redISub(u)).redISub(e.redMul(ee)));
+  ny = ny.redIAdd(ny);
+  ny = ny.redIAdd(ny);
+  ny = ny.redIAdd(ny);
+  // Z3 = (Z1 + E)^2 - ZZ - EE
+  var nz = this.z.redAdd(e).redSqr().redISub(zz).redISub(ee);
+
+  return this.curve.jpoint(nx, ny, nz);
+};
+
+JPoint.prototype.mul = function mul(k, kbase) {
+  k = new bn(k, kbase);
+
+  return this.curve._wnafMul(this, k);
+};
+
+JPoint.prototype.eq = function eq(p) {
+  if (p.type === 'affine')
+    return this.eq(p.toJ());
+
+  if (this === p)
+    return true;
+
+  // x1 * z2^2 == x2 * z1^2
+  var z2 = this.z.redSqr();
+  var pz2 = p.z.redSqr();
+  if (this.x.redMul(pz2).redISub(p.x.redMul(z2)).cmpn(0) !== 0)
+    return false;
+
+  // y1 * z2^3 == y2 * z1^3
+  var z3 = z2.redMul(this.z);
+  var pz3 = pz2.redMul(p.z);
+  return this.y.redMul(pz3).redISub(p.y.redMul(z3)).cmpn(0) === 0;
+};
+
+JPoint.prototype.eqXToP = function eqXToP(x) {
+  var zs = this.z.redSqr();
+  var rx = x.toRed(this.curve.red).redMul(zs);
+  if (this.x.cmp(rx) === 0)
+    return true;
+
+  var xc = x.clone();
+  var t = this.curve.redN.redMul(zs);
+  for (;;) {
+    xc.iadd(this.curve.n);
+    if (xc.cmp(this.curve.p) >= 0)
+      return false;
+
+    rx.redIAdd(t);
+    if (this.x.cmp(rx) === 0)
+      return true;
+  }
+};
+
+JPoint.prototype.inspect = function inspect() {
+  if (this.isInfinity())
+    return '<EC JPoint Infinity>';
+  return '<EC JPoint x: ' + this.x.toString(16, 2) +
+      ' y: ' + this.y.toString(16, 2) +
+      ' z: ' + this.z.toString(16, 2) + '>';
+};
+
+JPoint.prototype.isInfinity = function isInfinity() {
+  // XXX This code assumes that zero is always zero in red
+  return this.z.cmpn(0) === 0;
+};
+
+var curve_1 = createCommonjsModule$1(function (module, exports) {
+'use strict';
+
+var curve = exports;
+
+curve.base = base;
+curve.short = short_1;
+curve.mont = /*RicMoo:ethers:require(./mont)*/(null);
+curve.edwards = /*RicMoo:ethers:require(./edwards)*/(null);
+});
+
+var curves_1 = createCommonjsModule$1(function (module, exports) {
 'use strict';
 
 var curves = exports;
@@ -17007,7 +17599,7 @@ defineCurve('ed25519', {
 
 var pre;
 try {
-  pre = secp256k1;
+  pre = /*RicMoo:ethers:require(./precomputed/secp256k1)*/(null).crash();
 } catch (e) {
   pre = undefined;
 }
@@ -17068,7 +17660,7 @@ function HmacDRBG(options) {
   var entropy = utils_1.toArray(options.entropy, options.entropyEnc || 'hex');
   var nonce = utils_1.toArray(options.nonce, options.nonceEnc || 'hex');
   var pers = utils_1.toArray(options.pers, options.persEnc || 'hex');
-  minimalisticAssert(entropy.length >= (this.minEntropy / 8),
+  minimalisticAssert$1(entropy.length >= (this.minEntropy / 8),
          'Not enough entropy. Minimum is: ' + this.minEntropy + ' bits');
   this._init(entropy, nonce, pers);
 }
@@ -17123,7 +17715,7 @@ HmacDRBG.prototype.reseed = function reseed(entropy, entropyEnc, add, addEnc) {
   entropy = utils_1.toArray(entropy, entropyEnc);
   add = utils_1.toArray(add, addEnc);
 
-  minimalisticAssert(entropy.length >= (this.minEntropy / 8),
+  minimalisticAssert$1(entropy.length >= (this.minEntropy / 8),
          'Not enough entropy. Minimum is: ' + this.minEntropy + ' bits');
 
   this._update(entropy.concat(add || []));
@@ -17451,7 +18043,7 @@ Signature.prototype.toDER = function toDER(enc) {
 
 
 
-
+var rand = /*RicMoo:ethers:require(brorand)*/(function() { throw new Error('unsupported'); });
 var assert$5 = utils_1$1.assert;
 
 
@@ -17507,7 +18099,7 @@ EC.prototype.genKeyPair = function genKeyPair(options) {
     hash: this.hash,
     pers: options.pers,
     persEnc: options.persEnc || 'utf8',
-    entropy: options.entropy || brorand(this.hash.hmacStrength),
+    entropy: options.entropy || rand(this.hash.hmacStrength),
     entropyEnc: options.entropy && options.entropyEnc || 'utf8',
     nonce: this.n.toArray()
   });
@@ -17687,28 +18279,25 @@ EC.prototype.getKeyRecoveryParam = function(e, signature$1, Q, enc) {
   throw new Error('Unable to find valid recovery factor');
 };
 
-var eddsa = {};
-
-var require$$0$1 = getCjsExportFromNamespace(_package$1);
-
-var elliptic_1 = createCommonjsModule(function (module, exports) {
+var elliptic_1 = createCommonjsModule$1(function (module, exports) {
 'use strict';
 
 var elliptic = exports;
 
-elliptic.version = require$$0$1.version;
+elliptic.version = /*RicMoo:ethers*/{ version: "6.5.3" }.version;
 elliptic.utils = utils_1$1;
-elliptic.rand = brorand;
+elliptic.rand = /*RicMoo:ethers:require(brorand)*/(function() { throw new Error('unsupported'); });
 elliptic.curve = curve_1;
 elliptic.curves = curves_1;
 
 // Protocols
 elliptic.ec = ec;
-elliptic.eddsa = eddsa;
+elliptic.eddsa = /*RicMoo:ethers:require(./elliptic/eddsa)*/(null);
 });
-var elliptic_2 = elliptic_1.ec;
 
-const version$r = "logger/5.0.5";
+var EC$1 = elliptic_1.ec;
+
+const version$q = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$a = false;
@@ -17970,7 +18559,7 @@ class Logger$a {
     }
     static globalLogger() {
         if (!_globalLogger$a) {
-            _globalLogger$a = new Logger$a(version$r);
+            _globalLogger$a = new Logger$a(version$q);
         }
         return _globalLogger$a;
     }
@@ -17999,14 +18588,17 @@ class Logger$a {
         }
         _logLevel$a = level;
     }
+    static from(version) {
+        return new Logger$a(version);
+    }
 }
 Logger$a.errors = ErrorCode$a;
 Logger$a.levels = LogLevel$a;
 
-const version$s = "bytes/5.0.4";
+const version$r = "bytes/5.0.7";
 
 "use strict";
-const logger$o = new Logger$a(version$s);
+const logger$p = new Logger$a(version$r);
 ///////////////////////////////
 function isHexable$8(value) {
     return !!(value.toHexString);
@@ -18050,7 +18642,7 @@ function arrayify$8(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$o.checkSafeUint53(value, "invalid arrayify value");
+        logger$p.checkSafeUint53(value, "invalid arrayify value");
         const result = [];
         while (value) {
             result.unshift(value & 0xff);
@@ -18077,7 +18669,7 @@ function arrayify$8(value, options) {
                 hex += "0";
             }
             else {
-                logger$o.throwArgumentError("hex data is odd-length", "value", value);
+                logger$p.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         const result = [];
@@ -18089,7 +18681,7 @@ function arrayify$8(value, options) {
     if (isBytes$8(value)) {
         return addSlice$8(new Uint8Array(value));
     }
-    return logger$o.throwArgumentError("invalid arrayify value", "value", value);
+    return logger$p.throwArgumentError("invalid arrayify value", "value", value);
 }
 function concat$8(items) {
     const objects = items.map(item => arrayify$8(item));
@@ -18120,7 +18712,7 @@ function stripZeros$8(value) {
 function zeroPad$8(value, length) {
     value = arrayify$8(value);
     if (value.length > length) {
-        logger$o.throwArgumentError("value out of range", "value", arguments[0]);
+        logger$p.throwArgumentError("value out of range", "value", arguments[0]);
     }
     const result = new Uint8Array(length);
     result.set(value, length - value.length);
@@ -18141,7 +18733,7 @@ function hexlify$8(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$o.checkSafeUint53(value, "invalid hexlify value");
+        logger$p.checkSafeUint53(value, "invalid hexlify value");
         let hex = "";
         while (value) {
             hex = HexCharacters$8[value & 0x0f] + hex;
@@ -18170,7 +18762,7 @@ function hexlify$8(value, options) {
                 value += "0";
             }
             else {
-                logger$o.throwArgumentError("hex data is odd-length", "value", value);
+                logger$p.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         return value.toLowerCase();
@@ -18183,7 +18775,7 @@ function hexlify$8(value, options) {
         }
         return result;
     }
-    return logger$o.throwArgumentError("invalid hexlify value", "value", value);
+    return logger$p.throwArgumentError("invalid hexlify value", "value", value);
 }
 /*
 function unoddify(value: BytesLike | Hexable | number): BytesLike | Hexable | number {
@@ -18207,7 +18799,7 @@ function hexDataSlice$8(data, offset, endOffset) {
         data = hexlify$8(data);
     }
     else if (!isHexString$8(data) || (data.length % 2)) {
-        logger$o.throwArgumentError("invalid hexData", "value", data);
+        logger$p.throwArgumentError("invalid hexData", "value", data);
     }
     offset = 2 + 2 * offset;
     if (endOffset != null) {
@@ -18234,7 +18826,7 @@ function hexStripZeros$8(value) {
         value = hexlify$8(value);
     }
     if (!isHexString$8(value)) {
-        logger$o.throwArgumentError("invalid hex string", "value", value);
+        logger$p.throwArgumentError("invalid hex string", "value", value);
     }
     value = value.substring(2);
     let offset = 0;
@@ -18248,10 +18840,10 @@ function hexZeroPad$8(value, length) {
         value = hexlify$8(value);
     }
     else if (!isHexString$8(value)) {
-        logger$o.throwArgumentError("invalid hex string", "value", value);
+        logger$p.throwArgumentError("invalid hex string", "value", value);
     }
     if (value.length > 2 * length + 2) {
-        logger$o.throwArgumentError("value out of range", "value", arguments[1]);
+        logger$p.throwArgumentError("value out of range", "value", arguments[1]);
     }
     while (value.length < 2 * length + 2) {
         value = "0x0" + value.substring(2);
@@ -18269,7 +18861,7 @@ function splitSignature$8(signature) {
     if (isBytesLike$8(signature)) {
         const bytes = arrayify$8(signature);
         if (bytes.length !== 65) {
-            logger$o.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
+            logger$p.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
         }
         // Get the r, s and v
         result.r = hexlify$8(bytes.slice(0, 32));
@@ -18281,7 +18873,7 @@ function splitSignature$8(signature) {
                 result.v += 27;
             }
             else {
-                logger$o.throwArgumentError("signature invalid v byte", "signature", signature);
+                logger$p.throwArgumentError("signature invalid v byte", "signature", signature);
             }
         }
         // Compute recoveryParam from v
@@ -18309,7 +18901,7 @@ function splitSignature$8(signature) {
                 result.recoveryParam = recoveryParam;
             }
             else if (result.recoveryParam !== recoveryParam) {
-                logger$o.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
+                logger$p.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
             }
             // Set or check the s
             vs[0] &= 0x7f;
@@ -18318,13 +18910,13 @@ function splitSignature$8(signature) {
                 result.s = s;
             }
             else if (result.s !== s) {
-                logger$o.throwArgumentError("signature v mismatch _vs", "signature", signature);
+                logger$p.throwArgumentError("signature v mismatch _vs", "signature", signature);
             }
         }
         // Use recid and v to populate each other
         if (result.recoveryParam == null) {
             if (result.v == null) {
-                logger$o.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
+                logger$p.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
             }
             else {
                 result.recoveryParam = 1 - (result.v % 2);
@@ -18335,24 +18927,24 @@ function splitSignature$8(signature) {
                 result.v = 27 + result.recoveryParam;
             }
             else if (result.recoveryParam !== (1 - (result.v % 2))) {
-                logger$o.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
+                logger$p.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
             }
         }
         if (result.r == null || !isHexString$8(result.r)) {
-            logger$o.throwArgumentError("signature missing or invalid r", "signature", signature);
+            logger$p.throwArgumentError("signature missing or invalid r", "signature", signature);
         }
         else {
             result.r = hexZeroPad$8(result.r, 32);
         }
         if (result.s == null || !isHexString$8(result.s)) {
-            logger$o.throwArgumentError("signature missing or invalid s", "signature", signature);
+            logger$p.throwArgumentError("signature missing or invalid s", "signature", signature);
         }
         else {
             result.s = hexZeroPad$8(result.s, 32);
         }
         const vs = arrayify$8(result.s);
         if (vs[0] >= 128) {
-            logger$o.throwArgumentError("signature s out of range", "signature", signature);
+            logger$p.throwArgumentError("signature s out of range", "signature", signature);
         }
         if (result.recoveryParam) {
             vs[0] |= 0x80;
@@ -18360,7 +18952,7 @@ function splitSignature$8(signature) {
         const _vs = hexlify$8(vs);
         if (result._vs) {
             if (!isHexString$8(result._vs)) {
-                logger$o.throwArgumentError("signature invalid _vs", "signature", signature);
+                logger$p.throwArgumentError("signature invalid _vs", "signature", signature);
             }
             result._vs = hexZeroPad$8(result._vs, 32);
         }
@@ -18369,7 +18961,7 @@ function splitSignature$8(signature) {
             result._vs = _vs;
         }
         else if (result._vs !== _vs) {
-            logger$o.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
+            logger$p.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
         }
     }
     return result;
@@ -18383,14 +18975,14 @@ function joinSignature$8(signature) {
     ]));
 }
 
-const version$t = "signing-key/5.0.4";
+const version$s = "signing-key/5.0.7";
 
 "use strict";
-const logger$p = new Logger$a(version$t);
+const logger$q = new Logger$a(version$s);
 let _curve = null;
 function getCurve() {
     if (!_curve) {
-        _curve = new elliptic_2("secp256k1");
+        _curve = new EC$1("secp256k1");
     }
     return _curve;
 }
@@ -18452,7 +19044,7 @@ function computePublicKey(key, compressed) {
         }
         return "0x" + getCurve().keyFromPublic(bytes).getPublic(true, "hex");
     }
-    return logger$p.throwArgumentError("invalid public or private key", "key", "[REDACTED]");
+    return logger$q.throwArgumentError("invalid public or private key", "key", "[REDACTED]");
 }
 
 /*
@@ -18478,7 +19070,7 @@ function computePublicKey(key, compressed) {
  */
 'use strict';
 ///////////////////////////////
-const logger$q = new Logger$1('transactions');
+const logger$r = new Logger$1('transactions');
 const transactionFieldsEthers = [
     { name: 'nonce', maxLength: 32, numeric: true },
     { name: 'gasPrice', maxLength: 32, numeric: true },
@@ -18553,13 +19145,13 @@ function serializeEthers(transaction, signature) {
         value = arrayify$6(hexlify$6(value, options));
         // Fixed-width field
         if (fieldInfo.length && value.length !== fieldInfo.length && value.length > 0) {
-            logger$q.throwArgumentError('invalid length for ' + fieldInfo.name, ('transaction:' + fieldInfo.name), value);
+            logger$r.throwArgumentError('invalid length for ' + fieldInfo.name, ('transaction:' + fieldInfo.name), value);
         }
         // Variable-width (with a maximum)
         if (fieldInfo.maxLength) {
             value = stripZeros$6(value);
             if (value.length > fieldInfo.maxLength) {
-                logger$q.throwArgumentError('invalid length for ' + fieldInfo.name, ('transaction:' + fieldInfo.name), value);
+                logger$r.throwArgumentError('invalid length for ' + fieldInfo.name, ('transaction:' + fieldInfo.name), value);
             }
         }
         raw.push(hexlify$6(value));
@@ -18569,7 +19161,7 @@ function serializeEthers(transaction, signature) {
         // A chainId was provided; if non-zero we'll use EIP-155
         chainId = transaction.chainId;
         if (typeof (chainId) !== 'number') {
-            logger$q.throwArgumentError('invalid transaction.chainId', 'transaction', transaction);
+            logger$r.throwArgumentError('invalid transaction.chainId', 'transaction', transaction);
         }
     }
     else if (signature && !isBytesLike$6(signature) && signature.v > 28) {
@@ -18598,11 +19190,11 @@ function serializeEthers(transaction, signature) {
         v += chainId * 2 + 8;
         // If an EIP-155 v (directly or indirectly; maybe _vs) was provided, check it!
         if (sig.v > 28 && sig.v !== v) {
-            logger$q.throwArgumentError('transaction.chainId/signature.v mismatch', 'signature', signature);
+            logger$r.throwArgumentError('transaction.chainId/signature.v mismatch', 'signature', signature);
         }
     }
     else if (sig.v !== v) {
-        logger$q.throwArgumentError('transaction.chainId/signature.v mismatch', 'signature', signature);
+        logger$r.throwArgumentError('transaction.chainId/signature.v mismatch', 'signature', signature);
     }
     raw.push(hexlify$6(v));
     raw.push(stripZeros$6(arrayify$6(sig.r)));
@@ -18621,13 +19213,13 @@ function serializeRc2(transaction, signature) {
         value = arrayify$6(hexlify$6(value, options));
         // Fixed-width field
         if (fieldInfo.length && value.length !== fieldInfo.length && value.length > 0) {
-            logger$q.throwArgumentError('invalid length for ' + fieldInfo.name, ('transaction:' + fieldInfo.name), value);
+            logger$r.throwArgumentError('invalid length for ' + fieldInfo.name, ('transaction:' + fieldInfo.name), value);
         }
         // Variable-width (with a maximum)
         if (fieldInfo.maxLength) {
             value = stripZeros$6(value);
             if (value.length > fieldInfo.maxLength) {
-                logger$q.throwArgumentError('invalid length for ' + fieldInfo.name, ('transaction:' + fieldInfo.name), value);
+                logger$r.throwArgumentError('invalid length for ' + fieldInfo.name, ('transaction:' + fieldInfo.name), value);
             }
         }
         raw.push(hexlify$6(value));
@@ -18654,7 +19246,7 @@ function parse(rawTransaction) {
     else if (transaction.length === 13 || transaction.length === 10) {
         return parseRc2(rawTransaction, transaction);
     }
-    return logger$q.throwArgumentError('invalid raw transaction', 'rawTransaction', rawTransaction);
+    return logger$r.throwArgumentError('invalid raw transaction', 'rawTransaction', rawTransaction);
 }
 function parseEthers(rawTransaction, transaction) {
     const tx = {
@@ -18771,10 +19363,10 @@ function parseRc2(rawTransaction, transaction) {
  * @date 2020
  */
 'use strict';
-const logger$r = new Logger$1('providers');
+const logger$s = new Logger$1('providers');
 class Formatter {
     constructor() {
-        logger$r.checkNew(new.target, Formatter);
+        logger$s.checkNew(new.target, Formatter);
         defineReadOnly(this, 'formats', this.getDefaultFormats());
     }
     getDefaultFormats() {
@@ -18916,7 +19508,7 @@ class Formatter {
                 return value.toLowerCase();
             }
         }
-        return logger$r.throwArgumentError('invalid hex', 'value', value);
+        return logger$s.throwArgumentError('invalid hex', 'value', value);
     }
     data(value, strict) {
         const result = this.hex(value, strict);
@@ -18959,7 +19551,7 @@ class Formatter {
     hash(value, strict) {
         const result = this.hex(value, strict);
         if (hexDataLength$6(result) !== 32) {
-            return logger$r.throwArgumentError('invalid hash', 'value', value);
+            return logger$s.throwArgumentError('invalid hash', 'value', value);
         }
         return result;
     }
@@ -19155,7 +19747,7 @@ class Formatter {
     }
 }
 
-const version$u = "logger/5.0.5";
+const version$t = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$b = false;
@@ -19417,7 +20009,7 @@ class Logger$b {
     }
     static globalLogger() {
         if (!_globalLogger$b) {
-            _globalLogger$b = new Logger$b(version$u);
+            _globalLogger$b = new Logger$b(version$t);
         }
         return _globalLogger$b;
     }
@@ -19446,20 +20038,17 @@ class Logger$b {
         }
         _logLevel$b = level;
     }
+    static from(version) {
+        return new Logger$b(version);
+    }
 }
 Logger$b.errors = ErrorCode$b;
 Logger$b.levels = LogLevel$b;
 
-var lib_esm$3 = /*#__PURE__*/Object.freeze({
-	get LogLevel () { return LogLevel$b; },
-	get ErrorCode () { return ErrorCode$b; },
-	Logger: Logger$b
-});
-
-const version$v = "bytes/5.0.4";
+const version$u = "bytes/5.0.7";
 
 "use strict";
-const logger$s = new Logger$b(version$v);
+const logger$t = new Logger$b(version$u);
 ///////////////////////////////
 function isHexable$9(value) {
     return !!(value.toHexString);
@@ -19503,7 +20092,7 @@ function arrayify$9(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$s.checkSafeUint53(value, "invalid arrayify value");
+        logger$t.checkSafeUint53(value, "invalid arrayify value");
         const result = [];
         while (value) {
             result.unshift(value & 0xff);
@@ -19530,7 +20119,7 @@ function arrayify$9(value, options) {
                 hex += "0";
             }
             else {
-                logger$s.throwArgumentError("hex data is odd-length", "value", value);
+                logger$t.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         const result = [];
@@ -19542,7 +20131,7 @@ function arrayify$9(value, options) {
     if (isBytes$9(value)) {
         return addSlice$9(new Uint8Array(value));
     }
-    return logger$s.throwArgumentError("invalid arrayify value", "value", value);
+    return logger$t.throwArgumentError("invalid arrayify value", "value", value);
 }
 function concat$9(items) {
     const objects = items.map(item => arrayify$9(item));
@@ -19573,7 +20162,7 @@ function stripZeros$9(value) {
 function zeroPad$9(value, length) {
     value = arrayify$9(value);
     if (value.length > length) {
-        logger$s.throwArgumentError("value out of range", "value", arguments[0]);
+        logger$t.throwArgumentError("value out of range", "value", arguments[0]);
     }
     const result = new Uint8Array(length);
     result.set(value, length - value.length);
@@ -19594,7 +20183,7 @@ function hexlify$9(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$s.checkSafeUint53(value, "invalid hexlify value");
+        logger$t.checkSafeUint53(value, "invalid hexlify value");
         let hex = "";
         while (value) {
             hex = HexCharacters$9[value & 0x0f] + hex;
@@ -19623,7 +20212,7 @@ function hexlify$9(value, options) {
                 value += "0";
             }
             else {
-                logger$s.throwArgumentError("hex data is odd-length", "value", value);
+                logger$t.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         return value.toLowerCase();
@@ -19636,7 +20225,7 @@ function hexlify$9(value, options) {
         }
         return result;
     }
-    return logger$s.throwArgumentError("invalid hexlify value", "value", value);
+    return logger$t.throwArgumentError("invalid hexlify value", "value", value);
 }
 /*
 function unoddify(value: BytesLike | Hexable | number): BytesLike | Hexable | number {
@@ -19660,7 +20249,7 @@ function hexDataSlice$9(data, offset, endOffset) {
         data = hexlify$9(data);
     }
     else if (!isHexString$9(data) || (data.length % 2)) {
-        logger$s.throwArgumentError("invalid hexData", "value", data);
+        logger$t.throwArgumentError("invalid hexData", "value", data);
     }
     offset = 2 + 2 * offset;
     if (endOffset != null) {
@@ -19687,7 +20276,7 @@ function hexStripZeros$9(value) {
         value = hexlify$9(value);
     }
     if (!isHexString$9(value)) {
-        logger$s.throwArgumentError("invalid hex string", "value", value);
+        logger$t.throwArgumentError("invalid hex string", "value", value);
     }
     value = value.substring(2);
     let offset = 0;
@@ -19701,10 +20290,10 @@ function hexZeroPad$9(value, length) {
         value = hexlify$9(value);
     }
     else if (!isHexString$9(value)) {
-        logger$s.throwArgumentError("invalid hex string", "value", value);
+        logger$t.throwArgumentError("invalid hex string", "value", value);
     }
     if (value.length > 2 * length + 2) {
-        logger$s.throwArgumentError("value out of range", "value", arguments[1]);
+        logger$t.throwArgumentError("value out of range", "value", arguments[1]);
     }
     while (value.length < 2 * length + 2) {
         value = "0x0" + value.substring(2);
@@ -19722,7 +20311,7 @@ function splitSignature$9(signature) {
     if (isBytesLike$9(signature)) {
         const bytes = arrayify$9(signature);
         if (bytes.length !== 65) {
-            logger$s.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
+            logger$t.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
         }
         // Get the r, s and v
         result.r = hexlify$9(bytes.slice(0, 32));
@@ -19734,7 +20323,7 @@ function splitSignature$9(signature) {
                 result.v += 27;
             }
             else {
-                logger$s.throwArgumentError("signature invalid v byte", "signature", signature);
+                logger$t.throwArgumentError("signature invalid v byte", "signature", signature);
             }
         }
         // Compute recoveryParam from v
@@ -19762,7 +20351,7 @@ function splitSignature$9(signature) {
                 result.recoveryParam = recoveryParam;
             }
             else if (result.recoveryParam !== recoveryParam) {
-                logger$s.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
+                logger$t.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
             }
             // Set or check the s
             vs[0] &= 0x7f;
@@ -19771,13 +20360,13 @@ function splitSignature$9(signature) {
                 result.s = s;
             }
             else if (result.s !== s) {
-                logger$s.throwArgumentError("signature v mismatch _vs", "signature", signature);
+                logger$t.throwArgumentError("signature v mismatch _vs", "signature", signature);
             }
         }
         // Use recid and v to populate each other
         if (result.recoveryParam == null) {
             if (result.v == null) {
-                logger$s.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
+                logger$t.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
             }
             else {
                 result.recoveryParam = 1 - (result.v % 2);
@@ -19788,24 +20377,24 @@ function splitSignature$9(signature) {
                 result.v = 27 + result.recoveryParam;
             }
             else if (result.recoveryParam !== (1 - (result.v % 2))) {
-                logger$s.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
+                logger$t.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
             }
         }
         if (result.r == null || !isHexString$9(result.r)) {
-            logger$s.throwArgumentError("signature missing or invalid r", "signature", signature);
+            logger$t.throwArgumentError("signature missing or invalid r", "signature", signature);
         }
         else {
             result.r = hexZeroPad$9(result.r, 32);
         }
         if (result.s == null || !isHexString$9(result.s)) {
-            logger$s.throwArgumentError("signature missing or invalid s", "signature", signature);
+            logger$t.throwArgumentError("signature missing or invalid s", "signature", signature);
         }
         else {
             result.s = hexZeroPad$9(result.s, 32);
         }
         const vs = arrayify$9(result.s);
         if (vs[0] >= 128) {
-            logger$s.throwArgumentError("signature s out of range", "signature", signature);
+            logger$t.throwArgumentError("signature s out of range", "signature", signature);
         }
         if (result.recoveryParam) {
             vs[0] |= 0x80;
@@ -19813,7 +20402,7 @@ function splitSignature$9(signature) {
         const _vs = hexlify$9(vs);
         if (result._vs) {
             if (!isHexString$9(result._vs)) {
-                logger$s.throwArgumentError("signature invalid _vs", "signature", signature);
+                logger$t.throwArgumentError("signature invalid _vs", "signature", signature);
             }
             result._vs = hexZeroPad$9(result._vs, 32);
         }
@@ -19822,7 +20411,7 @@ function splitSignature$9(signature) {
             result._vs = _vs;
         }
         else if (result._vs !== _vs) {
-            logger$s.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
+            logger$t.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
         }
     }
     return result;
@@ -19836,65 +20425,11 @@ function joinSignature$9(signature) {
     ]));
 }
 
-var lib_esm$4 = /*#__PURE__*/Object.freeze({
-	isBytesLike: isBytesLike$9,
-	isBytes: isBytes$9,
-	arrayify: arrayify$9,
-	concat: concat$9,
-	stripZeros: stripZeros$9,
-	zeroPad: zeroPad$9,
-	isHexString: isHexString$9,
-	hexlify: hexlify$9,
-	hexDataLength: hexDataLength$9,
-	hexDataSlice: hexDataSlice$9,
-	hexConcat: hexConcat$9,
-	hexValue: hexValue$9,
-	hexStripZeros: hexStripZeros$9,
-	hexZeroPad: hexZeroPad$9,
-	splitSignature: splitSignature$9,
-	joinSignature: joinSignature$9
-});
+const version$v = "random/5.0.6";
 
-var _version = createCommonjsModule(function (module, exports) {
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.version = "random/5.0.3";
-
-});
-
-var _version$1 = unwrapExports(_version);
-var _version_1 = _version.version;
-
-var shuffle = createCommonjsModule(function (module, exports) {
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-function shuffled(array) {
-    array = array.slice();
-    for (var i = array.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
-        var tmp = array[i];
-        array[i] = array[j];
-        array[j] = tmp;
-    }
-    return array;
-}
-exports.shuffled = shuffled;
-
-});
-
-var shuffle$1 = unwrapExports(shuffle);
-var shuffle_1 = shuffle.shuffled;
-
-var browser$2 = createCommonjsModule(function (module, exports) {
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-
-
-
-var logger = new lib_esm$3.Logger(_version.version);
-
-exports.shuffled = shuffle.shuffled;
-var anyGlobal = null;
+const logger$u = new Logger$b(version$v);
+let anyGlobal = null;
 try {
     anyGlobal = window;
     if (anyGlobal == null) {
@@ -19903,7 +20438,7 @@ try {
 }
 catch (error) {
     try {
-        anyGlobal = commonjsGlobal;
+        anyGlobal = global;
         if (anyGlobal == null) {
             throw new Error("try next");
         }
@@ -19912,12 +20447,12 @@ catch (error) {
         anyGlobal = {};
     }
 }
-var crypto = anyGlobal.crypto || anyGlobal.msCrypto;
+let crypto = anyGlobal.crypto || anyGlobal.msCrypto;
 if (!crypto || !crypto.getRandomValues) {
-    logger.warn("WARNING: Missing strong random number source");
+    logger$u.warn("WARNING: Missing strong random number source");
     crypto = {
         getRandomValues: function (buffer) {
-            return logger.throwError("no secure random source avaialble", lib_esm$3.Logger.errors.UNSUPPORTED_OPERATION, {
+            return logger$u.throwError("no secure random source avaialble", Logger$b.errors.UNSUPPORTED_OPERATION, {
                 operation: "crypto.getRandomValues"
             });
         }
@@ -19925,20 +20460,27 @@ if (!crypto || !crypto.getRandomValues) {
 }
 function randomBytes(length) {
     if (length <= 0 || length > 1024 || (length % 1)) {
-        logger.throwArgumentError("invalid length", "length", length);
+        logger$u.throwArgumentError("invalid length", "length", length);
     }
-    var result = new Uint8Array(length);
+    const result = new Uint8Array(length);
     crypto.getRandomValues(result);
-    return lib_esm$4.arrayify(result);
+    return arrayify$9(result);
 }
-exports.randomBytes = randomBytes;
 ;
 
-});
+"use strict";
+function shuffled(array) {
+    array = array.slice();
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = array[i];
+        array[i] = array[j];
+        array[j] = tmp;
+    }
+    return array;
+}
 
-var browser$3 = unwrapExports(browser$2);
-var browser_1$1 = browser$2.shuffled;
-var browser_2$1 = browser$2.randomBytes;
+"use strict";
 
 /*
  This file is part of crypu.js.
@@ -19962,7 +20504,7 @@ var browser_2$1 = browser$2.randomBytes;
  * @date 2020
  */
 'use strict';
-var __awaiter$3 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
+var __awaiter$4 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -19971,7 +20513,7 @@ var __awaiter$3 = (window && window.__awaiter) || function (thisArg, _arguments,
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const logger$t = new Logger$1('providers');
+const logger$v = new Logger$1('providers');
 //////////////////////////////
 // Event Serializeing
 function checkTopic(topic) {
@@ -19979,7 +20521,7 @@ function checkTopic(topic) {
         return 'null';
     }
     if (hexDataLength$6(topic) !== 32) {
-        logger$t.throwArgumentError('invalid topic', 'topic', topic);
+        logger$v.throwArgumentError('invalid topic', 'topic', topic);
     }
     return topic.toLowerCase();
 }
@@ -20034,7 +20576,7 @@ function getEventTag(eventName) {
         return 'filter:*:' + serializeTopics(eventName);
     }
     else if (ForkEvent.isForkEvent(eventName)) {
-        logger$t.warn('not implemented');
+        logger$v.warn('not implemented');
         throw new Error('not implemented');
     }
     else if (eventName && typeof (eventName) === 'object') {
@@ -20125,7 +20667,7 @@ class BaseProvider extends Provider {
      *
      */
     constructor(chain, network, groupId) {
-        logger$t.checkNew(new.target, Provider);
+        logger$v.checkNew(new.target, Provider);
         super();
         this.formatter = new.target.getFormatter();
         // Events being listened to
@@ -20156,7 +20698,7 @@ class BaseProvider extends Provider {
                 this.emit('network', knownNetwork, null);
             }
             else {
-                logger$t.throwArgumentError('invalid network', 'network', network);
+                logger$v.throwArgumentError('invalid network', 'network', network);
             }
         }
         this._groupId = groupId;
@@ -20165,7 +20707,7 @@ class BaseProvider extends Provider {
         defineReadOnly(this, 'getChainId', getStatic((new.target), 'getChainId')(chain, this.perform.bind(this)));
     }
     _ready() {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             if (this._network == null) {
                 let network = null;
                 if (this._networkPromise) {
@@ -20181,7 +20723,7 @@ class BaseProvider extends Provider {
                 // This should never happen; every Provider sub-class should have
                 // suggested a network by here (or have thrown).
                 if (!network) {
-                    logger$t.throwError('no network detected', Logger$1.errors.UNKNOWN_ERROR, {});
+                    logger$v.throwError('no network detected', Logger$1.errors.UNKNOWN_ERROR, {});
                 }
                 // Possible this call stacked so do not call defineReadOnly again
                 if (this._network == null) {
@@ -20227,12 +20769,12 @@ class BaseProvider extends Provider {
             case Chain.FISCO:
                 return serializeRc2;
         }
-        return logger$t.throwArgumentError('invalid chain', 'chain', chain);
+        return logger$v.throwArgumentError('invalid chain', 'chain', chain);
     }
     static populateTransaction(chain, self) {
         switch (chain) {
             case Chain.ETHERS:
-                return (transaction) => __awaiter$3(this, void 0, void 0, function* () {
+                return (transaction) => __awaiter$4(this, void 0, void 0, function* () {
                     const tx = yield resolveProperties(transaction);
                     if (tx.nonce == null) {
                         tx.nonce = yield self.getTransactionCount(tx.from, 'pending');
@@ -20252,10 +20794,10 @@ class BaseProvider extends Provider {
                     return yield resolveProperties(tx);
                 });
             case Chain.FISCO:
-                return (transaction) => __awaiter$3(this, void 0, void 0, function* () {
+                return (transaction) => __awaiter$4(this, void 0, void 0, function* () {
                     const tx = yield resolveProperties(transaction);
                     if (tx.nonce == null) {
-                        tx.nonce = hexlify$6(browser_2$1(32));
+                        tx.nonce = hexlify$6(randomBytes(32));
                     }
                     if (tx.gasPrice == null) {
                         tx.gasPrice = yield self.getGasPrice();
@@ -20278,7 +20820,7 @@ class BaseProvider extends Provider {
                     return yield resolveProperties(tx);
                 });
         }
-        return logger$t.throwArgumentError('invalid chain', 'chain', chain);
+        return logger$v.throwArgumentError('invalid chain', 'chain', chain);
     }
     // @TODO: Remove this and just use getNetwork
     static getNetwork(network) {
@@ -20298,12 +20840,12 @@ class BaseProvider extends Provider {
             case Chain.FISCO:
                 return () => perform('getClientVersion', {}).then((clientVersion) => Number(clientVersion['Chain Id']));
         }
-        return logger$t.throwArgumentError('invalid chain', 'chain', chain);
+        return logger$v.throwArgumentError('invalid chain', 'chain', chain);
     }
     // Fetches the blockNumber, but will reuse any result that is less
     // than maxAge old or has been requested since the last request
     _getInternalBlockNumber(maxAge) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this._ready();
             const internalBlockNumber = this._internalBlockNumber;
             if (maxAge > 0 && this._internalBlockNumber) {
@@ -20338,7 +20880,7 @@ class BaseProvider extends Provider {
         });
     }
     poll() {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             const pollId = nextPollId++;
             // Track all running promises, so we can trigger a post-poll once they are complete
             const runners = [];
@@ -20356,8 +20898,8 @@ class BaseProvider extends Provider {
                 this._emitted.block = blockNumber - 1;
             }
             if (Math.abs((this._emitted.block) - blockNumber) > 1000) {
-                logger$t.warn('network block skew detected; skipping block events');
-                this.emit('error', logger$t.makeError('network block skew detected', Logger$1.errors.NETWORK_ERROR, {
+                logger$v.warn('network block skew detected; skipping block events');
+                this.emit('error', logger$v.makeError('network block skew detected', Logger$1.errors.NETWORK_ERROR, {
                     blockNumber: blockNumber,
                     event: 'blockSkew',
                     previousBlockNumber: this._emitted.block
@@ -20456,14 +20998,14 @@ class BaseProvider extends Provider {
     // This method should query the network if the underlying network
     // can change, such as when connected to a JSON-RPC backend
     detectNetwork() {
-        return __awaiter$3(this, void 0, void 0, function* () {
-            return logger$t.throwError('provider does not support network detection', Logger$1.errors.UNSUPPORTED_OPERATION, {
+        return __awaiter$4(this, void 0, void 0, function* () {
+            return logger$v.throwError('provider does not support network detection', Logger$1.errors.UNSUPPORTED_OPERATION, {
                 operation: 'provider.detectNetwork'
             });
         });
     }
     getNetwork() {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             const network = yield this._ready();
             // Make sure we are still connected to the same network; this is
             // only an external call for backends which can have the underlying
@@ -20489,7 +21031,7 @@ class BaseProvider extends Provider {
                     yield stall(0);
                     return this._network;
                 }
-                const error = logger$t.makeError('underlying network changed', Logger$1.errors.NETWORK_ERROR, {
+                const error = logger$v.makeError('underlying network changed', Logger$1.errors.NETWORK_ERROR, {
                     event: 'changed',
                     network: network,
                     detectedNetwork: currentNetwork
@@ -20501,7 +21043,7 @@ class BaseProvider extends Provider {
         });
     }
     getGroupId() {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             return this.groupId;
         });
     }
@@ -20580,7 +21122,7 @@ class BaseProvider extends Provider {
         }
     }
     waitForTransaction(transactionHash, confirmations, timeout) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             if (confirmations == null) {
                 confirmations = 1;
             }
@@ -20616,7 +21158,7 @@ class BaseProvider extends Provider {
                         timer = null;
                         done = true;
                         this.removeListener(transactionHash, handler);
-                        reject(logger$t.makeError('timeout exceeded', Logger$1.errors.TIMEOUT, { timeout: timeout }));
+                        reject(logger$v.makeError('timeout exceeded', Logger$1.errors.TIMEOUT, { timeout: timeout }));
                     }, timeout);
                     if (timer.unref) {
                         timer.unref();
@@ -20626,66 +21168,66 @@ class BaseProvider extends Provider {
         });
     }
     getBlockNumber() {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             return this._getInternalBlockNumber(0);
         });
     }
     getGasPrice() {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             return BigNumber.from((yield this.perform('getGasPrice', {})) || 300000000);
         });
     }
     getClientVersion() {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             return this.perform('getClientVersion', {});
         });
     }
     getPbftView() {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             return this.perform('getPbftView', {});
         });
     }
     getSealerList() {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             return this.perform('getSealerList', {});
         });
     }
     getObserverList() {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             return this.perform('getObserverList', {});
         });
     }
     getSyncStatus() {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             return this.perform('getSyncStatus', {});
         });
     }
     getPeers() {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             return this.perform('getPeers', {});
         });
     }
     getNodeIdList() {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             return this.perform('getNodeIdList', {});
         });
     }
     getGroupList() {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             return this.perform('getGroupList', {});
         });
     }
     getBalance(addressOrName, blockTag) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             const params = yield resolveProperties({
                 address: this._getAddress(addressOrName),
@@ -20695,7 +21237,7 @@ class BaseProvider extends Provider {
         });
     }
     getTransactionCount(addressOrName, blockTag) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             const params = yield resolveProperties({
                 address: this._getAddress(addressOrName),
@@ -20705,7 +21247,7 @@ class BaseProvider extends Provider {
         });
     }
     getCode(addressOrName, blockTag) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             const params = yield resolveProperties({
                 address: this._getAddress(addressOrName),
@@ -20722,17 +21264,17 @@ class BaseProvider extends Provider {
         const result = tx;
         // Check the hash we expect is the same as the hash the server reported
         if (hash != null && tx.hash !== hash) {
-            logger$t.throwError('Transaction hash mismatch from Provider.sendTransaction.', Logger$1.errors.UNKNOWN_ERROR, { expectedHash: tx.hash, returnedHash: hash });
+            logger$v.throwError('Transaction hash mismatch from Provider.sendTransaction.', Logger$1.errors.UNKNOWN_ERROR, { expectedHash: tx.hash, returnedHash: hash });
         }
         // @TODO: (confirmations? number, timeout? number)
-        result.wait = (confirmations) => __awaiter$3(this, void 0, void 0, function* () {
+        result.wait = (confirmations, timeout) => __awaiter$4(this, void 0, void 0, function* () {
             // We know this transaction *must* exist (whether it gets mined is
             // another story), so setting an emitted value forces us to
             // wait even if the node returns null for the receipt
             if (confirmations !== 0) {
                 this._emitted['t:' + tx.hash] = 'pending';
             }
-            const receipt = yield this.waitForTransaction(tx.hash, confirmations);
+            const receipt = yield this.waitForTransaction(tx.hash, confirmations, timeout);
             if (receipt == null && confirmations === 0) {
                 return null;
             }
@@ -20743,7 +21285,7 @@ class BaseProvider extends Provider {
         return result;
     }
     sendTransaction(signedTransaction, hook) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             const hexTx = yield Promise.resolve(signedTransaction).then(t => hexlify$6(t));
             const tx = this.formatter.transaction(signedTransaction);
@@ -20762,7 +21304,7 @@ class BaseProvider extends Provider {
         });
     }
     _getTransactionRequest(transaction) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             const values = transaction;
             const tx = {};
             ['from', 'to'].forEach((key) => {
@@ -20787,7 +21329,7 @@ class BaseProvider extends Provider {
         });
     }
     _getFilter(filter) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             filter = yield filter;
             const result = {};
             if (filter.address != null) {
@@ -20809,7 +21351,7 @@ class BaseProvider extends Provider {
         });
     }
     call(transaction, blockTag) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             const params = yield resolveProperties({
                 transaction: this._getTransactionRequest(transaction),
@@ -20819,7 +21361,7 @@ class BaseProvider extends Provider {
         });
     }
     estimateGas(transaction) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             const params = yield resolveProperties({
                 transaction: this._getTransactionRequest(transaction)
@@ -20828,10 +21370,10 @@ class BaseProvider extends Provider {
         });
     }
     _getAddress(addressOrName) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             const address = yield this.resolveName(addressOrName);
             if (address == null) {
-                logger$t.throwError('ENS name not configured', Logger$1.errors.UNSUPPORTED_OPERATION, {
+                logger$v.throwError('ENS name not configured', Logger$1.errors.UNSUPPORTED_OPERATION, {
                     operation: `resolveName(${JSON.stringify(addressOrName)})`
                 });
             }
@@ -20839,7 +21381,7 @@ class BaseProvider extends Provider {
         });
     }
     _getBlock(blockHashOrBlockTag, includeTransactions) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             blockHashOrBlockTag = yield blockHashOrBlockTag;
             // If blockTag is a number (not 'latest', etc), this is the block number
@@ -20858,10 +21400,10 @@ class BaseProvider extends Provider {
                     }
                 }
                 catch (error) {
-                    logger$t.throwArgumentError('invalid block hash or block tag', 'blockHashOrBlockTag', blockHashOrBlockTag);
+                    logger$v.throwArgumentError('invalid block hash or block tag', 'blockHashOrBlockTag', blockHashOrBlockTag);
                 }
             }
-            return poll(() => __awaiter$3(this, void 0, void 0, function* () {
+            return poll(() => __awaiter$4(this, void 0, void 0, function* () {
                 const block = yield this.perform('getBlock', params);
                 // Block was not found
                 if (block == null) {
@@ -20909,21 +21451,21 @@ class BaseProvider extends Provider {
         });
     }
     getBlock(blockHashOrBlockTag) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             return (this._getBlock(blockHashOrBlockTag, false));
         });
     }
     getBlockWithTransactions(blockHashOrBlockTag) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             return (this._getBlock(blockHashOrBlockTag, true));
         });
     }
     getTransaction(transactionHash) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             transactionHash = yield transactionHash;
             const params = { transactionHash: this.formatter.hash(transactionHash, true) };
-            return poll(() => __awaiter$3(this, void 0, void 0, function* () {
+            return poll(() => __awaiter$4(this, void 0, void 0, function* () {
                 const result = yield this.perform('getTransaction', params);
                 if (result == null) {
                     if (this._emitted['t:' + transactionHash] == null) {
@@ -20949,11 +21491,11 @@ class BaseProvider extends Provider {
         });
     }
     getTransactionReceipt(transactionHash) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             transactionHash = yield transactionHash;
             const params = { transactionHash: this.formatter.hash(transactionHash, true) };
-            return poll(() => __awaiter$3(this, void 0, void 0, function* () {
+            return poll(() => __awaiter$4(this, void 0, void 0, function* () {
                 const result = yield this.perform('getTransactionReceipt', params);
                 if (result == null) {
                     if (this._emitted['t:' + transactionHash] == null) {
@@ -20983,7 +21525,7 @@ class BaseProvider extends Provider {
         });
     }
     getLogs(filter) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             const params = yield resolveProperties({ filter: this._getFilter(filter) });
             const logs = yield this.perform('getLogs', params);
@@ -20996,17 +21538,17 @@ class BaseProvider extends Provider {
         });
     }
     getEtherPrice() {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             yield this.getNetwork();
             return this.perform('getEtherPrice', {});
         });
     }
     _getBlockTag(blockTag) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             blockTag = yield blockTag;
             if (typeof (blockTag) === 'number' && blockTag < 0) {
                 if (blockTag % 1) {
-                    logger$t.throwArgumentError('invalid BlockTag', 'blockTag', blockTag);
+                    logger$v.throwArgumentError('invalid BlockTag', 'blockTag', blockTag);
                 }
                 let blockNumber = yield this._getInternalBlockNumber(100 + 2 * this.pollingInterval);
                 blockNumber += blockTag;
@@ -21019,12 +21561,12 @@ class BaseProvider extends Provider {
         });
     }
     _getResolver(name) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             // Get the resolver from the blockchain
             const network = yield this.getNetwork();
             // No ENS...
             if (!network.ensAddress) {
-                logger$t.throwError('network does not support ENS', Logger$1.errors.UNSUPPORTED_OPERATION, { operation: 'ENS', network: network.name });
+                logger$v.throwError('network does not support ENS', Logger$1.errors.UNSUPPORTED_OPERATION, { operation: 'ENS', network: network.name });
             }
             // keccak256('resolver(bytes32)')
             const transaction = {
@@ -21035,7 +21577,7 @@ class BaseProvider extends Provider {
         });
     }
     resolveName(name) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             name = yield name;
             // If it is already an address, nothing to resolve
             try {
@@ -21048,7 +21590,7 @@ class BaseProvider extends Provider {
                 }
             }
             if (typeof (name) !== 'string') {
-                logger$t.throwArgumentError('invalid ENS name', 'name', name);
+                logger$v.throwArgumentError('invalid ENS name', 'name', name);
             }
             // Get the addr from the resovler
             const resolverAddress = yield this._getResolver(name);
@@ -21064,7 +21606,7 @@ class BaseProvider extends Provider {
         });
     }
     lookupAddress(address) {
-        return __awaiter$3(this, void 0, void 0, function* () {
+        return __awaiter$4(this, void 0, void 0, function* () {
             address = yield address;
             address = this.formatter.address(address);
             const reverseName = address.substring(2).toLowerCase() + '.addr.reverse';
@@ -21103,7 +21645,7 @@ class BaseProvider extends Provider {
         });
     }
     perform(method, params) {
-        return logger$t.throwError(method + ' not implemented', Logger$1.errors.NOT_IMPLEMENTED, { operation: method });
+        return logger$v.throwError(method + ' not implemented', Logger$1.errors.NOT_IMPLEMENTED, { operation: method });
     }
     _startEvent(event) {
         this.polling = (this._events.filter((e) => e.pollable()).length > 0);
@@ -21226,7 +21768,7 @@ class BaseProvider extends Provider {
  * @date 2020
  */
 'use strict';
-var __awaiter$4 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
+var __awaiter$5 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -21235,7 +21777,7 @@ var __awaiter$4 = (window && window.__awaiter) || function (thisArg, _arguments,
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const logger$u = new Logger$1('provider');
+const logger$w = new Logger$1('provider');
 const defaultUrl = 'http://localhost:8545';
 const defaultNetwork = {
     chainId: 1,
@@ -21245,7 +21787,7 @@ let defaultFormatter$1;
 class JsonRpcProvider extends BaseProvider {
     constructor(chain, url, network, groupId) {
         super(chain, network || getStatic((new.target), 'defaultNetwork')(), groupId || 1);
-        logger$u.checkNew(new.target, JsonRpcProvider);
+        logger$w.checkNew(new.target, JsonRpcProvider);
         if (!url) {
             url = getStatic((new.target), 'defaultUrl')();
         }
@@ -21358,10 +21900,10 @@ class JsonRpcProvider extends BaseProvider {
                     return null;
                 };
         }
-        return logger$u.throwArgumentError('invalid chain', 'chain', chain);
+        return logger$w.throwArgumentError('invalid chain', 'chain', chain);
     }
     detectNetwork() {
-        return __awaiter$4(this, void 0, void 0, function* () {
+        return __awaiter$5(this, void 0, void 0, function* () {
             let network = this.network;
             try {
                 const chainId = yield this.getChainId();
@@ -21373,7 +21915,7 @@ class JsonRpcProvider extends BaseProvider {
                 }
             }
             catch (error) {
-                return logger$u.throwError('could not detect network', Logger$1.errors.NETWORK_ERROR, {
+                return logger$w.throwError('could not detect network', Logger$1.errors.NETWORK_ERROR, {
                     event: 'noNetwork',
                     serverError: error,
                 });
@@ -21387,7 +21929,7 @@ class JsonRpcProvider extends BaseProvider {
         return payload.result;
     }
     send(method, params) {
-        return __awaiter$4(this, void 0, void 0, function* () {
+        return __awaiter$5(this, void 0, void 0, function* () {
             const request = {
                 id: (this._nextId++),
                 jsonrpc: '2.0',
@@ -21419,7 +21961,7 @@ class JsonRpcProvider extends BaseProvider {
         });
     }
     perform(method, params) {
-        return __awaiter$4(this, void 0, void 0, function* () {
+        return __awaiter$5(this, void 0, void 0, function* () {
             let args = this.prepareRequest(method, params);
             if (!args) {
                 return null;
@@ -21474,7 +22016,7 @@ class JsonRpcProvider extends BaseProvider {
  * @date 2020
  */
 'use strict';
-var __awaiter$5 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
+var __awaiter$6 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -21484,7 +22026,7 @@ var __awaiter$5 = (window && window.__awaiter) || function (thisArg, _arguments,
     });
 };
 const _privateKeyFake = '0x';
-const logger$v = new Logger$1('signing-escrow');
+const logger$x = new Logger$1('signing-escrow');
 class SigningEscrow {
     constructor(connection, address) {
         this._nextId = 927;
@@ -21502,7 +22044,7 @@ class SigningEscrow {
             defineReadOnly(this, 'publicKey', result.publicKey);
             defineReadOnly(this, 'compressedPublicKey', result.compressedPublicKey);
         }).catch((error) => {
-            logger$v.throwError('processing response error', Logger$1.errors.SERVER_ERROR, {
+            logger$x.throwError('processing response error', Logger$1.errors.SERVER_ERROR, {
                 body: json,
                 error: error,
                 url: this.connection.url,
@@ -21511,7 +22053,7 @@ class SigningEscrow {
         defineReadOnly(this, '_isSigningEscrow', true);
     }
     signDigest(digest) {
-        return __awaiter$5(this, void 0, void 0, function* () {
+        return __awaiter$6(this, void 0, void 0, function* () {
             const json = {
                 id: (this._nextId++),
                 jsonrpc: '2.0',
@@ -21530,7 +22072,7 @@ class SigningEscrow {
     }
 }
 
-const version$w = "logger/5.0.5";
+const version$w = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$c = false;
@@ -21821,14 +22363,17 @@ class Logger$c {
         }
         _logLevel$c = level;
     }
+    static from(version) {
+        return new Logger$c(version);
+    }
 }
 Logger$c.errors = ErrorCode$c;
 Logger$c.levels = LogLevel$c;
 
-const version$x = "bytes/5.0.4";
+const version$x = "bytes/5.0.7";
 
 "use strict";
-const logger$w = new Logger$c(version$x);
+const logger$y = new Logger$c(version$x);
 ///////////////////////////////
 function isHexable$a(value) {
     return !!(value.toHexString);
@@ -21872,7 +22417,7 @@ function arrayify$a(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$w.checkSafeUint53(value, "invalid arrayify value");
+        logger$y.checkSafeUint53(value, "invalid arrayify value");
         const result = [];
         while (value) {
             result.unshift(value & 0xff);
@@ -21899,7 +22444,7 @@ function arrayify$a(value, options) {
                 hex += "0";
             }
             else {
-                logger$w.throwArgumentError("hex data is odd-length", "value", value);
+                logger$y.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         const result = [];
@@ -21911,7 +22456,7 @@ function arrayify$a(value, options) {
     if (isBytes$a(value)) {
         return addSlice$a(new Uint8Array(value));
     }
-    return logger$w.throwArgumentError("invalid arrayify value", "value", value);
+    return logger$y.throwArgumentError("invalid arrayify value", "value", value);
 }
 function concat$a(items) {
     const objects = items.map(item => arrayify$a(item));
@@ -21942,7 +22487,7 @@ function stripZeros$a(value) {
 function zeroPad$a(value, length) {
     value = arrayify$a(value);
     if (value.length > length) {
-        logger$w.throwArgumentError("value out of range", "value", arguments[0]);
+        logger$y.throwArgumentError("value out of range", "value", arguments[0]);
     }
     const result = new Uint8Array(length);
     result.set(value, length - value.length);
@@ -21963,7 +22508,7 @@ function hexlify$a(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$w.checkSafeUint53(value, "invalid hexlify value");
+        logger$y.checkSafeUint53(value, "invalid hexlify value");
         let hex = "";
         while (value) {
             hex = HexCharacters$a[value & 0x0f] + hex;
@@ -21992,7 +22537,7 @@ function hexlify$a(value, options) {
                 value += "0";
             }
             else {
-                logger$w.throwArgumentError("hex data is odd-length", "value", value);
+                logger$y.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         return value.toLowerCase();
@@ -22005,7 +22550,7 @@ function hexlify$a(value, options) {
         }
         return result;
     }
-    return logger$w.throwArgumentError("invalid hexlify value", "value", value);
+    return logger$y.throwArgumentError("invalid hexlify value", "value", value);
 }
 /*
 function unoddify(value: BytesLike | Hexable | number): BytesLike | Hexable | number {
@@ -22029,7 +22574,7 @@ function hexDataSlice$a(data, offset, endOffset) {
         data = hexlify$a(data);
     }
     else if (!isHexString$a(data) || (data.length % 2)) {
-        logger$w.throwArgumentError("invalid hexData", "value", data);
+        logger$y.throwArgumentError("invalid hexData", "value", data);
     }
     offset = 2 + 2 * offset;
     if (endOffset != null) {
@@ -22056,7 +22601,7 @@ function hexStripZeros$a(value) {
         value = hexlify$a(value);
     }
     if (!isHexString$a(value)) {
-        logger$w.throwArgumentError("invalid hex string", "value", value);
+        logger$y.throwArgumentError("invalid hex string", "value", value);
     }
     value = value.substring(2);
     let offset = 0;
@@ -22070,10 +22615,10 @@ function hexZeroPad$a(value, length) {
         value = hexlify$a(value);
     }
     else if (!isHexString$a(value)) {
-        logger$w.throwArgumentError("invalid hex string", "value", value);
+        logger$y.throwArgumentError("invalid hex string", "value", value);
     }
     if (value.length > 2 * length + 2) {
-        logger$w.throwArgumentError("value out of range", "value", arguments[1]);
+        logger$y.throwArgumentError("value out of range", "value", arguments[1]);
     }
     while (value.length < 2 * length + 2) {
         value = "0x0" + value.substring(2);
@@ -22091,7 +22636,7 @@ function splitSignature$a(signature) {
     if (isBytesLike$a(signature)) {
         const bytes = arrayify$a(signature);
         if (bytes.length !== 65) {
-            logger$w.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
+            logger$y.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
         }
         // Get the r, s and v
         result.r = hexlify$a(bytes.slice(0, 32));
@@ -22103,7 +22648,7 @@ function splitSignature$a(signature) {
                 result.v += 27;
             }
             else {
-                logger$w.throwArgumentError("signature invalid v byte", "signature", signature);
+                logger$y.throwArgumentError("signature invalid v byte", "signature", signature);
             }
         }
         // Compute recoveryParam from v
@@ -22131,7 +22676,7 @@ function splitSignature$a(signature) {
                 result.recoveryParam = recoveryParam;
             }
             else if (result.recoveryParam !== recoveryParam) {
-                logger$w.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
+                logger$y.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
             }
             // Set or check the s
             vs[0] &= 0x7f;
@@ -22140,13 +22685,13 @@ function splitSignature$a(signature) {
                 result.s = s;
             }
             else if (result.s !== s) {
-                logger$w.throwArgumentError("signature v mismatch _vs", "signature", signature);
+                logger$y.throwArgumentError("signature v mismatch _vs", "signature", signature);
             }
         }
         // Use recid and v to populate each other
         if (result.recoveryParam == null) {
             if (result.v == null) {
-                logger$w.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
+                logger$y.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
             }
             else {
                 result.recoveryParam = 1 - (result.v % 2);
@@ -22157,24 +22702,24 @@ function splitSignature$a(signature) {
                 result.v = 27 + result.recoveryParam;
             }
             else if (result.recoveryParam !== (1 - (result.v % 2))) {
-                logger$w.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
+                logger$y.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
             }
         }
         if (result.r == null || !isHexString$a(result.r)) {
-            logger$w.throwArgumentError("signature missing or invalid r", "signature", signature);
+            logger$y.throwArgumentError("signature missing or invalid r", "signature", signature);
         }
         else {
             result.r = hexZeroPad$a(result.r, 32);
         }
         if (result.s == null || !isHexString$a(result.s)) {
-            logger$w.throwArgumentError("signature missing or invalid s", "signature", signature);
+            logger$y.throwArgumentError("signature missing or invalid s", "signature", signature);
         }
         else {
             result.s = hexZeroPad$a(result.s, 32);
         }
         const vs = arrayify$a(result.s);
         if (vs[0] >= 128) {
-            logger$w.throwArgumentError("signature s out of range", "signature", signature);
+            logger$y.throwArgumentError("signature s out of range", "signature", signature);
         }
         if (result.recoveryParam) {
             vs[0] |= 0x80;
@@ -22182,7 +22727,7 @@ function splitSignature$a(signature) {
         const _vs = hexlify$a(vs);
         if (result._vs) {
             if (!isHexString$a(result._vs)) {
-                logger$w.throwArgumentError("signature invalid _vs", "signature", signature);
+                logger$y.throwArgumentError("signature invalid _vs", "signature", signature);
             }
             result._vs = hexZeroPad$a(result._vs, 32);
         }
@@ -22191,7 +22736,7 @@ function splitSignature$a(signature) {
             result._vs = _vs;
         }
         else if (result._vs !== _vs) {
-            logger$w.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
+            logger$y.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
         }
     }
     return result;
@@ -22321,7 +22866,7 @@ const Base58 = new BaseX("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuv
 //console.log(Base58.decode("Qmd2V777o5XvJbYMeMb8k2nU5f8d3ciUQ5YpYuWhzv8iDj"))
 //console.log(Base58.encode(Base58.decode("Qmd2V777o5XvJbYMeMb8k2nU5f8d3ciUQ5YpYuWhzv8iDj")))
 
-const version$y = "logger/5.0.5";
+const version$y = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$d = false;
@@ -22612,14 +23157,17 @@ class Logger$d {
         }
         _logLevel$d = level;
     }
+    static from(version) {
+        return new Logger$d(version);
+    }
 }
 Logger$d.errors = ErrorCode$d;
 Logger$d.levels = LogLevel$d;
 
-const version$z = "bytes/5.0.4";
+const version$z = "bytes/5.0.7";
 
 "use strict";
-const logger$x = new Logger$d(version$z);
+const logger$z = new Logger$d(version$z);
 ///////////////////////////////
 function isHexable$b(value) {
     return !!(value.toHexString);
@@ -22663,7 +23211,7 @@ function arrayify$b(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$x.checkSafeUint53(value, "invalid arrayify value");
+        logger$z.checkSafeUint53(value, "invalid arrayify value");
         const result = [];
         while (value) {
             result.unshift(value & 0xff);
@@ -22690,7 +23238,7 @@ function arrayify$b(value, options) {
                 hex += "0";
             }
             else {
-                logger$x.throwArgumentError("hex data is odd-length", "value", value);
+                logger$z.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         const result = [];
@@ -22702,7 +23250,7 @@ function arrayify$b(value, options) {
     if (isBytes$b(value)) {
         return addSlice$b(new Uint8Array(value));
     }
-    return logger$x.throwArgumentError("invalid arrayify value", "value", value);
+    return logger$z.throwArgumentError("invalid arrayify value", "value", value);
 }
 function concat$b(items) {
     const objects = items.map(item => arrayify$b(item));
@@ -22733,7 +23281,7 @@ function stripZeros$b(value) {
 function zeroPad$b(value, length) {
     value = arrayify$b(value);
     if (value.length > length) {
-        logger$x.throwArgumentError("value out of range", "value", arguments[0]);
+        logger$z.throwArgumentError("value out of range", "value", arguments[0]);
     }
     const result = new Uint8Array(length);
     result.set(value, length - value.length);
@@ -22754,7 +23302,7 @@ function hexlify$b(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$x.checkSafeUint53(value, "invalid hexlify value");
+        logger$z.checkSafeUint53(value, "invalid hexlify value");
         let hex = "";
         while (value) {
             hex = HexCharacters$b[value & 0x0f] + hex;
@@ -22783,7 +23331,7 @@ function hexlify$b(value, options) {
                 value += "0";
             }
             else {
-                logger$x.throwArgumentError("hex data is odd-length", "value", value);
+                logger$z.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         return value.toLowerCase();
@@ -22796,7 +23344,7 @@ function hexlify$b(value, options) {
         }
         return result;
     }
-    return logger$x.throwArgumentError("invalid hexlify value", "value", value);
+    return logger$z.throwArgumentError("invalid hexlify value", "value", value);
 }
 /*
 function unoddify(value: BytesLike | Hexable | number): BytesLike | Hexable | number {
@@ -22820,7 +23368,7 @@ function hexDataSlice$b(data, offset, endOffset) {
         data = hexlify$b(data);
     }
     else if (!isHexString$b(data) || (data.length % 2)) {
-        logger$x.throwArgumentError("invalid hexData", "value", data);
+        logger$z.throwArgumentError("invalid hexData", "value", data);
     }
     offset = 2 + 2 * offset;
     if (endOffset != null) {
@@ -22847,7 +23395,7 @@ function hexStripZeros$b(value) {
         value = hexlify$b(value);
     }
     if (!isHexString$b(value)) {
-        logger$x.throwArgumentError("invalid hex string", "value", value);
+        logger$z.throwArgumentError("invalid hex string", "value", value);
     }
     value = value.substring(2);
     let offset = 0;
@@ -22861,10 +23409,10 @@ function hexZeroPad$b(value, length) {
         value = hexlify$b(value);
     }
     else if (!isHexString$b(value)) {
-        logger$x.throwArgumentError("invalid hex string", "value", value);
+        logger$z.throwArgumentError("invalid hex string", "value", value);
     }
     if (value.length > 2 * length + 2) {
-        logger$x.throwArgumentError("value out of range", "value", arguments[1]);
+        logger$z.throwArgumentError("value out of range", "value", arguments[1]);
     }
     while (value.length < 2 * length + 2) {
         value = "0x0" + value.substring(2);
@@ -22882,7 +23430,7 @@ function splitSignature$b(signature) {
     if (isBytesLike$b(signature)) {
         const bytes = arrayify$b(signature);
         if (bytes.length !== 65) {
-            logger$x.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
+            logger$z.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
         }
         // Get the r, s and v
         result.r = hexlify$b(bytes.slice(0, 32));
@@ -22894,7 +23442,7 @@ function splitSignature$b(signature) {
                 result.v += 27;
             }
             else {
-                logger$x.throwArgumentError("signature invalid v byte", "signature", signature);
+                logger$z.throwArgumentError("signature invalid v byte", "signature", signature);
             }
         }
         // Compute recoveryParam from v
@@ -22922,7 +23470,7 @@ function splitSignature$b(signature) {
                 result.recoveryParam = recoveryParam;
             }
             else if (result.recoveryParam !== recoveryParam) {
-                logger$x.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
+                logger$z.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
             }
             // Set or check the s
             vs[0] &= 0x7f;
@@ -22931,13 +23479,13 @@ function splitSignature$b(signature) {
                 result.s = s;
             }
             else if (result.s !== s) {
-                logger$x.throwArgumentError("signature v mismatch _vs", "signature", signature);
+                logger$z.throwArgumentError("signature v mismatch _vs", "signature", signature);
             }
         }
         // Use recid and v to populate each other
         if (result.recoveryParam == null) {
             if (result.v == null) {
-                logger$x.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
+                logger$z.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
             }
             else {
                 result.recoveryParam = 1 - (result.v % 2);
@@ -22948,24 +23496,24 @@ function splitSignature$b(signature) {
                 result.v = 27 + result.recoveryParam;
             }
             else if (result.recoveryParam !== (1 - (result.v % 2))) {
-                logger$x.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
+                logger$z.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
             }
         }
         if (result.r == null || !isHexString$b(result.r)) {
-            logger$x.throwArgumentError("signature missing or invalid r", "signature", signature);
+            logger$z.throwArgumentError("signature missing or invalid r", "signature", signature);
         }
         else {
             result.r = hexZeroPad$b(result.r, 32);
         }
         if (result.s == null || !isHexString$b(result.s)) {
-            logger$x.throwArgumentError("signature missing or invalid s", "signature", signature);
+            logger$z.throwArgumentError("signature missing or invalid s", "signature", signature);
         }
         else {
             result.s = hexZeroPad$b(result.s, 32);
         }
         const vs = arrayify$b(result.s);
         if (vs[0] >= 128) {
-            logger$x.throwArgumentError("signature s out of range", "signature", signature);
+            logger$z.throwArgumentError("signature s out of range", "signature", signature);
         }
         if (result.recoveryParam) {
             vs[0] |= 0x80;
@@ -22973,7 +23521,7 @@ function splitSignature$b(signature) {
         const _vs = hexlify$b(vs);
         if (result._vs) {
             if (!isHexString$b(result._vs)) {
-                logger$x.throwArgumentError("signature invalid _vs", "signature", signature);
+                logger$z.throwArgumentError("signature invalid _vs", "signature", signature);
             }
             result._vs = hexZeroPad$b(result._vs, 32);
         }
@@ -22982,7 +23530,7 @@ function splitSignature$b(signature) {
             result._vs = _vs;
         }
         else if (result._vs !== _vs) {
-            logger$x.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
+            logger$z.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
         }
     }
     return result;
@@ -22996,7 +23544,7 @@ function joinSignature$b(signature) {
     ]));
 }
 
-const version$A = "logger/5.0.5";
+const version$A = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$e = false;
@@ -23287,14 +23835,17 @@ class Logger$e {
         }
         _logLevel$e = level;
     }
+    static from(version) {
+        return new Logger$e(version);
+    }
 }
 Logger$e.errors = ErrorCode$e;
 Logger$e.levels = LogLevel$e;
 
-const version$B = "bytes/5.0.4";
+const version$B = "bytes/5.0.7";
 
 "use strict";
-const logger$y = new Logger$e(version$B);
+const logger$A = new Logger$e(version$B);
 ///////////////////////////////
 function isHexable$c(value) {
     return !!(value.toHexString);
@@ -23338,7 +23889,7 @@ function arrayify$c(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$y.checkSafeUint53(value, "invalid arrayify value");
+        logger$A.checkSafeUint53(value, "invalid arrayify value");
         const result = [];
         while (value) {
             result.unshift(value & 0xff);
@@ -23365,7 +23916,7 @@ function arrayify$c(value, options) {
                 hex += "0";
             }
             else {
-                logger$y.throwArgumentError("hex data is odd-length", "value", value);
+                logger$A.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         const result = [];
@@ -23377,7 +23928,7 @@ function arrayify$c(value, options) {
     if (isBytes$c(value)) {
         return addSlice$c(new Uint8Array(value));
     }
-    return logger$y.throwArgumentError("invalid arrayify value", "value", value);
+    return logger$A.throwArgumentError("invalid arrayify value", "value", value);
 }
 function concat$c(items) {
     const objects = items.map(item => arrayify$c(item));
@@ -23408,7 +23959,7 @@ function stripZeros$c(value) {
 function zeroPad$c(value, length) {
     value = arrayify$c(value);
     if (value.length > length) {
-        logger$y.throwArgumentError("value out of range", "value", arguments[0]);
+        logger$A.throwArgumentError("value out of range", "value", arguments[0]);
     }
     const result = new Uint8Array(length);
     result.set(value, length - value.length);
@@ -23429,7 +23980,7 @@ function hexlify$c(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$y.checkSafeUint53(value, "invalid hexlify value");
+        logger$A.checkSafeUint53(value, "invalid hexlify value");
         let hex = "";
         while (value) {
             hex = HexCharacters$c[value & 0x0f] + hex;
@@ -23458,7 +24009,7 @@ function hexlify$c(value, options) {
                 value += "0";
             }
             else {
-                logger$y.throwArgumentError("hex data is odd-length", "value", value);
+                logger$A.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         return value.toLowerCase();
@@ -23471,7 +24022,7 @@ function hexlify$c(value, options) {
         }
         return result;
     }
-    return logger$y.throwArgumentError("invalid hexlify value", "value", value);
+    return logger$A.throwArgumentError("invalid hexlify value", "value", value);
 }
 /*
 function unoddify(value: BytesLike | Hexable | number): BytesLike | Hexable | number {
@@ -23495,7 +24046,7 @@ function hexDataSlice$c(data, offset, endOffset) {
         data = hexlify$c(data);
     }
     else if (!isHexString$c(data) || (data.length % 2)) {
-        logger$y.throwArgumentError("invalid hexData", "value", data);
+        logger$A.throwArgumentError("invalid hexData", "value", data);
     }
     offset = 2 + 2 * offset;
     if (endOffset != null) {
@@ -23522,7 +24073,7 @@ function hexStripZeros$c(value) {
         value = hexlify$c(value);
     }
     if (!isHexString$c(value)) {
-        logger$y.throwArgumentError("invalid hex string", "value", value);
+        logger$A.throwArgumentError("invalid hex string", "value", value);
     }
     value = value.substring(2);
     let offset = 0;
@@ -23536,10 +24087,10 @@ function hexZeroPad$c(value, length) {
         value = hexlify$c(value);
     }
     else if (!isHexString$c(value)) {
-        logger$y.throwArgumentError("invalid hex string", "value", value);
+        logger$A.throwArgumentError("invalid hex string", "value", value);
     }
     if (value.length > 2 * length + 2) {
-        logger$y.throwArgumentError("value out of range", "value", arguments[1]);
+        logger$A.throwArgumentError("value out of range", "value", arguments[1]);
     }
     while (value.length < 2 * length + 2) {
         value = "0x0" + value.substring(2);
@@ -23557,7 +24108,7 @@ function splitSignature$c(signature) {
     if (isBytesLike$c(signature)) {
         const bytes = arrayify$c(signature);
         if (bytes.length !== 65) {
-            logger$y.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
+            logger$A.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
         }
         // Get the r, s and v
         result.r = hexlify$c(bytes.slice(0, 32));
@@ -23569,7 +24120,7 @@ function splitSignature$c(signature) {
                 result.v += 27;
             }
             else {
-                logger$y.throwArgumentError("signature invalid v byte", "signature", signature);
+                logger$A.throwArgumentError("signature invalid v byte", "signature", signature);
             }
         }
         // Compute recoveryParam from v
@@ -23597,7 +24148,7 @@ function splitSignature$c(signature) {
                 result.recoveryParam = recoveryParam;
             }
             else if (result.recoveryParam !== recoveryParam) {
-                logger$y.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
+                logger$A.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
             }
             // Set or check the s
             vs[0] &= 0x7f;
@@ -23606,13 +24157,13 @@ function splitSignature$c(signature) {
                 result.s = s;
             }
             else if (result.s !== s) {
-                logger$y.throwArgumentError("signature v mismatch _vs", "signature", signature);
+                logger$A.throwArgumentError("signature v mismatch _vs", "signature", signature);
             }
         }
         // Use recid and v to populate each other
         if (result.recoveryParam == null) {
             if (result.v == null) {
-                logger$y.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
+                logger$A.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
             }
             else {
                 result.recoveryParam = 1 - (result.v % 2);
@@ -23623,24 +24174,24 @@ function splitSignature$c(signature) {
                 result.v = 27 + result.recoveryParam;
             }
             else if (result.recoveryParam !== (1 - (result.v % 2))) {
-                logger$y.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
+                logger$A.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
             }
         }
         if (result.r == null || !isHexString$c(result.r)) {
-            logger$y.throwArgumentError("signature missing or invalid r", "signature", signature);
+            logger$A.throwArgumentError("signature missing or invalid r", "signature", signature);
         }
         else {
             result.r = hexZeroPad$c(result.r, 32);
         }
         if (result.s == null || !isHexString$c(result.s)) {
-            logger$y.throwArgumentError("signature missing or invalid s", "signature", signature);
+            logger$A.throwArgumentError("signature missing or invalid s", "signature", signature);
         }
         else {
             result.s = hexZeroPad$c(result.s, 32);
         }
         const vs = arrayify$c(result.s);
         if (vs[0] >= 128) {
-            logger$y.throwArgumentError("signature s out of range", "signature", signature);
+            logger$A.throwArgumentError("signature s out of range", "signature", signature);
         }
         if (result.recoveryParam) {
             vs[0] |= 0x80;
@@ -23648,7 +24199,7 @@ function splitSignature$c(signature) {
         const _vs = hexlify$c(vs);
         if (result._vs) {
             if (!isHexString$c(result._vs)) {
-                logger$y.throwArgumentError("signature invalid _vs", "signature", signature);
+                logger$A.throwArgumentError("signature invalid _vs", "signature", signature);
             }
             result._vs = hexZeroPad$c(result._vs, 32);
         }
@@ -23657,7 +24208,7 @@ function splitSignature$c(signature) {
             result._vs = _vs;
         }
         else if (result._vs !== _vs) {
-            logger$y.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
+            logger$A.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
         }
     }
     return result;
@@ -23670,25 +24221,6 @@ function joinSignature$c(signature) {
         (signature.recoveryParam ? "0x1c" : "0x1b")
     ]));
 }
-
-var lib_esm$5 = /*#__PURE__*/Object.freeze({
-	isBytesLike: isBytesLike$c,
-	isBytes: isBytes$c,
-	arrayify: arrayify$c,
-	concat: concat$c,
-	stripZeros: stripZeros$c,
-	zeroPad: zeroPad$c,
-	isHexString: isHexString$c,
-	hexlify: hexlify$c,
-	hexDataLength: hexDataLength$c,
-	hexDataSlice: hexDataSlice$c,
-	hexConcat: hexConcat$c,
-	hexValue: hexValue$c,
-	hexStripZeros: hexStripZeros$c,
-	hexZeroPad: hexZeroPad$c,
-	splitSignature: splitSignature$c,
-	joinSignature: joinSignature$c
-});
 
 'use strict';
 
@@ -24807,7 +25339,7 @@ hash.sha512 = hash.sha.sha512;
 hash.ripemd160 = hash.ripemd.ripemd160;
 });
 
-const version$C = "logger/5.0.5";
+const version$C = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$f = false;
@@ -25098,20 +25630,17 @@ class Logger$f {
         }
         _logLevel$f = level;
     }
+    static from(version) {
+        return new Logger$f(version);
+    }
 }
 Logger$f.errors = ErrorCode$f;
 Logger$f.levels = LogLevel$f;
 
-var lib_esm$6 = /*#__PURE__*/Object.freeze({
-	get LogLevel () { return LogLevel$f; },
-	get ErrorCode () { return ErrorCode$f; },
-	Logger: Logger$f
-});
-
-const version$D = "bytes/5.0.4";
+const version$D = "bytes/5.0.7";
 
 "use strict";
-const logger$z = new Logger$f(version$D);
+const logger$B = new Logger$f(version$D);
 ///////////////////////////////
 function isHexable$d(value) {
     return !!(value.toHexString);
@@ -25155,7 +25684,7 @@ function arrayify$d(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$z.checkSafeUint53(value, "invalid arrayify value");
+        logger$B.checkSafeUint53(value, "invalid arrayify value");
         const result = [];
         while (value) {
             result.unshift(value & 0xff);
@@ -25182,7 +25711,7 @@ function arrayify$d(value, options) {
                 hex += "0";
             }
             else {
-                logger$z.throwArgumentError("hex data is odd-length", "value", value);
+                logger$B.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         const result = [];
@@ -25194,7 +25723,7 @@ function arrayify$d(value, options) {
     if (isBytes$d(value)) {
         return addSlice$d(new Uint8Array(value));
     }
-    return logger$z.throwArgumentError("invalid arrayify value", "value", value);
+    return logger$B.throwArgumentError("invalid arrayify value", "value", value);
 }
 function concat$d(items) {
     const objects = items.map(item => arrayify$d(item));
@@ -25225,7 +25754,7 @@ function stripZeros$d(value) {
 function zeroPad$d(value, length) {
     value = arrayify$d(value);
     if (value.length > length) {
-        logger$z.throwArgumentError("value out of range", "value", arguments[0]);
+        logger$B.throwArgumentError("value out of range", "value", arguments[0]);
     }
     const result = new Uint8Array(length);
     result.set(value, length - value.length);
@@ -25246,7 +25775,7 @@ function hexlify$d(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$z.checkSafeUint53(value, "invalid hexlify value");
+        logger$B.checkSafeUint53(value, "invalid hexlify value");
         let hex = "";
         while (value) {
             hex = HexCharacters$d[value & 0x0f] + hex;
@@ -25275,7 +25804,7 @@ function hexlify$d(value, options) {
                 value += "0";
             }
             else {
-                logger$z.throwArgumentError("hex data is odd-length", "value", value);
+                logger$B.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         return value.toLowerCase();
@@ -25288,7 +25817,7 @@ function hexlify$d(value, options) {
         }
         return result;
     }
-    return logger$z.throwArgumentError("invalid hexlify value", "value", value);
+    return logger$B.throwArgumentError("invalid hexlify value", "value", value);
 }
 /*
 function unoddify(value: BytesLike | Hexable | number): BytesLike | Hexable | number {
@@ -25312,7 +25841,7 @@ function hexDataSlice$d(data, offset, endOffset) {
         data = hexlify$d(data);
     }
     else if (!isHexString$d(data) || (data.length % 2)) {
-        logger$z.throwArgumentError("invalid hexData", "value", data);
+        logger$B.throwArgumentError("invalid hexData", "value", data);
     }
     offset = 2 + 2 * offset;
     if (endOffset != null) {
@@ -25339,7 +25868,7 @@ function hexStripZeros$d(value) {
         value = hexlify$d(value);
     }
     if (!isHexString$d(value)) {
-        logger$z.throwArgumentError("invalid hex string", "value", value);
+        logger$B.throwArgumentError("invalid hex string", "value", value);
     }
     value = value.substring(2);
     let offset = 0;
@@ -25353,10 +25882,10 @@ function hexZeroPad$d(value, length) {
         value = hexlify$d(value);
     }
     else if (!isHexString$d(value)) {
-        logger$z.throwArgumentError("invalid hex string", "value", value);
+        logger$B.throwArgumentError("invalid hex string", "value", value);
     }
     if (value.length > 2 * length + 2) {
-        logger$z.throwArgumentError("value out of range", "value", arguments[1]);
+        logger$B.throwArgumentError("value out of range", "value", arguments[1]);
     }
     while (value.length < 2 * length + 2) {
         value = "0x0" + value.substring(2);
@@ -25374,7 +25903,7 @@ function splitSignature$d(signature) {
     if (isBytesLike$d(signature)) {
         const bytes = arrayify$d(signature);
         if (bytes.length !== 65) {
-            logger$z.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
+            logger$B.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
         }
         // Get the r, s and v
         result.r = hexlify$d(bytes.slice(0, 32));
@@ -25386,7 +25915,7 @@ function splitSignature$d(signature) {
                 result.v += 27;
             }
             else {
-                logger$z.throwArgumentError("signature invalid v byte", "signature", signature);
+                logger$B.throwArgumentError("signature invalid v byte", "signature", signature);
             }
         }
         // Compute recoveryParam from v
@@ -25414,7 +25943,7 @@ function splitSignature$d(signature) {
                 result.recoveryParam = recoveryParam;
             }
             else if (result.recoveryParam !== recoveryParam) {
-                logger$z.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
+                logger$B.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
             }
             // Set or check the s
             vs[0] &= 0x7f;
@@ -25423,13 +25952,13 @@ function splitSignature$d(signature) {
                 result.s = s;
             }
             else if (result.s !== s) {
-                logger$z.throwArgumentError("signature v mismatch _vs", "signature", signature);
+                logger$B.throwArgumentError("signature v mismatch _vs", "signature", signature);
             }
         }
         // Use recid and v to populate each other
         if (result.recoveryParam == null) {
             if (result.v == null) {
-                logger$z.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
+                logger$B.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
             }
             else {
                 result.recoveryParam = 1 - (result.v % 2);
@@ -25440,24 +25969,24 @@ function splitSignature$d(signature) {
                 result.v = 27 + result.recoveryParam;
             }
             else if (result.recoveryParam !== (1 - (result.v % 2))) {
-                logger$z.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
+                logger$B.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
             }
         }
         if (result.r == null || !isHexString$d(result.r)) {
-            logger$z.throwArgumentError("signature missing or invalid r", "signature", signature);
+            logger$B.throwArgumentError("signature missing or invalid r", "signature", signature);
         }
         else {
             result.r = hexZeroPad$d(result.r, 32);
         }
         if (result.s == null || !isHexString$d(result.s)) {
-            logger$z.throwArgumentError("signature missing or invalid s", "signature", signature);
+            logger$B.throwArgumentError("signature missing or invalid s", "signature", signature);
         }
         else {
             result.s = hexZeroPad$d(result.s, 32);
         }
         const vs = arrayify$d(result.s);
         if (vs[0] >= 128) {
-            logger$z.throwArgumentError("signature s out of range", "signature", signature);
+            logger$B.throwArgumentError("signature s out of range", "signature", signature);
         }
         if (result.recoveryParam) {
             vs[0] |= 0x80;
@@ -25465,7 +25994,7 @@ function splitSignature$d(signature) {
         const _vs = hexlify$d(vs);
         if (result._vs) {
             if (!isHexString$d(result._vs)) {
-                logger$z.throwArgumentError("signature invalid _vs", "signature", signature);
+                logger$B.throwArgumentError("signature invalid _vs", "signature", signature);
             }
             result._vs = hexZeroPad$d(result._vs, 32);
         }
@@ -25474,7 +26003,7 @@ function splitSignature$d(signature) {
             result._vs = _vs;
         }
         else if (result._vs !== _vs) {
-            logger$z.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
+            logger$B.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
         }
     }
     return result;
@@ -25488,112 +26017,56 @@ function joinSignature$d(signature) {
     ]));
 }
 
-var lib_esm$7 = /*#__PURE__*/Object.freeze({
-	isBytesLike: isBytesLike$d,
-	isBytes: isBytes$d,
-	arrayify: arrayify$d,
-	concat: concat$d,
-	stripZeros: stripZeros$d,
-	zeroPad: zeroPad$d,
-	isHexString: isHexString$d,
-	hexlify: hexlify$d,
-	hexDataLength: hexDataLength$d,
-	hexDataSlice: hexDataSlice$d,
-	hexConcat: hexConcat$d,
-	hexValue: hexValue$d,
-	hexStripZeros: hexStripZeros$d,
-	hexZeroPad: hexZeroPad$d,
-	splitSignature: splitSignature$d,
-	joinSignature: joinSignature$d
-});
-
-var _version$2 = createCommonjsModule(function (module, exports) {
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.version = "sha2/5.0.3";
-
-});
-
-var _version$3 = unwrapExports(_version$2);
-var _version_1$1 = _version$2.version;
-
-var browser$4 = createCommonjsModule(function (module, exports) {
-"use strict";
-var __importStar = (commonjsGlobal && commonjsGlobal.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-var hash = __importStar(hash_1$1);
-
-
-
-var logger = new lib_esm$6.Logger(_version$2.version);
 var SupportedAlgorithm;
 (function (SupportedAlgorithm) {
     SupportedAlgorithm["sha256"] = "sha256";
     SupportedAlgorithm["sha512"] = "sha512";
-})(SupportedAlgorithm = exports.SupportedAlgorithm || (exports.SupportedAlgorithm = {}));
+})(SupportedAlgorithm || (SupportedAlgorithm = {}));
 ;
-function ripemd160(data) {
-    return "0x" + (hash.ripemd160().update(lib_esm$7.arrayify(data)).digest("hex"));
+
+const version$E = "sha2/5.0.6";
+
+"use strict";
+const logger$C = new Logger$f(version$E);
+function ripemd160$2(data) {
+    return "0x" + (hash_1$1.ripemd160().update(arrayify$d(data)).digest("hex"));
 }
-exports.ripemd160 = ripemd160;
-function sha256(data) {
-    return "0x" + (hash.sha256().update(lib_esm$7.arrayify(data)).digest("hex"));
+function sha256$2(data) {
+    return "0x" + (hash_1$1.sha256().update(arrayify$d(data)).digest("hex"));
 }
-exports.sha256 = sha256;
-function sha512(data) {
-    return "0x" + (hash.sha512().update(lib_esm$7.arrayify(data)).digest("hex"));
+function sha512$2(data) {
+    return "0x" + (hash_1$1.sha512().update(arrayify$d(data)).digest("hex"));
 }
-exports.sha512 = sha512;
 function computeHmac(algorithm, key, data) {
     if (!SupportedAlgorithm[algorithm]) {
-        logger.throwError("unsupported algorithm " + algorithm, lib_esm$6.Logger.errors.UNSUPPORTED_OPERATION, {
+        logger$C.throwError("unsupported algorithm " + algorithm, Logger$f.errors.UNSUPPORTED_OPERATION, {
             operation: "hmac",
             algorithm: algorithm
         });
     }
-    return "0x" + hash.hmac(hash[algorithm], lib_esm$7.arrayify(key)).update(lib_esm$7.arrayify(data)).digest("hex");
+    return "0x" + hash_1$1.hmac(hash_1$1[algorithm], arrayify$d(key)).update(arrayify$d(data)).digest("hex");
 }
-exports.computeHmac = computeHmac;
 
-});
-
-var browser$5 = unwrapExports(browser$4);
-var browser_1$2 = browser$4.SupportedAlgorithm;
-var browser_2$2 = browser$4.ripemd160;
-var browser_3 = browser$4.sha256;
-var browser_4 = browser$4.sha512;
-var browser_5 = browser$4.computeHmac;
-
-var browser$6 = createCommonjsModule(function (module, exports) {
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-
-
 function pbkdf2(password, salt, iterations, keylen, hashAlgorithm) {
-    password = lib_esm$5.arrayify(password);
-    salt = lib_esm$5.arrayify(salt);
-    var hLen;
-    var l = 1;
-    var DK = new Uint8Array(keylen);
-    var block1 = new Uint8Array(salt.length + 4);
+    password = arrayify$c(password);
+    salt = arrayify$c(salt);
+    let hLen;
+    let l = 1;
+    const DK = new Uint8Array(keylen);
+    const block1 = new Uint8Array(salt.length + 4);
     block1.set(salt);
     //salt.copy(block1, 0, 0, salt.length)
-    var r;
-    var T;
-    for (var i = 1; i <= l; i++) {
+    let r;
+    let T;
+    for (let i = 1; i <= l; i++) {
         //block1.writeUInt32BE(i, salt.length)
         block1[salt.length] = (i >> 24) & 0xff;
         block1[salt.length + 1] = (i >> 16) & 0xff;
         block1[salt.length + 2] = (i >> 8) & 0xff;
         block1[salt.length + 3] = i & 0xff;
         //let U = createHmac(password).update(block1).digest();
-        var U = lib_esm$5.arrayify(browser$4.computeHmac(hashAlgorithm, password, block1));
+        let U = arrayify$c(computeHmac(hashAlgorithm, password, block1));
         if (!hLen) {
             hLen = U.length;
             T = new Uint8Array(hLen);
@@ -25602,27 +26075,21 @@ function pbkdf2(password, salt, iterations, keylen, hashAlgorithm) {
         }
         //U.copy(T, 0, 0, hLen)
         T.set(U);
-        for (var j = 1; j < iterations; j++) {
+        for (let j = 1; j < iterations; j++) {
             //U = createHmac(password).update(U).digest();
-            U = lib_esm$5.arrayify(browser$4.computeHmac(hashAlgorithm, password, U));
-            for (var k = 0; k < hLen; k++)
+            U = arrayify$c(computeHmac(hashAlgorithm, password, U));
+            for (let k = 0; k < hLen; k++)
                 T[k] ^= U[k];
         }
-        var destPos = (i - 1) * hLen;
-        var len = (i === l ? r : hLen);
+        const destPos = (i - 1) * hLen;
+        const len = (i === l ? r : hLen);
         //T.copy(DK, destPos, 0, len)
-        DK.set(lib_esm$5.arrayify(T).slice(0, len), destPos);
+        DK.set(arrayify$c(T).slice(0, len), destPos);
     }
-    return lib_esm$5.hexlify(DK);
+    return hexlify$c(DK);
 }
-exports.pbkdf2 = pbkdf2;
 
-});
-
-var browser$7 = unwrapExports(browser$6);
-var browser_1$3 = browser$6.pbkdf2;
-
-const version$E = "logger/5.0.5";
+const version$F = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$g = false;
@@ -25884,7 +26351,7 @@ class Logger$g {
     }
     static globalLogger() {
         if (!_globalLogger$g) {
-            _globalLogger$g = new Logger$g(version$E);
+            _globalLogger$g = new Logger$g(version$F);
         }
         return _globalLogger$g;
     }
@@ -25913,14 +26380,17 @@ class Logger$g {
         }
         _logLevel$g = level;
     }
+    static from(version) {
+        return new Logger$g(version);
+    }
 }
 Logger$g.errors = ErrorCode$g;
 Logger$g.levels = LogLevel$g;
 
-const version$F = "bytes/5.0.4";
+const version$G = "bytes/5.0.7";
 
 "use strict";
-const logger$A = new Logger$g(version$F);
+const logger$D = new Logger$g(version$G);
 ///////////////////////////////
 function isHexable$e(value) {
     return !!(value.toHexString);
@@ -25964,7 +26434,7 @@ function arrayify$e(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$A.checkSafeUint53(value, "invalid arrayify value");
+        logger$D.checkSafeUint53(value, "invalid arrayify value");
         const result = [];
         while (value) {
             result.unshift(value & 0xff);
@@ -25991,7 +26461,7 @@ function arrayify$e(value, options) {
                 hex += "0";
             }
             else {
-                logger$A.throwArgumentError("hex data is odd-length", "value", value);
+                logger$D.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         const result = [];
@@ -26003,7 +26473,7 @@ function arrayify$e(value, options) {
     if (isBytes$e(value)) {
         return addSlice$e(new Uint8Array(value));
     }
-    return logger$A.throwArgumentError("invalid arrayify value", "value", value);
+    return logger$D.throwArgumentError("invalid arrayify value", "value", value);
 }
 function concat$e(items) {
     const objects = items.map(item => arrayify$e(item));
@@ -26034,7 +26504,7 @@ function stripZeros$e(value) {
 function zeroPad$e(value, length) {
     value = arrayify$e(value);
     if (value.length > length) {
-        logger$A.throwArgumentError("value out of range", "value", arguments[0]);
+        logger$D.throwArgumentError("value out of range", "value", arguments[0]);
     }
     const result = new Uint8Array(length);
     result.set(value, length - value.length);
@@ -26055,7 +26525,7 @@ function hexlify$e(value, options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$A.checkSafeUint53(value, "invalid hexlify value");
+        logger$D.checkSafeUint53(value, "invalid hexlify value");
         let hex = "";
         while (value) {
             hex = HexCharacters$e[value & 0x0f] + hex;
@@ -26084,7 +26554,7 @@ function hexlify$e(value, options) {
                 value += "0";
             }
             else {
-                logger$A.throwArgumentError("hex data is odd-length", "value", value);
+                logger$D.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         return value.toLowerCase();
@@ -26097,7 +26567,7 @@ function hexlify$e(value, options) {
         }
         return result;
     }
-    return logger$A.throwArgumentError("invalid hexlify value", "value", value);
+    return logger$D.throwArgumentError("invalid hexlify value", "value", value);
 }
 /*
 function unoddify(value: BytesLike | Hexable | number): BytesLike | Hexable | number {
@@ -26121,7 +26591,7 @@ function hexDataSlice$e(data, offset, endOffset) {
         data = hexlify$e(data);
     }
     else if (!isHexString$e(data) || (data.length % 2)) {
-        logger$A.throwArgumentError("invalid hexData", "value", data);
+        logger$D.throwArgumentError("invalid hexData", "value", data);
     }
     offset = 2 + 2 * offset;
     if (endOffset != null) {
@@ -26148,7 +26618,7 @@ function hexStripZeros$e(value) {
         value = hexlify$e(value);
     }
     if (!isHexString$e(value)) {
-        logger$A.throwArgumentError("invalid hex string", "value", value);
+        logger$D.throwArgumentError("invalid hex string", "value", value);
     }
     value = value.substring(2);
     let offset = 0;
@@ -26162,10 +26632,10 @@ function hexZeroPad$e(value, length) {
         value = hexlify$e(value);
     }
     else if (!isHexString$e(value)) {
-        logger$A.throwArgumentError("invalid hex string", "value", value);
+        logger$D.throwArgumentError("invalid hex string", "value", value);
     }
     if (value.length > 2 * length + 2) {
-        logger$A.throwArgumentError("value out of range", "value", arguments[1]);
+        logger$D.throwArgumentError("value out of range", "value", arguments[1]);
     }
     while (value.length < 2 * length + 2) {
         value = "0x0" + value.substring(2);
@@ -26183,7 +26653,7 @@ function splitSignature$e(signature) {
     if (isBytesLike$e(signature)) {
         const bytes = arrayify$e(signature);
         if (bytes.length !== 65) {
-            logger$A.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
+            logger$D.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
         }
         // Get the r, s and v
         result.r = hexlify$e(bytes.slice(0, 32));
@@ -26195,7 +26665,7 @@ function splitSignature$e(signature) {
                 result.v += 27;
             }
             else {
-                logger$A.throwArgumentError("signature invalid v byte", "signature", signature);
+                logger$D.throwArgumentError("signature invalid v byte", "signature", signature);
             }
         }
         // Compute recoveryParam from v
@@ -26223,7 +26693,7 @@ function splitSignature$e(signature) {
                 result.recoveryParam = recoveryParam;
             }
             else if (result.recoveryParam !== recoveryParam) {
-                logger$A.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
+                logger$D.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
             }
             // Set or check the s
             vs[0] &= 0x7f;
@@ -26232,13 +26702,13 @@ function splitSignature$e(signature) {
                 result.s = s;
             }
             else if (result.s !== s) {
-                logger$A.throwArgumentError("signature v mismatch _vs", "signature", signature);
+                logger$D.throwArgumentError("signature v mismatch _vs", "signature", signature);
             }
         }
         // Use recid and v to populate each other
         if (result.recoveryParam == null) {
             if (result.v == null) {
-                logger$A.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
+                logger$D.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
             }
             else {
                 result.recoveryParam = 1 - (result.v % 2);
@@ -26249,24 +26719,24 @@ function splitSignature$e(signature) {
                 result.v = 27 + result.recoveryParam;
             }
             else if (result.recoveryParam !== (1 - (result.v % 2))) {
-                logger$A.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
+                logger$D.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
             }
         }
         if (result.r == null || !isHexString$e(result.r)) {
-            logger$A.throwArgumentError("signature missing or invalid r", "signature", signature);
+            logger$D.throwArgumentError("signature missing or invalid r", "signature", signature);
         }
         else {
             result.r = hexZeroPad$e(result.r, 32);
         }
         if (result.s == null || !isHexString$e(result.s)) {
-            logger$A.throwArgumentError("signature missing or invalid s", "signature", signature);
+            logger$D.throwArgumentError("signature missing or invalid s", "signature", signature);
         }
         else {
             result.s = hexZeroPad$e(result.s, 32);
         }
         const vs = arrayify$e(result.s);
         if (vs[0] >= 128) {
-            logger$A.throwArgumentError("signature s out of range", "signature", signature);
+            logger$D.throwArgumentError("signature s out of range", "signature", signature);
         }
         if (result.recoveryParam) {
             vs[0] |= 0x80;
@@ -26274,7 +26744,7 @@ function splitSignature$e(signature) {
         const _vs = hexlify$e(vs);
         if (result._vs) {
             if (!isHexString$e(result._vs)) {
-                logger$A.throwArgumentError("signature invalid _vs", "signature", signature);
+                logger$D.throwArgumentError("signature invalid _vs", "signature", signature);
             }
             result._vs = hexZeroPad$e(result._vs, 32);
         }
@@ -26283,7 +26753,7 @@ function splitSignature$e(signature) {
             result._vs = _vs;
         }
         else if (result._vs !== _vs) {
-            logger$A.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
+            logger$D.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
         }
     }
     return result;
@@ -26302,10 +26772,10 @@ function keccak256$4(data) {
     return '0x' + sha3.keccak_256(arrayify$e(data));
 }
 
-const version$G = "transactions/5.0.5";
+const version$H = "transactions/5.0.8";
 
 "use strict";
-const logger$B = new Logger$g(version$G);
+const logger$E = new Logger$g(version$H);
 ///////////////////////////////
 function handleAddress$1(value) {
     if (value === "0x") {
@@ -26349,13 +26819,13 @@ function serialize(transaction, signature) {
         value = arrayify$e(hexlify$e(value, options));
         // Fixed-width field
         if (fieldInfo.length && value.length !== fieldInfo.length && value.length > 0) {
-            logger$B.throwArgumentError("invalid length for " + fieldInfo.name, ("transaction:" + fieldInfo.name), value);
+            logger$E.throwArgumentError("invalid length for " + fieldInfo.name, ("transaction:" + fieldInfo.name), value);
         }
         // Variable-width (with a maximum)
         if (fieldInfo.maxLength) {
             value = stripZeros$e(value);
             if (value.length > fieldInfo.maxLength) {
-                logger$B.throwArgumentError("invalid length for " + fieldInfo.name, ("transaction:" + fieldInfo.name), value);
+                logger$E.throwArgumentError("invalid length for " + fieldInfo.name, ("transaction:" + fieldInfo.name), value);
             }
         }
         raw.push(hexlify$e(value));
@@ -26365,7 +26835,7 @@ function serialize(transaction, signature) {
         // A chainId was provided; if non-zero we'll use EIP-155
         chainId = transaction.chainId;
         if (typeof (chainId) !== "number") {
-            logger$B.throwArgumentError("invalid transaction.chainId", "transaction", transaction);
+            logger$E.throwArgumentError("invalid transaction.chainId", "transaction", transaction);
         }
     }
     else if (signature && !isBytesLike$e(signature) && signature.v > 28) {
@@ -26394,11 +26864,11 @@ function serialize(transaction, signature) {
         v += chainId * 2 + 8;
         // If an EIP-155 v (directly or indirectly; maybe _vs) was provided, check it!
         if (sig.v > 28 && sig.v !== v) {
-            logger$B.throwArgumentError("transaction.chainId/signature.v mismatch", "signature", signature);
+            logger$E.throwArgumentError("transaction.chainId/signature.v mismatch", "signature", signature);
         }
     }
     else if (sig.v !== v) {
-        logger$B.throwArgumentError("transaction.chainId/signature.v mismatch", "signature", signature);
+        logger$E.throwArgumentError("transaction.chainId/signature.v mismatch", "signature", signature);
     }
     raw.push(hexlify$e(v));
     raw.push(stripZeros$e(arrayify$e(sig.r)));
@@ -26408,7 +26878,7 @@ function serialize(transaction, signature) {
 function parse$1(rawTransaction) {
     const transaction = decode(rawTransaction);
     if (transaction.length !== 9 && transaction.length !== 6) {
-        logger$B.throwArgumentError("invalid raw transaction", "rawTransaction", rawTransaction);
+        logger$E.throwArgumentError("invalid raw transaction", "rawTransaction", rawTransaction);
     }
     const tx = {
         nonce: handleNumber$1(transaction[0]).toNumber(),
@@ -26463,7 +26933,7 @@ function parse$1(rawTransaction) {
     return tx;
 }
 
-const version$H = "logger/5.0.5";
+const version$I = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$h = false;
@@ -26725,7 +27195,7 @@ class Logger$h {
     }
     static globalLogger() {
         if (!_globalLogger$h) {
-            _globalLogger$h = new Logger$h(version$H);
+            _globalLogger$h = new Logger$h(version$I);
         }
         return _globalLogger$h;
     }
@@ -26754,165 +27224,926 @@ class Logger$h {
         }
         _logLevel$h = level;
     }
+    static from(version) {
+        return new Logger$h(version);
+    }
 }
 Logger$h.errors = ErrorCode$h;
 Logger$h.levels = LogLevel$h;
 
-var lib_esm$8 = /*#__PURE__*/Object.freeze({
-	get LogLevel () { return LogLevel$h; },
-	get ErrorCode () { return ErrorCode$h; },
-	Logger: Logger$h
-});
+const version$J = "wordlists/5.0.7";
 
-var _version$4 = createCommonjsModule(function (module, exports) {
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.version = "wordlists/5.0.4";
-
-});
-
-var _version$5 = unwrapExports(_version$4);
-var _version_1$2 = _version$4.version;
-
-var wordlist = createCommonjsModule(function (module, exports) {
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 // This gets overridden by rollup
-var exportWordlist = false;
-
-
-
-
-exports.logger = new lib_esm$8.Logger(_version$4.version);
-var Wordlist = /** @class */ (function () {
-    function Wordlist(locale) {
-        var _newTarget = this.constructor;
-        exports.logger.checkAbstract(_newTarget, Wordlist);
-        lib_esm.defineReadOnly(this, "locale", locale);
+const exportWordlist = false;
+const logger$F = new Logger$h(version$J);
+class Wordlist {
+    constructor(locale) {
+        logger$F.checkAbstract(new.target, Wordlist);
+        defineReadOnly(this, "locale", locale);
     }
     // Subclasses may override this
-    Wordlist.prototype.split = function (mnemonic) {
+    split(mnemonic) {
         return mnemonic.toLowerCase().split(/ +/g);
-    };
+    }
     // Subclasses may override this
-    Wordlist.prototype.join = function (words) {
+    join(words) {
         return words.join(" ");
-    };
-    Wordlist.check = function (wordlist) {
-        var words = [];
-        for (var i = 0; i < 2048; i++) {
-            var word = wordlist.getWord(i);
+    }
+    static check(wordlist) {
+        const words = [];
+        for (let i = 0; i < 2048; i++) {
+            const word = wordlist.getWord(i);
             /* istanbul ignore if */
             if (i !== wordlist.getWordIndex(word)) {
                 return "0x";
             }
             words.push(word);
         }
-        return lib_esm$1.id(words.join("\n") + "\n");
-    };
-    Wordlist.register = function (lang, name) {
+        return id(words.join("\n") + "\n");
+    }
+    static register(lang, name) {
         if (!name) {
             name = lang.locale;
         }
         /* istanbul ignore if */
         if (exportWordlist) {
             try {
-                var anyGlobal = window;
+                const anyGlobal = window;
                 if (anyGlobal._ethers && anyGlobal._ethers.wordlists) {
                     if (!anyGlobal._ethers.wordlists[name]) {
-                        lib_esm.defineReadOnly(anyGlobal._ethers.wordlists, name, lang);
+                        defineReadOnly(anyGlobal._ethers.wordlists, name, lang);
                     }
                 }
             }
             catch (error) { }
         }
-    };
-    return Wordlist;
-}());
-exports.Wordlist = Wordlist;
+    }
+}
 
-});
-
-var wordlist$1 = unwrapExports(wordlist);
-var wordlist_1 = wordlist.logger;
-var wordlist_2 = wordlist.Wordlist;
-
-var langEn_1 = createCommonjsModule(function (module, exports) {
 "use strict";
-var __extends = (commonjsGlobal && commonjsGlobal.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-
-var words = "AbandonAbilityAbleAboutAboveAbsentAbsorbAbstractAbsurdAbuseAccessAccidentAccountAccuseAchieveAcidAcousticAcquireAcrossActActionActorActressActualAdaptAddAddictAddressAdjustAdmitAdultAdvanceAdviceAerobicAffairAffordAfraidAgainAgeAgentAgreeAheadAimAirAirportAisleAlarmAlbumAlcoholAlertAlienAllAlleyAllowAlmostAloneAlphaAlreadyAlsoAlterAlwaysAmateurAmazingAmongAmountAmusedAnalystAnchorAncientAngerAngleAngryAnimalAnkleAnnounceAnnualAnotherAnswerAntennaAntiqueAnxietyAnyApartApologyAppearAppleApproveAprilArchArcticAreaArenaArgueArmArmedArmorArmyAroundArrangeArrestArriveArrowArtArtefactArtistArtworkAskAspectAssaultAssetAssistAssumeAsthmaAthleteAtomAttackAttendAttitudeAttractAuctionAuditAugustAuntAuthorAutoAutumnAverageAvocadoAvoidAwakeAwareAwayAwesomeAwfulAwkwardAxisBabyBachelorBaconBadgeBagBalanceBalconyBallBambooBananaBannerBarBarelyBargainBarrelBaseBasicBasketBattleBeachBeanBeautyBecauseBecomeBeefBeforeBeginBehaveBehindBelieveBelowBeltBenchBenefitBestBetrayBetterBetweenBeyondBicycleBidBikeBindBiologyBirdBirthBitterBlackBladeBlameBlanketBlastBleakBlessBlindBloodBlossomBlouseBlueBlurBlushBoardBoatBodyBoilBombBoneBonusBookBoostBorderBoringBorrowBossBottomBounceBoxBoyBracketBrainBrandBrassBraveBreadBreezeBrickBridgeBriefBrightBringBriskBroccoliBrokenBronzeBroomBrotherBrownBrushBubbleBuddyBudgetBuffaloBuildBulbBulkBulletBundleBunkerBurdenBurgerBurstBusBusinessBusyButterBuyerBuzzCabbageCabinCableCactusCageCakeCallCalmCameraCampCanCanalCancelCandyCannonCanoeCanvasCanyonCapableCapitalCaptainCarCarbonCardCargoCarpetCarryCartCaseCashCasinoCastleCasualCatCatalogCatchCategoryCattleCaughtCauseCautionCaveCeilingCeleryCementCensusCenturyCerealCertainChairChalkChampionChangeChaosChapterChargeChaseChatCheapCheckCheeseChefCherryChestChickenChiefChildChimneyChoiceChooseChronicChuckleChunkChurnCigarCinnamonCircleCitizenCityCivilClaimClapClarifyClawClayCleanClerkCleverClickClientCliffClimbClinicClipClockClogCloseClothCloudClownClubClumpClusterClutchCoachCoastCoconutCodeCoffeeCoilCoinCollectColorColumnCombineComeComfortComicCommonCompanyConcertConductConfirmCongressConnectConsiderControlConvinceCookCoolCopperCopyCoralCoreCornCorrectCostCottonCouchCountryCoupleCourseCousinCoverCoyoteCrackCradleCraftCramCraneCrashCraterCrawlCrazyCreamCreditCreekCrewCricketCrimeCrispCriticCropCrossCrouchCrowdCrucialCruelCruiseCrumbleCrunchCrushCryCrystalCubeCultureCupCupboardCuriousCurrentCurtainCurveCushionCustomCuteCycleDadDamageDampDanceDangerDaringDashDaughterDawnDayDealDebateDebrisDecadeDecemberDecideDeclineDecorateDecreaseDeerDefenseDefineDefyDegreeDelayDeliverDemandDemiseDenialDentistDenyDepartDependDepositDepthDeputyDeriveDescribeDesertDesignDeskDespairDestroyDetailDetectDevelopDeviceDevoteDiagramDialDiamondDiaryDiceDieselDietDifferDigitalDignityDilemmaDinnerDinosaurDirectDirtDisagreeDiscoverDiseaseDishDismissDisorderDisplayDistanceDivertDivideDivorceDizzyDoctorDocumentDogDollDolphinDomainDonateDonkeyDonorDoorDoseDoubleDoveDraftDragonDramaDrasticDrawDreamDressDriftDrillDrinkDripDriveDropDrumDryDuckDumbDuneDuringDustDutchDutyDwarfDynamicEagerEagleEarlyEarnEarthEasilyEastEasyEchoEcologyEconomyEdgeEditEducateEffortEggEightEitherElbowElderElectricElegantElementElephantElevatorEliteElseEmbarkEmbodyEmbraceEmergeEmotionEmployEmpowerEmptyEnableEnactEndEndlessEndorseEnemyEnergyEnforceEngageEngineEnhanceEnjoyEnlistEnoughEnrichEnrollEnsureEnterEntireEntryEnvelopeEpisodeEqualEquipEraEraseErodeErosionErrorEruptEscapeEssayEssenceEstateEternalEthicsEvidenceEvilEvokeEvolveExactExampleExcessExchangeExciteExcludeExcuseExecuteExerciseExhaustExhibitExileExistExitExoticExpandExpectExpireExplainExposeExpressExtendExtraEyeEyebrowFabricFaceFacultyFadeFaintFaithFallFalseFameFamilyFamousFanFancyFantasyFarmFashionFatFatalFatherFatigueFaultFavoriteFeatureFebruaryFederalFeeFeedFeelFemaleFenceFestivalFetchFeverFewFiberFictionFieldFigureFileFilmFilterFinalFindFineFingerFinishFireFirmFirstFiscalFishFitFitnessFixFlagFlameFlashFlatFlavorFleeFlightFlipFloatFlockFloorFlowerFluidFlushFlyFoamFocusFogFoilFoldFollowFoodFootForceForestForgetForkFortuneForumForwardFossilFosterFoundFoxFragileFrameFrequentFreshFriendFringeFrogFrontFrostFrownFrozenFruitFuelFunFunnyFurnaceFuryFutureGadgetGainGalaxyGalleryGameGapGarageGarbageGardenGarlicGarmentGasGaspGateGatherGaugeGazeGeneralGeniusGenreGentleGenuineGestureGhostGiantGiftGiggleGingerGiraffeGirlGiveGladGlanceGlareGlassGlideGlimpseGlobeGloomGloryGloveGlowGlueGoatGoddessGoldGoodGooseGorillaGospelGossipGovernGownGrabGraceGrainGrantGrapeGrassGravityGreatGreenGridGriefGritGroceryGroupGrowGruntGuardGuessGuideGuiltGuitarGunGymHabitHairHalfHammerHamsterHandHappyHarborHardHarshHarvestHatHaveHawkHazardHeadHealthHeartHeavyHedgehogHeightHelloHelmetHelpHenHeroHiddenHighHillHintHipHireHistoryHobbyHockeyHoldHoleHolidayHollowHomeHoneyHoodHopeHornHorrorHorseHospitalHostHotelHourHoverHubHugeHumanHumbleHumorHundredHungryHuntHurdleHurryHurtHusbandHybridIceIconIdeaIdentifyIdleIgnoreIllIllegalIllnessImageImitateImmenseImmuneImpactImposeImproveImpulseInchIncludeIncomeIncreaseIndexIndicateIndoorIndustryInfantInflictInformInhaleInheritInitialInjectInjuryInmateInnerInnocentInputInquiryInsaneInsectInsideInspireInstallIntactInterestIntoInvestInviteInvolveIronIslandIsolateIssueItemIvoryJacketJaguarJarJazzJealousJeansJellyJewelJobJoinJokeJourneyJoyJudgeJuiceJumpJungleJuniorJunkJustKangarooKeenKeepKetchupKeyKickKidKidneyKindKingdomKissKitKitchenKiteKittenKiwiKneeKnifeKnockKnowLabLabelLaborLadderLadyLakeLampLanguageLaptopLargeLaterLatinLaughLaundryLavaLawLawnLawsuitLayerLazyLeaderLeafLearnLeaveLectureLeftLegLegalLegendLeisureLemonLendLengthLensLeopardLessonLetterLevelLiarLibertyLibraryLicenseLifeLiftLightLikeLimbLimitLinkLionLiquidListLittleLiveLizardLoadLoanLobsterLocalLockLogicLonelyLongLoopLotteryLoudLoungeLoveLoyalLuckyLuggageLumberLunarLunchLuxuryLyricsMachineMadMagicMagnetMaidMailMainMajorMakeMammalManManageMandateMangoMansionManualMapleMarbleMarchMarginMarineMarketMarriageMaskMassMasterMatchMaterialMathMatrixMatterMaximumMazeMeadowMeanMeasureMeatMechanicMedalMediaMelodyMeltMemberMemoryMentionMenuMercyMergeMeritMerryMeshMessageMetalMethodMiddleMidnightMilkMillionMimicMindMinimumMinorMinuteMiracleMirrorMiseryMissMistakeMixMixedMixtureMobileModelModifyMomMomentMonitorMonkeyMonsterMonthMoonMoralMoreMorningMosquitoMotherMotionMotorMountainMouseMoveMovieMuchMuffinMuleMultiplyMuscleMuseumMushroomMusicMustMutualMyselfMysteryMythNaiveNameNapkinNarrowNastyNationNatureNearNeckNeedNegativeNeglectNeitherNephewNerveNestNetNetworkNeutralNeverNewsNextNiceNightNobleNoiseNomineeNoodleNormalNorthNoseNotableNoteNothingNoticeNovelNowNuclearNumberNurseNutOakObeyObjectObligeObscureObserveObtainObviousOccurOceanOctoberOdorOffOfferOfficeOftenOilOkayOldOliveOlympicOmitOnceOneOnionOnlineOnlyOpenOperaOpinionOpposeOptionOrangeOrbitOrchardOrderOrdinaryOrganOrientOriginalOrphanOstrichOtherOutdoorOuterOutputOutsideOvalOvenOverOwnOwnerOxygenOysterOzonePactPaddlePagePairPalacePalmPandaPanelPanicPantherPaperParadeParentParkParrotPartyPassPatchPathPatientPatrolPatternPausePavePaymentPeacePeanutPearPeasantPelicanPenPenaltyPencilPeoplePepperPerfectPermitPersonPetPhonePhotoPhrasePhysicalPianoPicnicPicturePiecePigPigeonPillPilotPinkPioneerPipePistolPitchPizzaPlacePlanetPlasticPlatePlayPleasePledgePluckPlugPlungePoemPoetPointPolarPolePolicePondPonyPoolPopularPortionPositionPossiblePostPotatoPotteryPovertyPowderPowerPracticePraisePredictPreferPreparePresentPrettyPreventPricePridePrimaryPrintPriorityPrisonPrivatePrizeProblemProcessProduceProfitProgramProjectPromoteProofPropertyProsperProtectProudProvidePublicPuddingPullPulpPulsePumpkinPunchPupilPuppyPurchasePurityPurposePursePushPutPuzzlePyramidQualityQuantumQuarterQuestionQuickQuitQuizQuoteRabbitRaccoonRaceRackRadarRadioRailRainRaiseRallyRampRanchRandomRangeRapidRareRateRatherRavenRawRazorReadyRealReasonRebelRebuildRecallReceiveRecipeRecordRecycleReduceReflectReformRefuseRegionRegretRegularRejectRelaxReleaseReliefRelyRemainRememberRemindRemoveRenderRenewRentReopenRepairRepeatReplaceReportRequireRescueResembleResistResourceResponseResultRetireRetreatReturnReunionRevealReviewRewardRhythmRibRibbonRiceRichRideRidgeRifleRightRigidRingRiotRippleRiskRitualRivalRiverRoadRoastRobotRobustRocketRomanceRoofRookieRoomRoseRotateRoughRoundRouteRoyalRubberRudeRugRuleRunRunwayRuralSadSaddleSadnessSafeSailSaladSalmonSalonSaltSaluteSameSampleSandSatisfySatoshiSauceSausageSaveSayScaleScanScareScatterSceneSchemeSchoolScienceScissorsScorpionScoutScrapScreenScriptScrubSeaSearchSeasonSeatSecondSecretSectionSecuritySeedSeekSegmentSelectSellSeminarSeniorSenseSentenceSeriesServiceSessionSettleSetupSevenShadowShaftShallowShareShedShellSheriffShieldShiftShineShipShiverShockShoeShootShopShortShoulderShoveShrimpShrugShuffleShySiblingSickSideSiegeSightSignSilentSilkSillySilverSimilarSimpleSinceSingSirenSisterSituateSixSizeSkateSketchSkiSkillSkinSkirtSkullSlabSlamSleepSlenderSliceSlideSlightSlimSloganSlotSlowSlushSmallSmartSmileSmokeSmoothSnackSnakeSnapSniffSnowSoapSoccerSocialSockSodaSoftSolarSoldierSolidSolutionSolveSomeoneSongSoonSorrySortSoulSoundSoupSourceSouthSpaceSpareSpatialSpawnSpeakSpecialSpeedSpellSpendSphereSpiceSpiderSpikeSpinSpiritSplitSpoilSponsorSpoonSportSpotSpraySpreadSpringSpySquareSqueezeSquirrelStableStadiumStaffStageStairsStampStandStartStateStaySteakSteelStemStepStereoStickStillStingStockStomachStoneStoolStoryStoveStrategyStreetStrikeStrongStruggleStudentStuffStumbleStyleSubjectSubmitSubwaySuccessSuchSuddenSufferSugarSuggestSuitSummerSunSunnySunsetSuperSupplySupremeSureSurfaceSurgeSurpriseSurroundSurveySuspectSustainSwallowSwampSwapSwarmSwearSweetSwiftSwimSwingSwitchSwordSymbolSymptomSyrupSystemTableTackleTagTailTalentTalkTankTapeTargetTaskTasteTattooTaxiTeachTeamTellTenTenantTennisTentTermTestTextThankThatThemeThenTheoryThereTheyThingThisThoughtThreeThriveThrowThumbThunderTicketTideTigerTiltTimberTimeTinyTipTiredTissueTitleToastTobaccoTodayToddlerToeTogetherToiletTokenTomatoTomorrowToneTongueTonightToolToothTopTopicToppleTorchTornadoTortoiseTossTotalTouristTowardTowerTownToyTrackTradeTrafficTragicTrainTransferTrapTrashTravelTrayTreatTreeTrendTrialTribeTrickTriggerTrimTripTrophyTroubleTruckTrueTrulyTrumpetTrustTruthTryTubeTuitionTumbleTunaTunnelTurkeyTurnTurtleTwelveTwentyTwiceTwinTwistTwoTypeTypicalUglyUmbrellaUnableUnawareUncleUncoverUnderUndoUnfairUnfoldUnhappyUniformUniqueUnitUniverseUnknownUnlockUntilUnusualUnveilUpdateUpgradeUpholdUponUpperUpsetUrbanUrgeUsageUseUsedUsefulUselessUsualUtilityVacantVacuumVagueValidValleyValveVanVanishVaporVariousVastVaultVehicleVelvetVendorVentureVenueVerbVerifyVersionVeryVesselVeteranViableVibrantViciousVictoryVideoViewVillageVintageViolinVirtualVirusVisaVisitVisualVitalVividVocalVoiceVoidVolcanoVolumeVoteVoyageWageWagonWaitWalkWallWalnutWantWarfareWarmWarriorWashWaspWasteWaterWaveWayWealthWeaponWearWeaselWeatherWebWeddingWeekendWeirdWelcomeWestWetWhaleWhatWheatWheelWhenWhereWhipWhisperWideWidthWifeWildWillWinWindowWineWingWinkWinnerWinterWireWisdomWiseWishWitnessWolfWomanWonderWoodWoolWordWorkWorldWorryWorthWrapWreckWrestleWristWriteWrongYardYearYellowYouYoungYouthZebraZeroZoneZoo";
-var wordlist$1 = null;
+const words = "AbdikaceAbecedaAdresaAgreseAkceAktovkaAlejAlkoholAmputaceAnanasAndulkaAnekdotaAnketaAntikaAnulovatArchaAroganceAsfaltAsistentAspiraceAstmaAstronomAtlasAtletikaAtolAutobusAzylBabkaBachorBacilBaculkaBadatelBagetaBagrBahnoBakterieBaladaBaletkaBalkonBalonekBalvanBalzaBambusBankomatBarbarBaretBarmanBarokoBarvaBaterkaBatohBavlnaBazalkaBazilikaBazukaBednaBeranBesedaBestieBetonBezinkaBezmocBeztakBicyklBidloBiftekBikinyBilanceBiografBiologBitvaBizonBlahobytBlatouchBlechaBleduleBleskBlikatBliznaBlokovatBlouditBludBobekBobrBodlinaBodnoutBohatostBojkotBojovatBokorysBolestBorecBoroviceBotaBoubelBouchatBoudaBouleBouratBoxerBradavkaBramboraBrankaBratrBreptaBriketaBrkoBrlohBronzBroskevBrunetkaBrusinkaBrzdaBrzyBublinaBubnovatBuchtaBuditelBudkaBudovaBufetBujarostBukviceBuldokBulvaBundaBunkrBurzaButikBuvolBuzolaBydletBylinaBytovkaBzukotCapartCarevnaCedrCeduleCejchCejnCelaCelerCelkemCelniceCeninaCennostCenovkaCentrumCenzorCestopisCetkaChalupaChapadloCharitaChataChechtatChemieChichotChirurgChladChlebaChlubitChmelChmuraChobotChocholChodbaCholeraChomoutChopitChorobaChovChrapotChrlitChrtChrupChtivostChudinaChutnatChvatChvilkaChvostChybaChystatChytitCibuleCigaretaCihelnaCihlaCinkotCirkusCisternaCitaceCitrusCizinecCizostClonaCokolivCouvatCtitelCtnostCudnostCuketaCukrCupotCvaknoutCvalCvikCvrkotCyklistaDalekoDarebaDatelDatumDceraDebataDechovkaDecibelDeficitDeflaceDeklDekretDemokratDepreseDerbyDeskaDetektivDikobrazDiktovatDiodaDiplomDiskDisplejDivadloDivochDlahaDlouhoDluhopisDnesDobroDobytekDocentDochutitDodnesDohledDohodaDohraDojemDojniceDokladDokolaDoktorDokumentDolarDolevaDolinaDomaDominantDomluvitDomovDonutitDopadDopisDoplnitDoposudDoprovodDopustitDorazitDorostDortDosahDoslovDostatekDosudDosytaDotazDotekDotknoutDoufatDoutnatDovozceDozaduDoznatDozorceDrahotaDrakDramatikDravecDrazeDrdolDrobnostDrogerieDrozdDrsnostDrtitDrzostDubenDuchovnoDudekDuhaDuhovkaDusitDusnoDutostDvojiceDvorecDynamitEkologEkonomieElektronElipsaEmailEmiseEmoceEmpatieEpizodaEpochaEpopejEposEsejEsenceEskortaEskymoEtiketaEuforieEvoluceExekuceExkurzeExpediceExplozeExportExtraktFackaFajfkaFakultaFanatikFantazieFarmacieFavoritFazoleFederaceFejetonFenkaFialkaFigurantFilozofFiltrFinanceFintaFixaceFjordFlanelFlirtFlotilaFondFosforFotbalFotkaFotonFrakceFreskaFrontaFukarFunkceFyzikaGalejeGarantGenetikaGeologGilotinaGlazuraGlejtGolemGolfistaGotikaGrafGramofonGranuleGrepGrilGrogGroteskaGumaHadiceHadrHalaHalenkaHanbaHanopisHarfaHarpunaHavranHebkostHejkalHejnoHejtmanHektarHelmaHematomHerecHernaHesloHezkyHistorikHladovkaHlasivkyHlavaHledatHlenHlodavecHlohHloupostHltatHlubinaHluchotaHmatHmotaHmyzHnisHnojivoHnoutHoblinaHobojHochHodinyHodlatHodnotaHodovatHojnostHokejHolinkaHolkaHolubHomoleHonitbaHonoraceHoralHordaHorizontHorkoHorlivecHormonHorninaHoroskopHorstvoHospodaHostinaHotovostHoubaHoufHoupatHouskaHovorHradbaHraniceHravostHrazdaHrbolekHrdinaHrdloHrdostHrnekHrobkaHromadaHrotHroudaHrozenHrstkaHrubostHryzatHubenostHubnoutHudbaHukotHumrHusitaHustotaHvozdHybnostHydrantHygienaHymnaHysterikIdylkaIhnedIkonaIluzeImunitaInfekceInflaceInkasoInovaceInspekceInternetInvalidaInvestorInzerceIronieJablkoJachtaJahodaJakmileJakostJalovecJantarJarmarkJaroJasanJasnoJatkaJavorJazykJedinecJedleJednatelJehlanJekotJelenJelitoJemnostJenomJepiceJeseterJevitJezdecJezeroJinakJindyJinochJiskraJistotaJitrniceJizvaJmenovatJogurtJurtaKabaretKabelKabinetKachnaKadetKadidloKahanKajakKajutaKakaoKaktusKalamitaKalhotyKalibrKalnostKameraKamkolivKamnaKanibalKanoeKantorKapalinaKapelaKapitolaKapkaKapleKapotaKaprKapustaKapybaraKaramelKarotkaKartonKasaKatalogKatedraKauceKauzaKavalecKazajkaKazetaKazivostKdekolivKdesiKedlubenKempKeramikaKinoKlacekKladivoKlamKlapotKlasikaKlaunKlecKlenbaKlepatKlesnoutKlidKlimaKlisnaKloboukKlokanKlopaKloubKlubovnaKlusatKluzkostKmenKmitatKmotrKnihaKnotKoaliceKoberecKobkaKoblihaKobylaKocourKohoutKojenecKokosKoktejlKolapsKoledaKolizeKoloKomandoKometaKomikKomnataKomoraKompasKomunitaKonatKonceptKondiceKonecKonfeseKongresKoninaKonkursKontaktKonzervaKopanecKopieKopnoutKoprovkaKorbelKorektorKormidloKoroptevKorpusKorunaKorytoKorzetKosatecKostkaKotelKotletaKotoulKoukatKoupelnaKousekKouzloKovbojKozaKozorohKrabiceKrachKrajinaKralovatKrasopisKravataKreditKrejcarKresbaKrevetaKriketKritikKrizeKrkavecKrmelecKrmivoKrocanKrokKronikaKropitKroupaKrovkaKrtekKruhadloKrupiceKrutostKrvinkaKrychleKryptaKrystalKrytKudlankaKufrKujnostKuklaKulajdaKulichKulkaKulometKulturaKunaKupodivuKurtKurzorKutilKvalitaKvasinkaKvestorKynologKyselinaKytaraKyticeKytkaKytovecKyvadloLabradorLachtanLadnostLaikLakomecLamelaLampaLanovkaLasiceLasoLasturaLatinkaLavinaLebkaLeckdyLedenLedniceLedovkaLedvinaLegendaLegieLegraceLehceLehkostLehnoutLektvarLenochodLentilkaLepenkaLepidloLetadloLetecLetmoLetokruhLevhartLevitaceLevobokLibraLichotkaLidojedLidskostLihovinaLijavecLilekLimetkaLinieLinkaLinoleumListopadLitinaLitovatLobistaLodivodLogikaLogopedLokalitaLoketLomcovatLopataLopuchLordLososLotrLoudalLouhLoukaLouskatLovecLstivostLucernaLuciferLumpLuskLustraceLviceLyraLyrikaLysinaMadamMadloMagistrMahagonMajetekMajitelMajoritaMakakMakoviceMakrelaMalbaMalinaMalovatMalviceMaminkaMandleMankoMarnostMasakrMaskotMasopustMaticeMatrikaMaturitaMazanecMazivoMazlitMazurkaMdlobaMechanikMeditaceMedovinaMelasaMelounMentolkaMetlaMetodaMetrMezeraMigraceMihnoutMihuleMikinaMikrofonMilenecMilimetrMilostMimikaMincovnaMinibarMinometMinulostMiskaMistrMixovatMladostMlhaMlhovinaMlokMlsatMluvitMnichMnohemMobilMocnostModelkaModlitbaMohylaMokroMolekulaMomentkaMonarchaMonoklMonstrumMontovatMonzunMosazMoskytMostMotivaceMotorkaMotykaMouchaMoudrostMozaikaMozekMozolMramorMravenecMrkevMrtvolaMrzetMrzutostMstitelMudrcMuflonMulatMumieMuniceMusetMutaceMuzeumMuzikantMyslivecMzdaNabouratNachytatNadaceNadbytekNadhozNadobroNadpisNahlasNahnatNahodileNahraditNaivitaNajednouNajistoNajmoutNaklonitNakonecNakrmitNalevoNamazatNamluvitNanometrNaokoNaopakNaostroNapadatNapevnoNaplnitNapnoutNaposledNaprostoNaroditNarubyNarychloNasaditNasekatNaslepoNastatNatolikNavenekNavrchNavzdoryNazvatNebeNechatNeckyNedalekoNedbatNeduhNegaceNehetNehodaNejenNejprveNeklidNelibostNemilostNemocNeochotaNeonkaNepokojNerostNervNesmyslNesouladNetvorNeuronNevinaNezvykleNicotaNijakNikamNikdyNiklNikterakNitroNoclehNohaviceNominaceNoraNorekNositelNosnostNouzeNovinyNovotaNozdraNudaNudleNugetNutitNutnostNutrieNymfaObalObarvitObavaObdivObecObehnatObejmoutObezitaObhajobaObilniceObjasnitObjektObklopitOblastOblekOblibaOblohaObludaObnosObohatitObojekOboutObrazecObrnaObrubaObrysObsahObsluhaObstaratObuvObvazObvinitObvodObvykleObyvatelObzorOcasOcelOcenitOchladitOchotaOchranaOcitnoutOdbojOdbytOdchodOdcizitOdebratOdeslatOdevzdatOdezvaOdhadceOdhoditOdjetOdjinudOdkazOdkoupitOdlivOdlukaOdmlkaOdolnostOdpadOdpisOdploutOdporOdpustitOdpykatOdrazkaOdsouditOdstupOdsunOdtokOdtudOdvahaOdvetaOdvolatOdvracetOdznakOfinaOfsajdOhlasOhniskoOhradaOhrozitOhryzekOkapOkeniceOklikaOknoOkouzlitOkovyOkrasaOkresOkrsekOkruhOkupantOkurkaOkusitOlejninaOlizovatOmakOmeletaOmezitOmladinaOmlouvatOmluvaOmylOnehdyOpakovatOpasekOperaceOpiceOpilostOpisovatOporaOpoziceOpravduOprotiOrbitalOrchestrOrgieOrliceOrlojOrtelOsadaOschnoutOsikaOsivoOslavaOslepitOslnitOslovitOsnovaOsobaOsolitOspalecOstenOstrahaOstudaOstychOsvojitOteplitOtiskOtopOtrhatOtrlostOtrokOtrubyOtvorOvanoutOvarOvesOvlivnitOvoceOxidOzdobaPachatelPacientPadouchPahorekPaktPalandaPalecPalivoPalubaPamfletPamlsekPanenkaPanikaPannaPanovatPanstvoPantoflePaprikaParketaParodiePartaParukaParybaPasekaPasivitaPastelkaPatentPatronaPavoukPaznehtPazourekPeckaPedagogPejsekPekloPelotonPenaltaPendrekPenzePeriskopPeroPestrostPetardaPeticePetrolejPevninaPexesoPianistaPihaPijavicePiklePiknikPilinaPilnostPilulkaPinzetaPipetaPisatelPistolePitevnaPivnicePivovarPlacentaPlakatPlamenPlanetaPlastikaPlatitPlavidloPlazPlechPlemenoPlentaPlesPletivoPlevelPlivatPlnitPlnoPlochaPlodinaPlombaPloutPlukPlynPobavitPobytPochodPocitPoctivecPodatPodcenitPodepsatPodhledPodivitPodkladPodmanitPodnikPodobaPodporaPodrazPodstataPodvodPodzimPoeziePohankaPohnutkaPohovorPohromaPohybPointaPojistkaPojmoutPokazitPoklesPokojPokrokPokutaPokynPolednePolibekPolknoutPolohaPolynomPomaluPominoutPomlkaPomocPomstaPomysletPonechatPonorkaPonurostPopadatPopelPopisekPoplachPoprositPopsatPopudPoradcePorcePorodPoruchaPoryvPosaditPosedPosilaPoskokPoslanecPosouditPospoluPostavaPosudekPosypPotahPotkanPotleskPotomekPotravaPotupaPotvoraPoukazPoutoPouzdroPovahaPovidlaPovlakPovozPovrchPovstatPovykPovzdechPozdravPozemekPoznatekPozorPozvatPracovatPrahoryPraktikaPralesPraotecPraporekPrasePravdaPrincipPrknoProbuditProcentoProdejProfeseProhraProjektProlomitPromilePronikatPropadProrokProsbaProtonProutekProvazPrskavkaPrstenPrudkostPrutPrvekPrvohoryPsanecPsovodPstruhPtactvoPubertaPuchPudlPukavecPuklinaPukrlePultPumpaPuncPupenPusaPusinkaPustinaPutovatPutykaPyramidaPyskPytelRacekRachotRadiaceRadniceRadonRaftRagbyRaketaRakovinaRamenoRampouchRandeRarachRaritaRasovnaRastrRatolestRazanceRazidloReagovatReakceReceptRedaktorReferentReflexRejnokReklamaRekordRekrutRektorReputaceRevizeRevmaRevolverRezervaRiskovatRizikoRobotikaRodokmenRohovkaRokleRokokoRomanetoRopovodRopuchaRorejsRosolRostlinaRotmistrRotopedRotundaRoubenkaRouchoRoupRouraRovinaRovniceRozborRozchodRozdatRozeznatRozhodceRozinkaRozjezdRozkazRozlohaRozmarRozpadRozruchRozsahRoztokRozumRozvodRubrikaRuchadloRukaviceRukopisRybaRybolovRychlostRydloRypadloRytinaRyzostSadistaSahatSakoSamecSamizdatSamotaSanitkaSardinkaSasankaSatelitSazbaSazeniceSborSchovatSebrankaSeceseSedadloSedimentSedloSehnatSejmoutSekeraSektaSekundaSekvojeSemenoSenoServisSesaditSeshoraSeskokSeslatSestraSesuvSesypatSetbaSetinaSetkatSetnoutSetrvatSeverSeznamShodaShrnoutSifonSilniceSirkaSirotekSirupSituaceSkafandrSkaliskoSkanzenSkautSkeptikSkicaSkladbaSkleniceSkloSkluzSkobaSkokanSkoroSkriptaSkrzSkupinaSkvostSkvrnaSlabikaSladidloSlaninaSlastSlavnostSledovatSlepecSlevaSlezinaSlibSlinaSlizniceSlonSloupekSlovoSluchSluhaSlunceSlupkaSlzaSmaragdSmetanaSmilstvoSmlouvaSmogSmradSmrkSmrtkaSmutekSmyslSnadSnahaSnobSobotaSochaSodovkaSokolSopkaSotvaSoubojSoucitSoudceSouhlasSouladSoumrakSoupravaSousedSoutokSouvisetSpalovnaSpasitelSpisSplavSpodekSpojenecSpoluSponzorSpornostSpoustaSprchaSpustitSrandaSrazSrdceSrnaSrnecSrovnatSrpenSrstSrubStaniceStarostaStatikaStavbaStehnoStezkaStodolaStolekStopaStornoStoupatStrachStresStrhnoutStromStrunaStudnaStupniceStvolStykSubjektSubtropySucharSudostSuknoSundatSunoutSurikataSurovinaSvahSvalstvoSvetrSvatbaSvazekSvisleSvitekSvobodaSvodidloSvorkaSvrabSykavkaSykotSynekSynovecSypatSypkostSyrovostSyselSytostTabletkaTabuleTahounTajemnoTajfunTajgaTajitTajnostTaktikaTamhleTamponTancovatTanecTankerTapetaTaveninaTazatelTechnikaTehdyTekutinaTelefonTemnotaTendenceTenistaTenorTeplotaTepnaTeprveTerapieTermoskaTextilTichoTiskopisTitulekTkadlecTkaninaTlapkaTleskatTlukotTlupaTmelToaletaTopinkaTopolTorzoTouhaToulecTradiceTraktorTrampTrasaTraverzaTrefitTrestTrezorTrhavinaTrhlinaTrochuTrojiceTroskaTroubaTrpceTrpitelTrpkostTrubecTruchlitTruhliceTrusTrvatTudyTuhnoutTuhostTundraTuristaTurnajTuzemskoTvarohTvorbaTvrdostTvrzTygrTykevUbohostUbozeUbratUbrousekUbrusUbytovnaUchoUctivostUdivitUhraditUjednatUjistitUjmoutUkazatelUklidnitUklonitUkotvitUkrojitUliceUlitaUlovitUmyvadloUnavitUniformaUniknoutUpadnoutUplatnitUplynoutUpoutatUpravitUranUrazitUsednoutUsilovatUsmrtitUsnadnitUsnoutUsouditUstlatUstrnoutUtahovatUtkatUtlumitUtonoutUtopenecUtrousitUvalitUvolnitUvozovkaUzdravitUzelUzeninaUzlinaUznatVagonValchaValounVanaVandalVanilkaVaranVarhanyVarovatVcelkuVchodVdovaVedroVegetaceVejceVelbloudVeletrhVelitelVelmocVelrybaVenkovVerandaVerzeVeselkaVeskrzeVesniceVespoduVestaVeterinaVeverkaVibraceVichrVideohraVidinaVidleVilaViniceVisetVitalitaVizeVizitkaVjezdVkladVkusVlajkaVlakVlasecVlevoVlhkostVlivVlnovkaVloupatVnucovatVnukVodaVodivostVodoznakVodstvoVojenskyVojnaVojskoVolantVolbaVolitVolnoVoskovkaVozidloVozovnaVpravoVrabecVracetVrahVrataVrbaVrcholekVrhatVrstvaVrtuleVsaditVstoupitVstupVtipVybavitVybratVychovatVydatVydraVyfotitVyhledatVyhnoutVyhoditVyhraditVyhubitVyjasnitVyjetVyjmoutVyklopitVykonatVylekatVymazatVymezitVymizetVymysletVynechatVynikatVynutitVypadatVyplatitVypravitVypustitVyrazitVyrovnatVyrvatVyslovitVysokoVystavitVysunoutVysypatVytasitVytesatVytratitVyvinoutVyvolatVyvrhelVyzdobitVyznatVzaduVzbuditVzchopitVzdorVzduchVzdychatVzestupVzhledemVzkazVzlykatVznikVzorekVzpouraVztahVztekXylofonZabratZabydletZachovatZadarmoZadusitZafoukatZahltitZahoditZahradaZahynoutZajatecZajetZajistitZaklepatZakoupitZalepitZamezitZamotatZamysletZanechatZanikatZaplatitZapojitZapsatZarazitZastavitZasunoutZatajitZatemnitZatknoutZaujmoutZavalitZaveletZavinitZavolatZavrtatZazvonitZbavitZbrusuZbudovatZbytekZdalekaZdarmaZdatnostZdivoZdobitZdrojZdvihZdymadloZeleninaZemanZeminaZeptatZezaduZezdolaZhatitZhltnoutZhlubokaZhotovitZhrubaZimaZimniceZjemnitZklamatZkoumatZkratkaZkumavkaZlatoZlehkaZlobaZlomZlostZlozvykZmapovatZmarZmatekZmijeZmizetZmocnitZmodratZmrzlinaZmutovatZnakZnalostZnamenatZnovuZobrazitZotavitZoubekZoufaleZploditZpomalitZpravaZprostitZprudkaZprvuZradaZranitZrcadloZrnitostZrnoZrovnaZrychlitZrzavostZtichaZtratitZubovinaZubrZvednoutZvenkuZveselaZvonZvratZvukovodZvyk";
+let wordlist = null;
 function loadWords(lang) {
+    if (wordlist != null) {
+        return;
+    }
+    wordlist = words.replace(/([A-Z])/g, " $1").toLowerCase().substring(1).split(" ");
+    // Verify the computed list matches the official list
+    /* istanbul ignore if */
+    if (Wordlist.check(lang) !== "0x25f44555f4af25b51a711136e1c7d6e50ce9f8917d39d6b1f076b2bb4d2fac1a") {
+        wordlist = null;
+        throw new Error("BIP39 Wordlist for en (English) FAILED");
+    }
+}
+class LangCz extends Wordlist {
+    constructor() {
+        super("cz");
+    }
+    getWord(index) {
+        loadWords(this);
+        return wordlist[index];
+    }
+    getWordIndex(word) {
+        loadWords(this);
+        return wordlist.indexOf(word);
+    }
+}
+const langCz = new LangCz();
+Wordlist.register(langCz);
+
+"use strict";
+const words$1 = "AbandonAbilityAbleAboutAboveAbsentAbsorbAbstractAbsurdAbuseAccessAccidentAccountAccuseAchieveAcidAcousticAcquireAcrossActActionActorActressActualAdaptAddAddictAddressAdjustAdmitAdultAdvanceAdviceAerobicAffairAffordAfraidAgainAgeAgentAgreeAheadAimAirAirportAisleAlarmAlbumAlcoholAlertAlienAllAlleyAllowAlmostAloneAlphaAlreadyAlsoAlterAlwaysAmateurAmazingAmongAmountAmusedAnalystAnchorAncientAngerAngleAngryAnimalAnkleAnnounceAnnualAnotherAnswerAntennaAntiqueAnxietyAnyApartApologyAppearAppleApproveAprilArchArcticAreaArenaArgueArmArmedArmorArmyAroundArrangeArrestArriveArrowArtArtefactArtistArtworkAskAspectAssaultAssetAssistAssumeAsthmaAthleteAtomAttackAttendAttitudeAttractAuctionAuditAugustAuntAuthorAutoAutumnAverageAvocadoAvoidAwakeAwareAwayAwesomeAwfulAwkwardAxisBabyBachelorBaconBadgeBagBalanceBalconyBallBambooBananaBannerBarBarelyBargainBarrelBaseBasicBasketBattleBeachBeanBeautyBecauseBecomeBeefBeforeBeginBehaveBehindBelieveBelowBeltBenchBenefitBestBetrayBetterBetweenBeyondBicycleBidBikeBindBiologyBirdBirthBitterBlackBladeBlameBlanketBlastBleakBlessBlindBloodBlossomBlouseBlueBlurBlushBoardBoatBodyBoilBombBoneBonusBookBoostBorderBoringBorrowBossBottomBounceBoxBoyBracketBrainBrandBrassBraveBreadBreezeBrickBridgeBriefBrightBringBriskBroccoliBrokenBronzeBroomBrotherBrownBrushBubbleBuddyBudgetBuffaloBuildBulbBulkBulletBundleBunkerBurdenBurgerBurstBusBusinessBusyButterBuyerBuzzCabbageCabinCableCactusCageCakeCallCalmCameraCampCanCanalCancelCandyCannonCanoeCanvasCanyonCapableCapitalCaptainCarCarbonCardCargoCarpetCarryCartCaseCashCasinoCastleCasualCatCatalogCatchCategoryCattleCaughtCauseCautionCaveCeilingCeleryCementCensusCenturyCerealCertainChairChalkChampionChangeChaosChapterChargeChaseChatCheapCheckCheeseChefCherryChestChickenChiefChildChimneyChoiceChooseChronicChuckleChunkChurnCigarCinnamonCircleCitizenCityCivilClaimClapClarifyClawClayCleanClerkCleverClickClientCliffClimbClinicClipClockClogCloseClothCloudClownClubClumpClusterClutchCoachCoastCoconutCodeCoffeeCoilCoinCollectColorColumnCombineComeComfortComicCommonCompanyConcertConductConfirmCongressConnectConsiderControlConvinceCookCoolCopperCopyCoralCoreCornCorrectCostCottonCouchCountryCoupleCourseCousinCoverCoyoteCrackCradleCraftCramCraneCrashCraterCrawlCrazyCreamCreditCreekCrewCricketCrimeCrispCriticCropCrossCrouchCrowdCrucialCruelCruiseCrumbleCrunchCrushCryCrystalCubeCultureCupCupboardCuriousCurrentCurtainCurveCushionCustomCuteCycleDadDamageDampDanceDangerDaringDashDaughterDawnDayDealDebateDebrisDecadeDecemberDecideDeclineDecorateDecreaseDeerDefenseDefineDefyDegreeDelayDeliverDemandDemiseDenialDentistDenyDepartDependDepositDepthDeputyDeriveDescribeDesertDesignDeskDespairDestroyDetailDetectDevelopDeviceDevoteDiagramDialDiamondDiaryDiceDieselDietDifferDigitalDignityDilemmaDinnerDinosaurDirectDirtDisagreeDiscoverDiseaseDishDismissDisorderDisplayDistanceDivertDivideDivorceDizzyDoctorDocumentDogDollDolphinDomainDonateDonkeyDonorDoorDoseDoubleDoveDraftDragonDramaDrasticDrawDreamDressDriftDrillDrinkDripDriveDropDrumDryDuckDumbDuneDuringDustDutchDutyDwarfDynamicEagerEagleEarlyEarnEarthEasilyEastEasyEchoEcologyEconomyEdgeEditEducateEffortEggEightEitherElbowElderElectricElegantElementElephantElevatorEliteElseEmbarkEmbodyEmbraceEmergeEmotionEmployEmpowerEmptyEnableEnactEndEndlessEndorseEnemyEnergyEnforceEngageEngineEnhanceEnjoyEnlistEnoughEnrichEnrollEnsureEnterEntireEntryEnvelopeEpisodeEqualEquipEraEraseErodeErosionErrorEruptEscapeEssayEssenceEstateEternalEthicsEvidenceEvilEvokeEvolveExactExampleExcessExchangeExciteExcludeExcuseExecuteExerciseExhaustExhibitExileExistExitExoticExpandExpectExpireExplainExposeExpressExtendExtraEyeEyebrowFabricFaceFacultyFadeFaintFaithFallFalseFameFamilyFamousFanFancyFantasyFarmFashionFatFatalFatherFatigueFaultFavoriteFeatureFebruaryFederalFeeFeedFeelFemaleFenceFestivalFetchFeverFewFiberFictionFieldFigureFileFilmFilterFinalFindFineFingerFinishFireFirmFirstFiscalFishFitFitnessFixFlagFlameFlashFlatFlavorFleeFlightFlipFloatFlockFloorFlowerFluidFlushFlyFoamFocusFogFoilFoldFollowFoodFootForceForestForgetForkFortuneForumForwardFossilFosterFoundFoxFragileFrameFrequentFreshFriendFringeFrogFrontFrostFrownFrozenFruitFuelFunFunnyFurnaceFuryFutureGadgetGainGalaxyGalleryGameGapGarageGarbageGardenGarlicGarmentGasGaspGateGatherGaugeGazeGeneralGeniusGenreGentleGenuineGestureGhostGiantGiftGiggleGingerGiraffeGirlGiveGladGlanceGlareGlassGlideGlimpseGlobeGloomGloryGloveGlowGlueGoatGoddessGoldGoodGooseGorillaGospelGossipGovernGownGrabGraceGrainGrantGrapeGrassGravityGreatGreenGridGriefGritGroceryGroupGrowGruntGuardGuessGuideGuiltGuitarGunGymHabitHairHalfHammerHamsterHandHappyHarborHardHarshHarvestHatHaveHawkHazardHeadHealthHeartHeavyHedgehogHeightHelloHelmetHelpHenHeroHiddenHighHillHintHipHireHistoryHobbyHockeyHoldHoleHolidayHollowHomeHoneyHoodHopeHornHorrorHorseHospitalHostHotelHourHoverHubHugeHumanHumbleHumorHundredHungryHuntHurdleHurryHurtHusbandHybridIceIconIdeaIdentifyIdleIgnoreIllIllegalIllnessImageImitateImmenseImmuneImpactImposeImproveImpulseInchIncludeIncomeIncreaseIndexIndicateIndoorIndustryInfantInflictInformInhaleInheritInitialInjectInjuryInmateInnerInnocentInputInquiryInsaneInsectInsideInspireInstallIntactInterestIntoInvestInviteInvolveIronIslandIsolateIssueItemIvoryJacketJaguarJarJazzJealousJeansJellyJewelJobJoinJokeJourneyJoyJudgeJuiceJumpJungleJuniorJunkJustKangarooKeenKeepKetchupKeyKickKidKidneyKindKingdomKissKitKitchenKiteKittenKiwiKneeKnifeKnockKnowLabLabelLaborLadderLadyLakeLampLanguageLaptopLargeLaterLatinLaughLaundryLavaLawLawnLawsuitLayerLazyLeaderLeafLearnLeaveLectureLeftLegLegalLegendLeisureLemonLendLengthLensLeopardLessonLetterLevelLiarLibertyLibraryLicenseLifeLiftLightLikeLimbLimitLinkLionLiquidListLittleLiveLizardLoadLoanLobsterLocalLockLogicLonelyLongLoopLotteryLoudLoungeLoveLoyalLuckyLuggageLumberLunarLunchLuxuryLyricsMachineMadMagicMagnetMaidMailMainMajorMakeMammalManManageMandateMangoMansionManualMapleMarbleMarchMarginMarineMarketMarriageMaskMassMasterMatchMaterialMathMatrixMatterMaximumMazeMeadowMeanMeasureMeatMechanicMedalMediaMelodyMeltMemberMemoryMentionMenuMercyMergeMeritMerryMeshMessageMetalMethodMiddleMidnightMilkMillionMimicMindMinimumMinorMinuteMiracleMirrorMiseryMissMistakeMixMixedMixtureMobileModelModifyMomMomentMonitorMonkeyMonsterMonthMoonMoralMoreMorningMosquitoMotherMotionMotorMountainMouseMoveMovieMuchMuffinMuleMultiplyMuscleMuseumMushroomMusicMustMutualMyselfMysteryMythNaiveNameNapkinNarrowNastyNationNatureNearNeckNeedNegativeNeglectNeitherNephewNerveNestNetNetworkNeutralNeverNewsNextNiceNightNobleNoiseNomineeNoodleNormalNorthNoseNotableNoteNothingNoticeNovelNowNuclearNumberNurseNutOakObeyObjectObligeObscureObserveObtainObviousOccurOceanOctoberOdorOffOfferOfficeOftenOilOkayOldOliveOlympicOmitOnceOneOnionOnlineOnlyOpenOperaOpinionOpposeOptionOrangeOrbitOrchardOrderOrdinaryOrganOrientOriginalOrphanOstrichOtherOutdoorOuterOutputOutsideOvalOvenOverOwnOwnerOxygenOysterOzonePactPaddlePagePairPalacePalmPandaPanelPanicPantherPaperParadeParentParkParrotPartyPassPatchPathPatientPatrolPatternPausePavePaymentPeacePeanutPearPeasantPelicanPenPenaltyPencilPeoplePepperPerfectPermitPersonPetPhonePhotoPhrasePhysicalPianoPicnicPicturePiecePigPigeonPillPilotPinkPioneerPipePistolPitchPizzaPlacePlanetPlasticPlatePlayPleasePledgePluckPlugPlungePoemPoetPointPolarPolePolicePondPonyPoolPopularPortionPositionPossiblePostPotatoPotteryPovertyPowderPowerPracticePraisePredictPreferPreparePresentPrettyPreventPricePridePrimaryPrintPriorityPrisonPrivatePrizeProblemProcessProduceProfitProgramProjectPromoteProofPropertyProsperProtectProudProvidePublicPuddingPullPulpPulsePumpkinPunchPupilPuppyPurchasePurityPurposePursePushPutPuzzlePyramidQualityQuantumQuarterQuestionQuickQuitQuizQuoteRabbitRaccoonRaceRackRadarRadioRailRainRaiseRallyRampRanchRandomRangeRapidRareRateRatherRavenRawRazorReadyRealReasonRebelRebuildRecallReceiveRecipeRecordRecycleReduceReflectReformRefuseRegionRegretRegularRejectRelaxReleaseReliefRelyRemainRememberRemindRemoveRenderRenewRentReopenRepairRepeatReplaceReportRequireRescueResembleResistResourceResponseResultRetireRetreatReturnReunionRevealReviewRewardRhythmRibRibbonRiceRichRideRidgeRifleRightRigidRingRiotRippleRiskRitualRivalRiverRoadRoastRobotRobustRocketRomanceRoofRookieRoomRoseRotateRoughRoundRouteRoyalRubberRudeRugRuleRunRunwayRuralSadSaddleSadnessSafeSailSaladSalmonSalonSaltSaluteSameSampleSandSatisfySatoshiSauceSausageSaveSayScaleScanScareScatterSceneSchemeSchoolScienceScissorsScorpionScoutScrapScreenScriptScrubSeaSearchSeasonSeatSecondSecretSectionSecuritySeedSeekSegmentSelectSellSeminarSeniorSenseSentenceSeriesServiceSessionSettleSetupSevenShadowShaftShallowShareShedShellSheriffShieldShiftShineShipShiverShockShoeShootShopShortShoulderShoveShrimpShrugShuffleShySiblingSickSideSiegeSightSignSilentSilkSillySilverSimilarSimpleSinceSingSirenSisterSituateSixSizeSkateSketchSkiSkillSkinSkirtSkullSlabSlamSleepSlenderSliceSlideSlightSlimSloganSlotSlowSlushSmallSmartSmileSmokeSmoothSnackSnakeSnapSniffSnowSoapSoccerSocialSockSodaSoftSolarSoldierSolidSolutionSolveSomeoneSongSoonSorrySortSoulSoundSoupSourceSouthSpaceSpareSpatialSpawnSpeakSpecialSpeedSpellSpendSphereSpiceSpiderSpikeSpinSpiritSplitSpoilSponsorSpoonSportSpotSpraySpreadSpringSpySquareSqueezeSquirrelStableStadiumStaffStageStairsStampStandStartStateStaySteakSteelStemStepStereoStickStillStingStockStomachStoneStoolStoryStoveStrategyStreetStrikeStrongStruggleStudentStuffStumbleStyleSubjectSubmitSubwaySuccessSuchSuddenSufferSugarSuggestSuitSummerSunSunnySunsetSuperSupplySupremeSureSurfaceSurgeSurpriseSurroundSurveySuspectSustainSwallowSwampSwapSwarmSwearSweetSwiftSwimSwingSwitchSwordSymbolSymptomSyrupSystemTableTackleTagTailTalentTalkTankTapeTargetTaskTasteTattooTaxiTeachTeamTellTenTenantTennisTentTermTestTextThankThatThemeThenTheoryThereTheyThingThisThoughtThreeThriveThrowThumbThunderTicketTideTigerTiltTimberTimeTinyTipTiredTissueTitleToastTobaccoTodayToddlerToeTogetherToiletTokenTomatoTomorrowToneTongueTonightToolToothTopTopicToppleTorchTornadoTortoiseTossTotalTouristTowardTowerTownToyTrackTradeTrafficTragicTrainTransferTrapTrashTravelTrayTreatTreeTrendTrialTribeTrickTriggerTrimTripTrophyTroubleTruckTrueTrulyTrumpetTrustTruthTryTubeTuitionTumbleTunaTunnelTurkeyTurnTurtleTwelveTwentyTwiceTwinTwistTwoTypeTypicalUglyUmbrellaUnableUnawareUncleUncoverUnderUndoUnfairUnfoldUnhappyUniformUniqueUnitUniverseUnknownUnlockUntilUnusualUnveilUpdateUpgradeUpholdUponUpperUpsetUrbanUrgeUsageUseUsedUsefulUselessUsualUtilityVacantVacuumVagueValidValleyValveVanVanishVaporVariousVastVaultVehicleVelvetVendorVentureVenueVerbVerifyVersionVeryVesselVeteranViableVibrantViciousVictoryVideoViewVillageVintageViolinVirtualVirusVisaVisitVisualVitalVividVocalVoiceVoidVolcanoVolumeVoteVoyageWageWagonWaitWalkWallWalnutWantWarfareWarmWarriorWashWaspWasteWaterWaveWayWealthWeaponWearWeaselWeatherWebWeddingWeekendWeirdWelcomeWestWetWhaleWhatWheatWheelWhenWhereWhipWhisperWideWidthWifeWildWillWinWindowWineWingWinkWinnerWinterWireWisdomWiseWishWitnessWolfWomanWonderWoodWoolWordWorkWorldWorryWorthWrapWreckWrestleWristWriteWrongYardYearYellowYouYoungYouthZebraZeroZoneZoo";
+let wordlist$1 = null;
+function loadWords$1(lang) {
     if (wordlist$1 != null) {
         return;
     }
-    wordlist$1 = words.replace(/([A-Z])/g, " $1").toLowerCase().substring(1).split(" ");
+    wordlist$1 = words$1.replace(/([A-Z])/g, " $1").toLowerCase().substring(1).split(" ");
     // Verify the computed list matches the official list
     /* istanbul ignore if */
-    if (wordlist.Wordlist.check(lang) !== "0x3c8acc1e7b08d8e76f9fda015ef48dc8c710a73cb7e0f77b2c18a9b5a7adde60") {
+    if (Wordlist.check(lang) !== "0x3c8acc1e7b08d8e76f9fda015ef48dc8c710a73cb7e0f77b2c18a9b5a7adde60") {
         wordlist$1 = null;
         throw new Error("BIP39 Wordlist for en (English) FAILED");
     }
 }
-var LangEn = /** @class */ (function (_super) {
-    __extends(LangEn, _super);
-    function LangEn() {
-        return _super.call(this, "en") || this;
+class LangEn extends Wordlist {
+    constructor() {
+        super("en");
     }
-    LangEn.prototype.getWord = function (index) {
-        loadWords(this);
+    getWord(index) {
+        loadWords$1(this);
         return wordlist$1[index];
-    };
-    LangEn.prototype.getWordIndex = function (word) {
-        loadWords(this);
+    }
+    getWordIndex(word) {
+        loadWords$1(this);
         return wordlist$1.indexOf(word);
+    }
+}
+const langEn = new LangEn();
+Wordlist.register(langEn);
+
+"use strict";
+const words$2 = "A/bacoAbdomenAbejaAbiertoAbogadoAbonoAbortoAbrazoAbrirAbueloAbusoAcabarAcademiaAccesoAccio/nAceiteAcelgaAcentoAceptarA/cidoAclararAcne/AcogerAcosoActivoActoActrizActuarAcudirAcuerdoAcusarAdictoAdmitirAdoptarAdornoAduanaAdultoAe/reoAfectarAficio/nAfinarAfirmarA/gilAgitarAgoni/aAgostoAgotarAgregarAgrioAguaAgudoA/guilaAgujaAhogoAhorroAireAislarAjedrezAjenoAjusteAlacra/nAlambreAlarmaAlbaA/lbumAlcaldeAldeaAlegreAlejarAlertaAletaAlfilerAlgaAlgodo/nAliadoAlientoAlivioAlmaAlmejaAlmi/barAltarAltezaAltivoAltoAlturaAlumnoAlzarAmableAmanteAmapolaAmargoAmasarA/mbarA/mbitoAmenoAmigoAmistadAmorAmparoAmplioAnchoAncianoAnclaAndarAnde/nAnemiaA/nguloAnilloA/nimoAni/sAnotarAntenaAntiguoAntojoAnualAnularAnuncioA~adirA~ejoA~oApagarAparatoApetitoApioAplicarApodoAporteApoyoAprenderAprobarApuestaApuroAradoAra~aArarA/rbitroA/rbolArbustoArchivoArcoArderArdillaArduoA/reaA/ridoAriesArmoni/aArne/sAromaArpaArpo/nArregloArrozArrugaArteArtistaAsaAsadoAsaltoAscensoAsegurarAseoAsesorAsientoAsiloAsistirAsnoAsombroA/speroAstillaAstroAstutoAsumirAsuntoAtajoAtaqueAtarAtentoAteoA/ticoAtletaA/tomoAtraerAtrozAtu/nAudazAudioAugeAulaAumentoAusenteAutorAvalAvanceAvaroAveAvellanaAvenaAvestruzAvio/nAvisoAyerAyudaAyunoAzafra/nAzarAzoteAzu/carAzufreAzulBabaBaborBacheBahi/aBaileBajarBalanzaBalco/nBaldeBambu/BancoBandaBa~oBarbaBarcoBarnizBarroBa/sculaBasto/nBasuraBatallaBateri/aBatirBatutaBau/lBazarBebe/BebidaBelloBesarBesoBestiaBichoBienBingoBlancoBloqueBlusaBoaBobinaBoboBocaBocinaBodaBodegaBoinaBolaBoleroBolsaBombaBondadBonitoBonoBonsa/iBordeBorrarBosqueBoteBoti/nBo/vedaBozalBravoBrazoBrechaBreveBrilloBrincoBrisaBrocaBromaBronceBroteBrujaBruscoBrutoBuceoBucleBuenoBueyBufandaBufo/nBu/hoBuitreBultoBurbujaBurlaBurroBuscarButacaBuzo/nCaballoCabezaCabinaCabraCacaoCada/verCadenaCaerCafe/Cai/daCaima/nCajaCajo/nCalCalamarCalcioCaldoCalidadCalleCalmaCalorCalvoCamaCambioCamelloCaminoCampoCa/ncerCandilCanelaCanguroCanicaCantoCa~aCa~o/nCaobaCaosCapazCapita/nCapoteCaptarCapuchaCaraCarbo/nCa/rcelCaretaCargaCari~oCarneCarpetaCarroCartaCasaCascoCaseroCaspaCastorCatorceCatreCaudalCausaCazoCebollaCederCedroCeldaCe/lebreCelosoCe/lulaCementoCenizaCentroCercaCerdoCerezaCeroCerrarCertezaCe/spedCetroChacalChalecoChampu/ChanclaChapaCharlaChicoChisteChivoChoqueChozaChuletaChuparCiclo/nCiegoCieloCienCiertoCifraCigarroCimaCincoCineCintaCipre/sCircoCiruelaCisneCitaCiudadClamorClanClaroClaseClaveClienteClimaCli/nicaCobreCoccio/nCochinoCocinaCocoCo/digoCodoCofreCogerCoheteCoji/nCojoColaColchaColegioColgarColinaCollarColmoColumnaCombateComerComidaCo/modoCompraCondeConejoCongaConocerConsejoContarCopaCopiaCorazo/nCorbataCorchoCordo/nCoronaCorrerCoserCosmosCostaCra/neoCra/terCrearCrecerCrei/doCremaCri/aCrimenCriptaCrisisCromoCro/nicaCroquetaCrudoCruzCuadroCuartoCuatroCuboCubrirCucharaCuelloCuentoCuerdaCuestaCuevaCuidarCulebraCulpaCultoCumbreCumplirCunaCunetaCuotaCupo/nCu/pulaCurarCuriosoCursoCurvaCutisDamaDanzaDarDardoDa/tilDeberDe/bilDe/cadaDecirDedoDefensaDefinirDejarDelfi/nDelgadoDelitoDemoraDensoDentalDeporteDerechoDerrotaDesayunoDeseoDesfileDesnudoDestinoDesvi/oDetalleDetenerDeudaDi/aDiabloDiademaDiamanteDianaDiarioDibujoDictarDienteDietaDiezDifi/cilDignoDilemaDiluirDineroDirectoDirigirDiscoDise~oDisfrazDivaDivinoDobleDoceDolorDomingoDonDonarDoradoDormirDorsoDosDosisDrago/nDrogaDuchaDudaDueloDue~oDulceDu/oDuqueDurarDurezaDuroE/banoEbrioEcharEcoEcuadorEdadEdicio/nEdificioEditorEducarEfectoEficazEjeEjemploElefanteElegirElementoElevarElipseE/liteElixirElogioEludirEmbudoEmitirEmocio/nEmpateEmpe~oEmpleoEmpresaEnanoEncargoEnchufeEnci/aEnemigoEneroEnfadoEnfermoEnga~oEnigmaEnlaceEnormeEnredoEnsayoEnse~arEnteroEntrarEnvaseEnvi/oE/pocaEquipoErizoEscalaEscenaEscolarEscribirEscudoEsenciaEsferaEsfuerzoEspadaEspejoEspi/aEsposaEspumaEsqui/EstarEsteEstiloEstufaEtapaEternoE/ticaEtniaEvadirEvaluarEventoEvitarExactoExamenExcesoExcusaExentoExigirExilioExistirE/xitoExpertoExplicarExponerExtremoFa/bricaFa/bulaFachadaFa/cilFactorFaenaFajaFaldaFalloFalsoFaltarFamaFamiliaFamosoFarao/nFarmaciaFarolFarsaFaseFatigaFaunaFavorFaxFebreroFechaFelizFeoFeriaFerozFe/rtilFervorFesti/nFiableFianzaFiarFibraFiccio/nFichaFideoFiebreFielFieraFiestaFiguraFijarFijoFilaFileteFilialFiltroFinFincaFingirFinitoFirmaFlacoFlautaFlechaFlorFlotaFluirFlujoFlu/orFobiaFocaFogataFogo/nFolioFolletoFondoFormaForroFortunaForzarFosaFotoFracasoFra/gilFranjaFraseFraudeFrei/rFrenoFresaFri/oFritoFrutaFuegoFuenteFuerzaFugaFumarFuncio/nFundaFurgo/nFuriaFusilFu/tbolFuturoGacelaGafasGaitaGajoGalaGaleri/aGalloGambaGanarGanchoGangaGansoGarajeGarzaGasolinaGastarGatoGavila/nGemeloGemirGenGe/neroGenioGenteGeranioGerenteGermenGestoGiganteGimnasioGirarGiroGlaciarGloboGloriaGolGolfoGolosoGolpeGomaGordoGorilaGorraGotaGoteoGozarGradaGra/ficoGranoGrasaGratisGraveGrietaGrilloGripeGrisGritoGrosorGru/aGruesoGrumoGrupoGuanteGuapoGuardiaGuerraGui/aGui~oGuionGuisoGuitarraGusanoGustarHaberHa/bilHablarHacerHachaHadaHallarHamacaHarinaHazHaza~aHebillaHebraHechoHeladoHelioHembraHerirHermanoHe/roeHervirHieloHierroHi/gadoHigieneHijoHimnoHistoriaHocicoHogarHogueraHojaHombreHongoHonorHonraHoraHormigaHornoHostilHoyoHuecoHuelgaHuertaHuesoHuevoHuidaHuirHumanoHu/medoHumildeHumoHundirHuraca/nHurtoIconoIdealIdiomaI/doloIglesiaIglu/IgualIlegalIlusio/nImagenIma/nImitarImparImperioImponerImpulsoIncapazI/ndiceInerteInfielInformeIngenioInicioInmensoInmuneInnatoInsectoInstanteIntere/sI/ntimoIntuirInu/tilInviernoIraIrisIroni/aIslaIsloteJabali/Jabo/nJamo/nJarabeJardi/nJarraJaulaJazmi/nJefeJeringaJineteJornadaJorobaJovenJoyaJuergaJuevesJuezJugadorJugoJugueteJuicioJuncoJunglaJunioJuntarJu/piterJurarJustoJuvenilJuzgarKiloKoalaLabioLacioLacraLadoLadro/nLagartoLa/grimaLagunaLaicoLamerLa/minaLa/mparaLanaLanchaLangostaLanzaLa/pizLargoLarvaLa/stimaLataLa/texLatirLaurelLavarLazoLealLeccio/nLecheLectorLeerLegio/nLegumbreLejanoLenguaLentoLe~aLeo/nLeopardoLesio/nLetalLetraLeveLeyendaLibertadLibroLicorLi/derLidiarLienzoLigaLigeroLimaLi/miteLimo/nLimpioLinceLindoLi/neaLingoteLinoLinternaLi/quidoLisoListaLiteraLitioLitroLlagaLlamaLlantoLlaveLlegarLlenarLlevarLlorarLloverLluviaLoboLocio/nLocoLocuraLo/gicaLogroLombrizLomoLonjaLoteLuchaLucirLugarLujoLunaLunesLupaLustroLutoLuzMacetaMachoMaderaMadreMaduroMaestroMafiaMagiaMagoMai/zMaldadMaletaMallaMaloMama/MamboMamutMancoMandoManejarMangaManiqui/ManjarManoMansoMantaMa~anaMapaMa/quinaMarMarcoMareaMarfilMargenMaridoMa/rmolMarro/nMartesMarzoMasaMa/scaraMasivoMatarMateriaMatizMatrizMa/ximoMayorMazorcaMechaMedallaMedioMe/dulaMejillaMejorMelenaMelo/nMemoriaMenorMensajeMenteMenu/MercadoMerengueMe/ritoMesMeso/nMetaMeterMe/todoMetroMezclaMiedoMielMiembroMigaMilMilagroMilitarMillo/nMimoMinaMineroMi/nimoMinutoMiopeMirarMisaMiseriaMisilMismoMitadMitoMochilaMocio/nModaModeloMohoMojarMoldeMolerMolinoMomentoMomiaMonarcaMonedaMonjaMontoMo~oMoradaMorderMorenoMorirMorroMorsaMortalMoscaMostrarMotivoMoverMo/vilMozoMuchoMudarMuebleMuelaMuerteMuestraMugreMujerMulaMuletaMultaMundoMu~ecaMuralMuroMu/sculoMuseoMusgoMu/sicaMusloNa/carNacio/nNadarNaipeNaranjaNarizNarrarNasalNatalNativoNaturalNa/useaNavalNaveNavidadNecioNe/ctarNegarNegocioNegroNeo/nNervioNetoNeutroNevarNeveraNichoNidoNieblaNietoNi~ezNi~oNi/tidoNivelNoblezaNocheNo/minaNoriaNormaNorteNotaNoticiaNovatoNovelaNovioNubeNucaNu/cleoNudilloNudoNueraNueveNuezNuloNu/meroNutriaOasisObesoObispoObjetoObraObreroObservarObtenerObvioOcaOcasoOce/anoOchentaOchoOcioOcreOctavoOctubreOcultoOcuparOcurrirOdiarOdioOdiseaOesteOfensaOfertaOficioOfrecerOgroOi/doOi/rOjoOlaOleadaOlfatoOlivoOllaOlmoOlorOlvidoOmbligoOndaOnzaOpacoOpcio/nO/peraOpinarOponerOptarO/pticaOpuestoOracio/nOradorOralO/rbitaOrcaOrdenOrejaO/rganoOrgi/aOrgulloOrienteOrigenOrillaOroOrquestaOrugaOsadi/aOscuroOseznoOsoOstraOto~oOtroOvejaO/vuloO/xidoOxi/genoOyenteOzonoPactoPadrePaellaPa/ginaPagoPai/sPa/jaroPalabraPalcoPaletaPa/lidoPalmaPalomaPalparPanPanalPa/nicoPanteraPa~ueloPapa/PapelPapillaPaquetePararParcelaParedParirParoPa/rpadoParquePa/rrafoPartePasarPaseoPasio/nPasoPastaPataPatioPatriaPausaPautaPavoPayasoPeato/nPecadoPeceraPechoPedalPedirPegarPeinePelarPelda~oPeleaPeligroPellejoPeloPelucaPenaPensarPe~o/nPeo/nPeorPepinoPeque~oPeraPerchaPerderPerezaPerfilPericoPerlaPermisoPerroPersonaPesaPescaPe/simoPesta~aPe/taloPetro/leoPezPezu~aPicarPicho/nPiePiedraPiernaPiezaPijamaPilarPilotoPimientaPinoPintorPinzaPi~aPiojoPipaPirataPisarPiscinaPisoPistaPito/nPizcaPlacaPlanPlataPlayaPlazaPleitoPlenoPlomoPlumaPluralPobrePocoPoderPodioPoemaPoesi/aPoetaPolenPolici/aPolloPolvoPomadaPomeloPomoPompaPonerPorcio/nPortalPosadaPoseerPosiblePostePotenciaPotroPozoPradoPrecozPreguntaPremioPrensaPresoPrevioPrimoPri/ncipePrisio/nPrivarProaProbarProcesoProductoProezaProfesorProgramaProlePromesaProntoPropioPro/ximoPruebaPu/blicoPucheroPudorPuebloPuertaPuestoPulgaPulirPulmo/nPulpoPulsoPumaPuntoPu~alPu~oPupaPupilaPure/QuedarQuejaQuemarQuererQuesoQuietoQui/micaQuinceQuitarRa/banoRabiaRaboRacio/nRadicalRai/zRamaRampaRanchoRangoRapazRa/pidoRaptoRasgoRaspaRatoRayoRazaRazo/nReaccio/nRealidadReba~oReboteRecaerRecetaRechazoRecogerRecreoRectoRecursoRedRedondoReducirReflejoReformaRefra/nRefugioRegaloRegirReglaRegresoRehe/nReinoRei/rRejaRelatoRelevoRelieveRellenoRelojRemarRemedioRemoRencorRendirRentaRepartoRepetirReposoReptilResRescateResinaRespetoRestoResumenRetiroRetornoRetratoReunirReve/sRevistaReyRezarRicoRiegoRiendaRiesgoRifaRi/gidoRigorRinco/nRi~o/nRi/oRiquezaRisaRitmoRitoRizoRobleRoceRociarRodarRodeoRodillaRoerRojizoRojoRomeroRomperRonRoncoRondaRopaRoperoRosaRoscaRostroRotarRubi/RuborRudoRuedaRugirRuidoRuinaRuletaRuloRumboRumorRupturaRutaRutinaSa/badoSaberSabioSableSacarSagazSagradoSalaSaldoSaleroSalirSalmo/nSalo/nSalsaSaltoSaludSalvarSambaSancio/nSandi/aSanearSangreSanidadSanoSantoSapoSaqueSardinaSarte/nSastreSata/nSaunaSaxofo/nSeccio/nSecoSecretoSectaSedSeguirSeisSelloSelvaSemanaSemillaSendaSensorSe~alSe~orSepararSepiaSequi/aSerSerieSermo/nServirSesentaSesio/nSetaSetentaSeveroSexoSextoSidraSiestaSieteSigloSignoSi/labaSilbarSilencioSillaSi/mboloSimioSirenaSistemaSitioSituarSobreSocioSodioSolSolapaSoldadoSoledadSo/lidoSoltarSolucio/nSombraSondeoSonidoSonoroSonrisaSopaSoplarSoporteSordoSorpresaSorteoSoste/nSo/tanoSuaveSubirSucesoSudorSuegraSueloSue~oSuerteSufrirSujetoSulta/nSumarSuperarSuplirSuponerSupremoSurSurcoSure~oSurgirSustoSutilTabacoTabiqueTablaTabu/TacoTactoTajoTalarTalcoTalentoTallaTalo/nTama~oTamborTangoTanqueTapaTapeteTapiaTapo/nTaquillaTardeTareaTarifaTarjetaTarotTarroTartaTatuajeTauroTazaTazo/nTeatroTechoTeclaTe/cnicaTejadoTejerTejidoTelaTele/fonoTemaTemorTemploTenazTenderTenerTenisTensoTeori/aTerapiaTercoTe/rminoTernuraTerrorTesisTesoroTestigoTeteraTextoTezTibioTiburo/nTiempoTiendaTierraTiesoTigreTijeraTildeTimbreTi/midoTimoTintaTi/oTi/picoTipoTiraTiro/nTita/nTi/tereTi/tuloTizaToallaTobilloTocarTocinoTodoTogaToldoTomarTonoTontoToparTopeToqueTo/raxToreroTormentaTorneoToroTorpedoTorreTorsoTortugaTosToscoToserTo/xicoTrabajoTractorTraerTra/ficoTragoTrajeTramoTranceTratoTraumaTrazarTre/bolTreguaTreintaTrenTreparTresTribuTrigoTripaTristeTriunfoTrofeoTrompaTroncoTropaTroteTrozoTrucoTruenoTrufaTuberi/aTuboTuertoTumbaTumorTu/nelTu/nicaTurbinaTurismoTurnoTutorUbicarU/lceraUmbralUnidadUnirUniversoUnoUntarU~aUrbanoUrbeUrgenteUrnaUsarUsuarioU/tilUtopi/aUvaVacaVaci/oVacunaVagarVagoVainaVajillaValeVa/lidoValleValorVa/lvulaVampiroVaraVariarVaro/nVasoVecinoVectorVehi/culoVeinteVejezVelaVeleroVelozVenaVencerVendaVenenoVengarVenirVentaVenusVerVeranoVerboVerdeVeredaVerjaVersoVerterVi/aViajeVibrarVicioVi/ctimaVidaVi/deoVidrioViejoViernesVigorVilVillaVinagreVinoVi~edoVioli/nViralVirgoVirtudVisorVi/speraVistaVitaminaViudoVivazViveroVivirVivoVolca/nVolumenVolverVorazVotarVotoVozVueloVulgarYacerYateYeguaYemaYernoYesoYodoYogaYogurZafiroZanjaZapatoZarzaZonaZorroZumoZurdo";
+const lookup = {};
+let wordlist$2 = null;
+function dropDiacritic(word) {
+    logger$F.checkNormalize();
+    return toUtf8String(Array.prototype.filter.call(toUtf8Bytes(word.normalize("NFD").toLowerCase()), (c) => {
+        return ((c >= 65 && c <= 90) || (c >= 97 && c <= 123));
+    }));
+}
+function expand(word) {
+    const output = [];
+    Array.prototype.forEach.call(toUtf8Bytes(word), (c) => {
+        // Acute accent
+        if (c === 47) {
+            output.push(204);
+            output.push(129);
+            // n-tilde
+        }
+        else if (c === 126) {
+            output.push(110);
+            output.push(204);
+            output.push(131);
+        }
+        else {
+            output.push(c);
+        }
+    });
+    return toUtf8String(output);
+}
+function loadWords$2(lang) {
+    if (wordlist$2 != null) {
+        return;
+    }
+    wordlist$2 = words$2.replace(/([A-Z])/g, " $1").toLowerCase().substring(1).split(" ").map((w) => expand(w));
+    wordlist$2.forEach((word, index) => {
+        lookup[dropDiacritic(word)] = index;
+    });
+    // Verify the computed list matches the official list
+    /* istanbul ignore if */
+    if (Wordlist.check(lang) !== "0xf74fb7092aeacdfbf8959557de22098da512207fb9f109cb526994938cf40300") {
+        wordlist$2 = null;
+        throw new Error("BIP39 Wordlist for es (Spanish) FAILED");
+    }
+}
+class LangEs extends Wordlist {
+    constructor() {
+        super("es");
+    }
+    getWord(index) {
+        loadWords$2(this);
+        return wordlist$2[index];
+    }
+    getWordIndex(word) {
+        loadWords$2(this);
+        return lookup[dropDiacritic(word)];
+    }
+}
+const langEs = new LangEs();
+Wordlist.register(langEs);
+
+"use strict";
+const words$3 = "AbaisserAbandonAbdiquerAbeilleAbolirAborderAboutirAboyerAbrasifAbreuverAbriterAbrogerAbruptAbsenceAbsoluAbsurdeAbusifAbyssalAcade/mieAcajouAcarienAccablerAccepterAcclamerAccoladeAccrocheAccuserAcerbeAchatAcheterAcidulerAcierAcompteAcque/rirAcronymeActeurActifActuelAdepteAde/quatAdhe/sifAdjectifAdjugerAdmettreAdmirerAdopterAdorerAdoucirAdresseAdroitAdulteAdverbeAe/rerAe/ronefAffaireAffecterAfficheAffreuxAffublerAgacerAgencerAgileAgiterAgraferAgre/ableAgrumeAiderAiguilleAilierAimableAisanceAjouterAjusterAlarmerAlchimieAlerteAlge-breAlgueAlie/nerAlimentAlle/gerAlliageAllouerAllumerAlourdirAlpagaAltesseAlve/oleAmateurAmbiguAmbreAme/nagerAmertumeAmidonAmiralAmorcerAmourAmovibleAmphibieAmpleurAmusantAnalyseAnaphoreAnarchieAnatomieAncienAne/antirAngleAngoisseAnguleuxAnimalAnnexerAnnonceAnnuelAnodinAnomalieAnonymeAnormalAntenneAntidoteAnxieuxApaiserApe/ritifAplanirApologieAppareilAppelerApporterAppuyerAquariumAqueducArbitreArbusteArdeurArdoiseArgentArlequinArmatureArmementArmoireArmureArpenterArracherArriverArroserArsenicArte/rielArticleAspectAsphalteAspirerAssautAsservirAssietteAssocierAssurerAsticotAstreAstuceAtelierAtomeAtriumAtroceAttaqueAttentifAttirerAttraperAubaineAubergeAudaceAudibleAugurerAuroreAutomneAutrucheAvalerAvancerAvariceAvenirAverseAveugleAviateurAvideAvionAviserAvoineAvouerAvrilAxialAxiomeBadgeBafouerBagageBaguetteBaignadeBalancerBalconBaleineBalisageBambinBancaireBandageBanlieueBannie-reBanquierBarbierBarilBaronBarqueBarrageBassinBastionBatailleBateauBatterieBaudrierBavarderBeletteBe/lierBeloteBe/ne/ficeBerceauBergerBerlineBermudaBesaceBesogneBe/tailBeurreBiberonBicycleBiduleBijouBilanBilingueBillardBinaireBiologieBiopsieBiotypeBiscuitBisonBistouriBitumeBizarreBlafardBlagueBlanchirBlessantBlinderBlondBloquerBlousonBobardBobineBoireBoiserBolideBonbonBondirBonheurBonifierBonusBordureBorneBotteBoucleBoueuxBougieBoulonBouquinBourseBoussoleBoutiqueBoxeurBrancheBrasierBraveBrebisBre-cheBreuvageBricolerBrigadeBrillantBriocheBriqueBrochureBroderBronzerBrousseBroyeurBrumeBrusqueBrutalBruyantBuffleBuissonBulletinBureauBurinBustierButinerButoirBuvableBuvetteCabanonCabineCachetteCadeauCadreCafe/ineCaillouCaissonCalculerCalepinCalibreCalmerCalomnieCalvaireCamaradeCame/raCamionCampagneCanalCanetonCanonCantineCanularCapableCaporalCapriceCapsuleCapterCapucheCarabineCarboneCaresserCaribouCarnageCarotteCarreauCartonCascadeCasierCasqueCassureCauserCautionCavalierCaverneCaviarCe/dilleCeintureCe/lesteCelluleCendrierCensurerCentralCercleCe/re/bralCeriseCernerCerveauCesserChagrinChaiseChaleurChambreChanceChapitreCharbonChasseurChatonChaussonChavirerChemiseChenilleChe/quierChercherChevalChienChiffreChignonChime-reChiotChlorureChocolatChoisirChoseChouetteChromeChuteCigareCigogneCimenterCine/maCintrerCirculerCirerCirqueCiterneCitoyenCitronCivilClaironClameurClaquerClasseClavierClientClignerClimatClivageClocheClonageCloporteCobaltCobraCocasseCocotierCoderCodifierCoffreCognerCohe/sionCoifferCoincerCole-reColibriCollineColmaterColonelCombatCome/dieCommandeCompactConcertConduireConfierCongelerConnoterConsonneContactConvexeCopainCopieCorailCorbeauCordageCornicheCorpusCorrectCorte-geCosmiqueCostumeCotonCoudeCoupureCourageCouteauCouvrirCoyoteCrabeCrainteCravateCrayonCre/atureCre/diterCre/meuxCreuserCrevetteCriblerCrierCristalCrite-reCroireCroquerCrotaleCrucialCruelCrypterCubiqueCueillirCuille-reCuisineCuivreCulminerCultiverCumulerCupideCuratifCurseurCyanureCycleCylindreCyniqueDaignerDamierDangerDanseurDauphinDe/battreDe/biterDe/borderDe/briderDe/butantDe/calerDe/cembreDe/chirerDe/ciderDe/clarerDe/corerDe/crireDe/cuplerDe/daleDe/ductifDe/esseDe/fensifDe/filerDe/frayerDe/gagerDe/givrerDe/glutirDe/graferDe/jeunerDe/liceDe/logerDemanderDemeurerDe/molirDe/nicherDe/nouerDentelleDe/nuderDe/partDe/penserDe/phaserDe/placerDe/poserDe/rangerDe/roberDe/sastreDescenteDe/sertDe/signerDe/sobe/irDessinerDestrierDe/tacherDe/testerDe/tourerDe/tresseDevancerDevenirDevinerDevoirDiableDialogueDiamantDicterDiffe/rerDige/rerDigitalDigneDiluerDimancheDiminuerDioxydeDirectifDirigerDiscuterDisposerDissiperDistanceDivertirDiviserDocileDocteurDogmeDoigtDomaineDomicileDompterDonateurDonjonDonnerDopamineDortoirDorureDosageDoseurDossierDotationDouanierDoubleDouceurDouterDoyenDragonDraperDresserDribblerDroitureDuperieDuplexeDurableDurcirDynastieE/blouirE/carterE/charpeE/chelleE/clairerE/clipseE/cloreE/cluseE/coleE/conomieE/corceE/couterE/craserE/cre/merE/crivainE/crouE/cumeE/cureuilE/difierE/duquerEffacerEffectifEffigieEffortEffrayerEffusionE/galiserE/garerE/jecterE/laborerE/largirE/lectronE/le/gantE/le/phantE/le-veE/ligibleE/litismeE/logeE/luciderE/luderEmballerEmbellirEmbryonE/meraudeE/missionEmmenerE/motionE/mouvoirEmpereurEmployerEmporterEmpriseE/mulsionEncadrerEnche-reEnclaveEncocheEndiguerEndosserEndroitEnduireE/nergieEnfanceEnfermerEnfouirEngagerEnginEngloberE/nigmeEnjamberEnjeuEnleverEnnemiEnnuyeuxEnrichirEnrobageEnseigneEntasserEntendreEntierEntourerEntraverE/nume/rerEnvahirEnviableEnvoyerEnzymeE/olienE/paissirE/pargneE/patantE/pauleE/picerieE/pide/mieE/pierE/pilogueE/pineE/pisodeE/pitapheE/poqueE/preuveE/prouverE/puisantE/querreE/quipeE/rigerE/rosionErreurE/ruptionEscalierEspadonEspe-ceEspie-gleEspoirEspritEsquiverEssayerEssenceEssieuEssorerEstimeEstomacEstradeE/tage-reE/talerE/tancheE/tatiqueE/teindreE/tendoirE/ternelE/thanolE/thiqueEthnieE/tirerE/tofferE/toileE/tonnantE/tourdirE/trangeE/troitE/tudeEuphorieE/valuerE/vasionE/ventailE/videnceE/viterE/volutifE/voquerExactExage/rerExaucerExcellerExcitantExclusifExcuseExe/cuterExempleExercerExhalerExhorterExigenceExilerExisterExotiqueExpe/dierExplorerExposerExprimerExquisExtensifExtraireExulterFableFabuleuxFacetteFacileFactureFaiblirFalaiseFameuxFamilleFarceurFarfeluFarineFaroucheFascinerFatalFatigueFauconFautifFaveurFavoriFe/brileFe/conderFe/de/rerFe/linFemmeFe/murFendoirFe/odalFermerFe/roceFerveurFestivalFeuilleFeutreFe/vrierFiascoFicelerFictifFide-leFigureFilatureFiletageFilie-reFilleulFilmerFilouFiltrerFinancerFinirFioleFirmeFissureFixerFlairerFlammeFlasqueFlatteurFle/auFle-cheFleurFlexionFloconFloreFluctuerFluideFluvialFolieFonderieFongibleFontaineForcerForgeronFormulerFortuneFossileFoudreFouge-reFouillerFoulureFourmiFragileFraiseFranchirFrapperFrayeurFre/gateFreinerFrelonFre/mirFre/ne/sieFre-reFriableFrictionFrissonFrivoleFroidFromageFrontalFrotterFruitFugitifFuiteFureurFurieuxFurtifFusionFuturGagnerGalaxieGalerieGambaderGarantirGardienGarnirGarrigueGazelleGazonGe/antGe/latineGe/luleGendarmeGe/ne/ralGe/nieGenouGentilGe/ologieGe/ome-treGe/raniumGermeGestuelGeyserGibierGiclerGirafeGivreGlaceGlaiveGlisserGlobeGloireGlorieuxGolfeurGommeGonflerGorgeGorilleGoudronGouffreGoulotGoupilleGourmandGoutteGraduelGraffitiGraineGrandGrappinGratuitGravirGrenatGriffureGrillerGrimperGrognerGronderGrotteGroupeGrugerGrutierGruye-reGue/pardGuerrierGuideGuimauveGuitareGustatifGymnasteGyrostatHabitudeHachoirHalteHameauHangarHannetonHaricotHarmonieHarponHasardHe/liumHe/matomeHerbeHe/rissonHermineHe/ronHe/siterHeureuxHibernerHibouHilarantHistoireHiverHomardHommageHomoge-neHonneurHonorerHonteuxHordeHorizonHorlogeHormoneHorribleHouleuxHousseHublotHuileuxHumainHumbleHumideHumourHurlerHydromelHygie-neHymneHypnoseIdylleIgnorerIguaneIlliciteIllusionImageImbiberImiterImmenseImmobileImmuableImpactImpe/rialImplorerImposerImprimerImputerIncarnerIncendieIncidentInclinerIncoloreIndexerIndiceInductifIne/ditIneptieInexactInfiniInfligerInformerInfusionInge/rerInhalerInhiberInjecterInjureInnocentInoculerInonderInscrireInsecteInsigneInsoliteInspirerInstinctInsulterIntactIntenseIntimeIntrigueIntuitifInutileInvasionInventerInviterInvoquerIroniqueIrradierIrre/elIrriterIsolerIvoireIvresseJaguarJaillirJambeJanvierJardinJaugerJauneJavelotJetableJetonJeudiJeunesseJoindreJoncherJonglerJoueurJouissifJournalJovialJoyauJoyeuxJubilerJugementJuniorJuponJuristeJusticeJuteuxJuve/nileKayakKimonoKiosqueLabelLabialLabourerLace/rerLactoseLaguneLaineLaisserLaitierLambeauLamelleLampeLanceurLangageLanterneLapinLargeurLarmeLaurierLavaboLavoirLectureLe/galLe/gerLe/gumeLessiveLettreLevierLexiqueLe/zardLiasseLibe/rerLibreLicenceLicorneLie-geLie-vreLigatureLigoterLigueLimerLimiteLimonadeLimpideLine/aireLingotLionceauLiquideLisie-reListerLithiumLitigeLittoralLivreurLogiqueLointainLoisirLombricLoterieLouerLourdLoutreLouveLoyalLubieLucideLucratifLueurLugubreLuisantLumie-reLunaireLundiLuronLutterLuxueuxMachineMagasinMagentaMagiqueMaigreMaillonMaintienMairieMaisonMajorerMalaxerMale/ficeMalheurMaliceMalletteMammouthMandaterManiableManquantManteauManuelMarathonMarbreMarchandMardiMaritimeMarqueurMarronMartelerMascotteMassifMate/rielMatie-reMatraqueMaudireMaussadeMauveMaximalMe/chantMe/connuMe/dailleMe/decinMe/diterMe/duseMeilleurMe/langeMe/lodieMembreMe/moireMenacerMenerMenhirMensongeMentorMercrediMe/riteMerleMessagerMesureMe/talMe/te/oreMe/thodeMe/tierMeubleMiaulerMicrobeMietteMignonMigrerMilieuMillionMimiqueMinceMine/ralMinimalMinorerMinuteMiracleMiroiterMissileMixteMobileModerneMoelleuxMondialMoniteurMonnaieMonotoneMonstreMontagneMonumentMoqueurMorceauMorsureMortierMoteurMotifMoucheMoufleMoulinMoussonMoutonMouvantMultipleMunitionMurailleMure-neMurmureMuscleMuse/umMusicienMutationMuterMutuelMyriadeMyrtilleMyste-reMythiqueNageurNappeNarquoisNarrerNatationNationNatureNaufrageNautiqueNavireNe/buleuxNectarNe/fasteNe/gationNe/gligerNe/gocierNeigeNerveuxNettoyerNeuroneNeutronNeveuNicheNickelNitrateNiveauNobleNocifNocturneNoirceurNoisetteNomadeNombreuxNommerNormatifNotableNotifierNotoireNourrirNouveauNovateurNovembreNoviceNuageNuancerNuireNuisibleNume/roNuptialNuqueNutritifObe/irObjectifObligerObscurObserverObstacleObtenirObturerOccasionOccuperOce/anOctobreOctroyerOctuplerOculaireOdeurOdorantOffenserOfficierOffrirOgiveOiseauOisillonOlfactifOlivierOmbrageOmettreOnctueuxOndulerOne/reuxOniriqueOpaleOpaqueOpe/rerOpinionOpportunOpprimerOpterOptiqueOrageuxOrangeOrbiteOrdonnerOreilleOrganeOrgueilOrificeOrnementOrqueOrtieOscillerOsmoseOssatureOtarieOuraganOursonOutilOutragerOuvrageOvationOxydeOxyge-neOzonePaisiblePalacePalmare-sPalourdePalperPanachePandaPangolinPaniquerPanneauPanoramaPantalonPapayePapierPapoterPapyrusParadoxeParcelleParesseParfumerParlerParoleParrainParsemerPartagerParureParvenirPassionPaste-quePaternelPatiencePatronPavillonPavoiserPayerPaysagePeignePeintrePelagePe/licanPellePelousePeluchePendulePe/ne/trerPe/niblePensifPe/nuriePe/pitePe/plumPerdrixPerforerPe/riodePermuterPerplexePersilPertePeserPe/talePetitPe/trirPeuplePharaonPhobiePhoquePhotonPhrasePhysiquePianoPicturalPie-cePierrePieuvrePilotePinceauPipettePiquerPiroguePiscinePistonPivoterPixelPizzaPlacardPlafondPlaisirPlanerPlaquePlastronPlateauPleurerPlexusPliagePlombPlongerPluiePlumagePochettePoe/siePoe-tePointePoirierPoissonPoivrePolairePolicierPollenPolygonePommadePompierPonctuelPonde/rerPoneyPortiquePositionPosse/derPosturePotagerPoteauPotionPoucePoulainPoumonPourprePoussinPouvoirPrairiePratiquePre/cieuxPre/direPre/fixePre/ludePre/nomPre/sencePre/textePre/voirPrimitifPrincePrisonPriverProble-meProce/derProdigeProfondProgre-sProieProjeterProloguePromenerPropreProspe-reProte/gerProuesseProverbePrudencePruneauPsychosePublicPuceronPuiserPulpePulsarPunaisePunitifPupitrePurifierPuzzlePyramideQuasarQuerelleQuestionQuie/tudeQuitterQuotientRacineRaconterRadieuxRagondinRaideurRaisinRalentirRallongeRamasserRapideRasageRatisserRavagerRavinRayonnerRe/actifRe/agirRe/aliserRe/animerRecevoirRe/citerRe/clamerRe/colterRecruterReculerRecyclerRe/digerRedouterRefaireRe/flexeRe/formerRefrainRefugeRe/galienRe/gionRe/glageRe/gulierRe/ite/rerRejeterRejouerRelatifReleverReliefRemarqueReme-deRemiseRemonterRemplirRemuerRenardRenfortReniflerRenoncerRentrerRenvoiReplierReporterRepriseReptileRequinRe/serveRe/sineuxRe/soudreRespectResterRe/sultatRe/tablirRetenirRe/ticuleRetomberRetracerRe/unionRe/ussirRevancheRevivreRe/volteRe/vulsifRichesseRideauRieurRigideRigolerRincerRiposterRisibleRisqueRituelRivalRivie-reRocheuxRomanceRompreRonceRondinRoseauRosierRotatifRotorRotuleRougeRouilleRouleauRoutineRoyaumeRubanRubisRucheRuelleRugueuxRuinerRuisseauRuserRustiqueRythmeSablerSaboterSabreSacocheSafariSagesseSaisirSaladeSaliveSalonSaluerSamediSanctionSanglierSarcasmeSardineSaturerSaugrenuSaumonSauterSauvageSavantSavonnerScalpelScandaleSce/le/ratSce/narioSceptreSche/maScienceScinderScoreScrutinSculpterSe/anceSe/cableSe/cherSecouerSe/cre/terSe/datifSe/duireSeigneurSe/jourSe/lectifSemaineSemblerSemenceSe/minalSe/nateurSensibleSentenceSe/parerSe/quenceSereinSergentSe/rieuxSerrureSe/rumServiceSe/sameSe/virSevrageSextupleSide/ralSie-cleSie/gerSifflerSigleSignalSilenceSiliciumSimpleSince-reSinistreSiphonSiropSismiqueSituerSkierSocialSocleSodiumSoigneuxSoldatSoleilSolitudeSolubleSombreSommeilSomnolerSondeSongeurSonnetteSonoreSorcierSortirSosieSottiseSoucieuxSoudureSouffleSouleverSoupapeSourceSoutirerSouvenirSpacieuxSpatialSpe/cialSphe-reSpiralStableStationSternumStimulusStipulerStrictStudieuxStupeurStylisteSublimeSubstratSubtilSubvenirSucce-sSucreSuffixeSugge/rerSuiveurSulfateSuperbeSupplierSurfaceSuricateSurmenerSurpriseSursautSurvieSuspectSyllabeSymboleSyme/trieSynapseSyntaxeSyste-meTabacTablierTactileTaillerTalentTalismanTalonnerTambourTamiserTangibleTapisTaquinerTarderTarifTartineTasseTatamiTatouageTaupeTaureauTaxerTe/moinTemporelTenailleTendreTeneurTenirTensionTerminerTerneTerribleTe/tineTexteThe-meThe/orieThe/rapieThoraxTibiaTie-deTimideTirelireTiroirTissuTitaneTitreTituberTobogganTole/rantTomateToniqueTonneauToponymeTorcheTordreTornadeTorpilleTorrentTorseTortueTotemToucherTournageTousserToxineTractionTraficTragiqueTrahirTrainTrancherTravailTre-fleTremperTre/sorTreuilTriageTribunalTricoterTrilogieTriompheTriplerTriturerTrivialTromboneTroncTropicalTroupeauTuileTulipeTumulteTunnelTurbineTuteurTutoyerTuyauTympanTyphonTypiqueTyranUbuesqueUltimeUltrasonUnanimeUnifierUnionUniqueUnitaireUniversUraniumUrbainUrticantUsageUsineUsuelUsureUtileUtopieVacarmeVaccinVagabondVagueVaillantVaincreVaisseauValableValiseVallonValveVampireVanilleVapeurVarierVaseuxVassalVasteVecteurVedetteVe/ge/talVe/hiculeVeinardVe/loceVendrediVe/ne/rerVengerVenimeuxVentouseVerdureVe/rinVernirVerrouVerserVertuVestonVe/te/ranVe/tusteVexantVexerViaducViandeVictoireVidangeVide/oVignetteVigueurVilainVillageVinaigreViolonVipe-reVirementVirtuoseVirusVisageViseurVisionVisqueuxVisuelVitalVitesseViticoleVitrineVivaceVivipareVocationVoguerVoileVoisinVoitureVolailleVolcanVoltigerVolumeVoraceVortexVoterVouloirVoyageVoyelleWagonXe/nonYachtZe-breZe/nithZesteZoologie";
+let wordlist$3 = null;
+const lookup$1 = {};
+function dropDiacritic$1(word) {
+    logger$F.checkNormalize();
+    return toUtf8String(Array.prototype.filter.call(toUtf8Bytes(word.normalize("NFD").toLowerCase()), (c) => {
+        return ((c >= 65 && c <= 90) || (c >= 97 && c <= 123));
+    }));
+}
+function expand$1(word) {
+    const output = [];
+    Array.prototype.forEach.call(toUtf8Bytes(word), (c) => {
+        // Acute accent
+        if (c === 47) {
+            output.push(204);
+            output.push(129);
+            // Grave accent
+        }
+        else if (c === 45) {
+            output.push(204);
+            output.push(128);
+        }
+        else {
+            output.push(c);
+        }
+    });
+    return toUtf8String(output);
+}
+function loadWords$3(lang) {
+    if (wordlist$3 != null) {
+        return;
+    }
+    wordlist$3 = words$3.replace(/([A-Z])/g, " $1").toLowerCase().substring(1).split(" ").map((w) => expand$1(w));
+    wordlist$3.forEach((word, index) => {
+        lookup$1[dropDiacritic$1(word)] = index;
+    });
+    // Verify the computed list matches the official list
+    /* istanbul ignore if */
+    if (Wordlist.check(lang) !== "0x51deb7ae009149dc61a6bd18a918eb7ac78d2775726c68e598b92d002519b045") {
+        wordlist$3 = null;
+        throw new Error("BIP39 Wordlist for fr (French) FAILED");
+    }
+}
+class LangFr extends Wordlist {
+    constructor() {
+        super("fr");
+    }
+    getWord(index) {
+        loadWords$3(this);
+        return wordlist$3[index];
+    }
+    getWordIndex(word) {
+        loadWords$3(this);
+        return lookup$1[dropDiacritic$1(word)];
+    }
+}
+const langFr = new LangFr();
+Wordlist.register(langFr);
+
+const version$K = "bytes/5.0.7";
+
+"use strict";
+const logger$G = new Logger$h(version$K);
+///////////////////////////////
+function isHexable$f(value) {
+    return !!(value.toHexString);
+}
+function addSlice$f(array) {
+    if (array.slice) {
+        return array;
+    }
+    array.slice = function () {
+        const args = Array.prototype.slice.call(arguments);
+        return addSlice$f(new Uint8Array(Array.prototype.slice.apply(array, args)));
     };
-    return LangEn;
-}(wordlist.Wordlist));
-var langEn = new LangEn();
-exports.langEn = langEn;
-wordlist.Wordlist.register(langEn);
+    return array;
+}
+function isBytesLike$f(value) {
+    return ((isHexString$f(value) && !(value.length % 2)) || isBytes$f(value));
+}
+function isBytes$f(value) {
+    if (value == null) {
+        return false;
+    }
+    if (value.constructor === Uint8Array) {
+        return true;
+    }
+    if (typeof (value) === "string") {
+        return false;
+    }
+    if (value.length == null) {
+        return false;
+    }
+    for (let i = 0; i < value.length; i++) {
+        const v = value[i];
+        if (v < 0 || v >= 256 || (v % 1)) {
+            return false;
+        }
+    }
+    return true;
+}
+function arrayify$f(value, options) {
+    if (!options) {
+        options = {};
+    }
+    if (typeof (value) === "number") {
+        logger$G.checkSafeUint53(value, "invalid arrayify value");
+        const result = [];
+        while (value) {
+            result.unshift(value & 0xff);
+            value = parseInt(String(value / 256));
+        }
+        if (result.length === 0) {
+            result.push(0);
+        }
+        return addSlice$f(new Uint8Array(result));
+    }
+    if (options.allowMissingPrefix && typeof (value) === "string" && value.substring(0, 2) !== "0x") {
+        value = "0x" + value;
+    }
+    if (isHexable$f(value)) {
+        value = value.toHexString();
+    }
+    if (isHexString$f(value)) {
+        let hex = value.substring(2);
+        if (hex.length % 2) {
+            if (options.hexPad === "left") {
+                hex = "0x0" + hex.substring(2);
+            }
+            else if (options.hexPad === "right") {
+                hex += "0";
+            }
+            else {
+                logger$G.throwArgumentError("hex data is odd-length", "value", value);
+            }
+        }
+        const result = [];
+        for (let i = 0; i < hex.length; i += 2) {
+            result.push(parseInt(hex.substring(i, i + 2), 16));
+        }
+        return addSlice$f(new Uint8Array(result));
+    }
+    if (isBytes$f(value)) {
+        return addSlice$f(new Uint8Array(value));
+    }
+    return logger$G.throwArgumentError("invalid arrayify value", "value", value);
+}
+function concat$f(items) {
+    const objects = items.map(item => arrayify$f(item));
+    const length = objects.reduce((accum, item) => (accum + item.length), 0);
+    const result = new Uint8Array(length);
+    objects.reduce((offset, object) => {
+        result.set(object, offset);
+        return offset + object.length;
+    }, 0);
+    return addSlice$f(result);
+}
+function stripZeros$f(value) {
+    let result = arrayify$f(value);
+    if (result.length === 0) {
+        return result;
+    }
+    // Find the first non-zero entry
+    let start = 0;
+    while (start < result.length && result[start] === 0) {
+        start++;
+    }
+    // If we started with zeros, strip them
+    if (start) {
+        result = result.slice(start);
+    }
+    return result;
+}
+function zeroPad$f(value, length) {
+    value = arrayify$f(value);
+    if (value.length > length) {
+        logger$G.throwArgumentError("value out of range", "value", arguments[0]);
+    }
+    const result = new Uint8Array(length);
+    result.set(value, length - value.length);
+    return addSlice$f(result);
+}
+function isHexString$f(value, length) {
+    if (typeof (value) !== "string" || !value.match(/^0x[0-9A-Fa-f]*$/)) {
+        return false;
+    }
+    if (length && value.length !== 2 + 2 * length) {
+        return false;
+    }
+    return true;
+}
+const HexCharacters$f = "0123456789abcdef";
+function hexlify$f(value, options) {
+    if (!options) {
+        options = {};
+    }
+    if (typeof (value) === "number") {
+        logger$G.checkSafeUint53(value, "invalid hexlify value");
+        let hex = "";
+        while (value) {
+            hex = HexCharacters$f[value & 0x0f] + hex;
+            value = Math.floor(value / 16);
+        }
+        if (hex.length) {
+            if (hex.length % 2) {
+                hex = "0" + hex;
+            }
+            return "0x" + hex;
+        }
+        return "0x00";
+    }
+    if (options.allowMissingPrefix && typeof (value) === "string" && value.substring(0, 2) !== "0x") {
+        value = "0x" + value;
+    }
+    if (isHexable$f(value)) {
+        return value.toHexString();
+    }
+    if (isHexString$f(value)) {
+        if (value.length % 2) {
+            if (options.hexPad === "left") {
+                value = "0x0" + value.substring(2);
+            }
+            else if (options.hexPad === "right") {
+                value += "0";
+            }
+            else {
+                logger$G.throwArgumentError("hex data is odd-length", "value", value);
+            }
+        }
+        return value.toLowerCase();
+    }
+    if (isBytes$f(value)) {
+        let result = "0x";
+        for (let i = 0; i < value.length; i++) {
+            let v = value[i];
+            result += HexCharacters$f[(v & 0xf0) >> 4] + HexCharacters$f[v & 0x0f];
+        }
+        return result;
+    }
+    return logger$G.throwArgumentError("invalid hexlify value", "value", value);
+}
+/*
+function unoddify(value: BytesLike | Hexable | number): BytesLike | Hexable | number {
+    if (typeof(value) === "string" && value.length % 2 && value.substring(0, 2) === "0x") {
+        return "0x0" + value.substring(2);
+    }
+    return value;
+}
+*/
+function hexDataLength$f(data) {
+    if (typeof (data) !== "string") {
+        data = hexlify$f(data);
+    }
+    else if (!isHexString$f(data) || (data.length % 2)) {
+        return null;
+    }
+    return (data.length - 2) / 2;
+}
+function hexDataSlice$f(data, offset, endOffset) {
+    if (typeof (data) !== "string") {
+        data = hexlify$f(data);
+    }
+    else if (!isHexString$f(data) || (data.length % 2)) {
+        logger$G.throwArgumentError("invalid hexData", "value", data);
+    }
+    offset = 2 + 2 * offset;
+    if (endOffset != null) {
+        return "0x" + data.substring(offset, 2 + 2 * endOffset);
+    }
+    return "0x" + data.substring(offset);
+}
+function hexConcat$f(items) {
+    let result = "0x";
+    items.forEach((item) => {
+        result += hexlify$f(item).substring(2);
+    });
+    return result;
+}
+function hexValue$f(value) {
+    const trimmed = hexStripZeros$f(hexlify$f(value, { hexPad: "left" }));
+    if (trimmed === "0x") {
+        return "0x0";
+    }
+    return trimmed;
+}
+function hexStripZeros$f(value) {
+    if (typeof (value) !== "string") {
+        value = hexlify$f(value);
+    }
+    if (!isHexString$f(value)) {
+        logger$G.throwArgumentError("invalid hex string", "value", value);
+    }
+    value = value.substring(2);
+    let offset = 0;
+    while (offset < value.length && value[offset] === "0") {
+        offset++;
+    }
+    return "0x" + value.substring(offset);
+}
+function hexZeroPad$f(value, length) {
+    if (typeof (value) !== "string") {
+        value = hexlify$f(value);
+    }
+    else if (!isHexString$f(value)) {
+        logger$G.throwArgumentError("invalid hex string", "value", value);
+    }
+    if (value.length > 2 * length + 2) {
+        logger$G.throwArgumentError("value out of range", "value", arguments[1]);
+    }
+    while (value.length < 2 * length + 2) {
+        value = "0x0" + value.substring(2);
+    }
+    return value;
+}
+function splitSignature$f(signature) {
+    const result = {
+        r: "0x",
+        s: "0x",
+        _vs: "0x",
+        recoveryParam: 0,
+        v: 0
+    };
+    if (isBytesLike$f(signature)) {
+        const bytes = arrayify$f(signature);
+        if (bytes.length !== 65) {
+            logger$G.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
+        }
+        // Get the r, s and v
+        result.r = hexlify$f(bytes.slice(0, 32));
+        result.s = hexlify$f(bytes.slice(32, 64));
+        result.v = bytes[64];
+        // Allow a recid to be used as the v
+        if (result.v < 27) {
+            if (result.v === 0 || result.v === 1) {
+                result.v += 27;
+            }
+            else {
+                logger$G.throwArgumentError("signature invalid v byte", "signature", signature);
+            }
+        }
+        // Compute recoveryParam from v
+        result.recoveryParam = 1 - (result.v % 2);
+        // Compute _vs from recoveryParam and s
+        if (result.recoveryParam) {
+            bytes[32] |= 0x80;
+        }
+        result._vs = hexlify$f(bytes.slice(32, 64));
+    }
+    else {
+        result.r = signature.r;
+        result.s = signature.s;
+        result.v = signature.v;
+        result.recoveryParam = signature.recoveryParam;
+        result._vs = signature._vs;
+        // If the _vs is available, use it to populate missing s, v and recoveryParam
+        // and verify non-missing s, v and recoveryParam
+        if (result._vs != null) {
+            const vs = zeroPad$f(arrayify$f(result._vs), 32);
+            result._vs = hexlify$f(vs);
+            // Set or check the recid
+            const recoveryParam = ((vs[0] >= 128) ? 1 : 0);
+            if (result.recoveryParam == null) {
+                result.recoveryParam = recoveryParam;
+            }
+            else if (result.recoveryParam !== recoveryParam) {
+                logger$G.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
+            }
+            // Set or check the s
+            vs[0] &= 0x7f;
+            const s = hexlify$f(vs);
+            if (result.s == null) {
+                result.s = s;
+            }
+            else if (result.s !== s) {
+                logger$G.throwArgumentError("signature v mismatch _vs", "signature", signature);
+            }
+        }
+        // Use recid and v to populate each other
+        if (result.recoveryParam == null) {
+            if (result.v == null) {
+                logger$G.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
+            }
+            else {
+                result.recoveryParam = 1 - (result.v % 2);
+            }
+        }
+        else {
+            if (result.v == null) {
+                result.v = 27 + result.recoveryParam;
+            }
+            else if (result.recoveryParam !== (1 - (result.v % 2))) {
+                logger$G.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
+            }
+        }
+        if (result.r == null || !isHexString$f(result.r)) {
+            logger$G.throwArgumentError("signature missing or invalid r", "signature", signature);
+        }
+        else {
+            result.r = hexZeroPad$f(result.r, 32);
+        }
+        if (result.s == null || !isHexString$f(result.s)) {
+            logger$G.throwArgumentError("signature missing or invalid s", "signature", signature);
+        }
+        else {
+            result.s = hexZeroPad$f(result.s, 32);
+        }
+        const vs = arrayify$f(result.s);
+        if (vs[0] >= 128) {
+            logger$G.throwArgumentError("signature s out of range", "signature", signature);
+        }
+        if (result.recoveryParam) {
+            vs[0] |= 0x80;
+        }
+        const _vs = hexlify$f(vs);
+        if (result._vs) {
+            if (!isHexString$f(result._vs)) {
+                logger$G.throwArgumentError("signature invalid _vs", "signature", signature);
+            }
+            result._vs = hexZeroPad$f(result._vs, 32);
+        }
+        // Set or check the _vs
+        if (result._vs == null) {
+            result._vs = _vs;
+        }
+        else if (result._vs !== _vs) {
+            logger$G.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
+        }
+    }
+    return result;
+}
+function joinSignature$f(signature) {
+    signature = splitSignature$f(signature);
+    return hexlify$f(concat$f([
+        signature.r,
+        signature.s,
+        (signature.recoveryParam ? "0x1c" : "0x1b")
+    ]));
+}
 
-});
-
-var langEn = unwrapExports(langEn_1);
-var langEn_2 = langEn_1.langEn;
-
-var browser$8 = createCommonjsModule(function (module, exports) {
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-// Wordlists
-// See: https://github.com/bitcoin/bips/blob/master/bip-0039/bip-0039-wordlists.md
-
-exports.Wordlist = wordlist.Wordlist;
-
-var wordlists = { en: langEn_1.langEn };
-exports.wordlists = wordlists;
-
-});
-
-var browser$9 = unwrapExports(browser$8);
-var browser_1$4 = browser$8.Wordlist;
-var browser_2$3 = browser$8.wordlists;
-
-const version$I = "hdnode/5.0.4";
+const data = [
+    // 4-kana words
+    "AQRASRAGBAGUAIRAHBAghAURAdBAdcAnoAMEAFBAFCBKFBQRBSFBCXBCDBCHBGFBEQBpBBpQBIkBHNBeOBgFBVCBhBBhNBmOBmRBiHBiFBUFBZDBvFBsXBkFBlcBjYBwDBMBBTBBTRBWBBWXXaQXaRXQWXSRXCFXYBXpHXOQXHRXhRXuRXmXXbRXlXXwDXTRXrCXWQXWGaBWaKcaYgasFadQalmaMBacAKaRKKBKKXKKjKQRKDRKCYKCRKIDKeVKHcKlXKjHKrYNAHNBWNaRNKcNIBNIONmXNsXNdXNnBNMBNRBNrXNWDNWMNFOQABQAHQBrQXBQXFQaRQKXQKDQKOQKFQNBQNDQQgQCXQCDQGBQGDQGdQYXQpBQpQQpHQLXQHuQgBQhBQhCQuFQmXQiDQUFQZDQsFQdRQkHQbRQlOQlmQPDQjDQwXQMBQMDQcFQTBQTHQrDDXQDNFDGBDGQDGRDpFDhFDmXDZXDbRDMYDRdDTRDrXSAhSBCSBrSGQSEQSHBSVRShYShkSyQSuFSiBSdcSoESocSlmSMBSFBSFKSFNSFdSFcCByCaRCKcCSBCSRCCrCGbCEHCYXCpBCpQCIBCIHCeNCgBCgFCVECVcCmkCmwCZXCZFCdRClOClmClFCjDCjdCnXCwBCwXCcRCFQCFjGXhGNhGDEGDMGCDGCHGIFGgBGVXGVEGVRGmXGsXGdYGoSGbRGnXGwXGwDGWRGFNGFLGFOGFdGFkEABEBDEBFEXOEaBEKSENBENDEYXEIgEIkEgBEgQEgHEhFEudEuFEiBEiHEiFEZDEvBEsXEsFEdXEdREkFEbBEbRElFEPCEfkEFNYAEYAhYBNYQdYDXYSRYCEYYoYgQYgRYuRYmCYZTYdBYbEYlXYjQYRbYWRpKXpQopQnpSFpCXpIBpISphNpdBpdRpbRpcZpFBpFNpFDpFopFrLADLBuLXQLXcLaFLCXLEhLpBLpFLHXLeVLhILdHLdRLoDLbRLrXIABIBQIBCIBsIBoIBMIBRIXaIaRIKYIKRINBINuICDIGBIIDIIkIgRIxFIyQIiHIdRIbYIbRIlHIwRIMYIcRIRVITRIFBIFNIFQOABOAFOBQOaFONBONMOQFOSFOCDOGBOEQOpBOLXOIBOIFOgQOgFOyQOycOmXOsXOdIOkHOMEOMkOWWHBNHXNHXWHNXHDuHDRHSuHSRHHoHhkHmRHdRHkQHlcHlRHwBHWcgAEgAggAkgBNgBQgBEgXOgYcgLXgHjgyQgiBgsFgdagMYgWSgFQgFEVBTVXEVKBVKNVKDVKYVKRVNBVNYVDBVDxVSBVSRVCjVGNVLXVIFVhBVhcVsXVdRVbRVlRhBYhKYhDYhGShxWhmNhdahdkhbRhjohMXhTRxAXxXSxKBxNBxEQxeNxeQxhXxsFxdbxlHxjcxFBxFNxFQxFOxFoyNYyYoybcyMYuBQuBRuBruDMuCouHBudQukkuoBulVuMXuFEmCYmCRmpRmeDmiMmjdmTFmFQiADiBOiaRiKRiNBiNRiSFiGkiGFiERipRiLFiIFihYibHijBijEiMXiWBiFBiFCUBQUXFUaRUNDUNcUNRUNFUDBUSHUCDUGBUGFUEqULNULoUIRUeEUeYUgBUhFUuRUiFUsXUdFUkHUbBUjSUjYUwXUMDUcHURdUTBUrBUrXUrQZAFZXZZaRZKFZNBZQFZCXZGBZYdZpBZLDZIFZHXZHNZeQZVRZVFZmXZiBZvFZdFZkFZbHZbFZwXZcCZcRZRBvBQvBGvBLvBWvCovMYsAFsBDsaRsKFsNFsDrsSHsSFsCXsCRsEBsEHsEfspBsLBsLDsIgsIRseGsbRsFBsFQsFSdNBdSRdCVdGHdYDdHcdVbdySduDdsXdlRdwXdWYdWcdWRkBMkXOkaRkNIkNFkSFkCFkYBkpRkeNkgBkhVkmXksFklVkMBkWDkFNoBNoaQoaFoNBoNXoNaoNEoSRoEroYXoYCoYbopRopFomXojkowXorFbBEbEIbdBbjYlaRlDElMXlFDjKjjSRjGBjYBjYkjpRjLXjIBjOFjeVjbRjwBnXQnSHnpFnLXnINnMBnTRwXBwXNwXYwNFwQFwSBwGFwLXwLDweNwgBwuHwjDwnXMBXMpFMIBMeNMTHcaQcNBcDHcSFcCXcpBcLXcLDcgFcuFcnXcwXccDcTQcrFTQErXNrCHrpFrgFrbFrTHrFcWNYWNbWEHWMXWTR",
+    // 5-kana words
+    "ABGHABIJAEAVAYJQALZJAIaRAHNXAHdcAHbRAZJMAZJRAZTRAdVJAklmAbcNAjdRAMnRAMWYAWpRAWgRAFgBAFhBAFdcBNJBBNJDBQKBBQhcBQlmBDEJBYJkBYJTBpNBBpJFBIJBBIJDBIcABOKXBOEJBOVJBOiJBOZJBepBBeLXBeIFBegBBgGJBVJXBuocBiJRBUJQBlXVBlITBwNFBMYVBcqXBTlmBWNFBWiJBWnRBFGHBFwXXKGJXNJBXNZJXDTTXSHSXSVRXSlHXCJDXGQJXEhXXYQJXYbRXOfXXeNcXVJFXhQJXhEJXdTRXjdXXMhBXcQTXRGBXTEBXTnQXFCXXFOFXFgFaBaFaBNJaBCJaBpBaBwXaNJKaNJDaQIBaDpRaEPDaHMFamDJalEJaMZJaFaFaFNBaFQJaFLDaFVHKBCYKBEBKBHDKXaFKXGdKXEJKXpHKXIBKXZDKXwXKKwLKNacKNYJKNJoKNWcKDGdKDTRKChXKGaRKGhBKGbRKEBTKEaRKEPTKLMDKLWRKOHDKVJcKdBcKlIBKlOPKFSBKFEPKFpFNBNJNJBQNBGHNBEPNBHXNBgFNBVXNBZDNBsXNBwXNNaRNNJDNNJENNJkNDCJNDVDNGJRNJiDNZJNNsCJNJFNNFSBNFCXNFEPNFLXNFIFQJBFQCaRQJEQQLJDQLJFQIaRQOqXQHaFQHHQQVJXQVJDQhNJQmEIQZJFQsJXQJrFQWbRDJABDBYJDXNFDXCXDXLXDXZDDXsJDQqXDSJFDJCXDEPkDEqXDYmQDpSJDOCkDOGQDHEIDVJDDuDuDWEBDJFgSBNDSBSFSBGHSBIBSBTQSKVYSJQNSJQiSJCXSEqXSJYVSIiJSOMYSHAHSHaQSeCFSepQSegBSHdHSHrFShSJSJuHSJUFSkNRSrSrSWEBSFaHSJFQSFCXSFGDSFYXSFODSFgBSFVXSFhBSFxFSFkFSFbBSFMFCADdCJXBCXaFCXKFCXNFCXCXCXGBCXEJCXYBCXLDCXIBCXOPCXHXCXgBCXhBCXiBCXlDCXcHCJNBCJNFCDCJCDGBCDVXCDhBCDiDCDJdCCmNCpJFCIaRCOqXCHCHCHZJCViJCuCuCmddCJiFCdNBCdHhClEJCnUJCreSCWlgCWTRCFBFCFNBCFYBCFVFCFhFCFdSCFTBCFWDGBNBGBQFGJBCGBEqGBpBGBgQGNBEGNJYGNkOGNJRGDUFGJpQGHaBGJeNGJeEGVBlGVKjGiJDGvJHGsVJGkEBGMIJGWjNGFBFGFCXGFGBGFYXGFpBGFMFEASJEAWpEJNFECJVEIXSEIQJEOqXEOcFEeNcEHEJEHlFEJgFEhlmEmDJEmZJEiMBEUqXEoSREPBFEPXFEPKFEPSFEPEFEPpFEPLXEPIBEJPdEPcFEPTBEJnXEqlHEMpREFCXEFODEFcFYASJYJAFYBaBYBVXYXpFYDhBYCJBYJGFYYbRYeNcYJeVYiIJYZJcYvJgYvJRYJsXYsJFYMYMYreVpBNHpBEJpBwXpQxFpYEJpeNDpJeDpeSFpeCHpHUJpHbBpHcHpmUJpiiJpUJrpsJuplITpFaBpFQqpFGBpFEfpFYBpFpBpFLJpFIDpFgBpFVXpFyQpFuFpFlFpFjDpFnXpFwXpJFMpFTBLXCJLXEFLXhFLXUJLXbFLalmLNJBLSJQLCLCLGJBLLDJLHaFLeNFLeSHLeCXLepFLhaRLZsJLsJDLsJrLocaLlLlLMdbLFNBLFSBLFEHLFkFIBBFIBXFIBaQIBKXIBSFIBpHIBLXIBgBIBhBIBuHIBmXIBiFIBZXIBvFIBbFIBjQIBwXIBWFIKTRIQUJIDGFICjQIYSRIINXIJeCIVaRImEkIZJFIvJRIsJXIdCJIJoRIbBQIjYBIcqXITFVIreVIFKFIFSFIFCJIFGFIFLDIFIBIJFOIFgBIFVXIJFhIFxFIFmXIFdHIFbBIJFrIJFWOBGBOQfXOOKjOUqXOfXBOqXEOcqXORVJOFIBOFlDHBIOHXiFHNTRHCJXHIaRHHJDHHEJHVbRHZJYHbIBHRsJHRkDHWlmgBKFgBSBgBCDgBGHgBpBgBIBgBVJgBuBgBvFgKDTgQVXgDUJgGSJgOqXgmUMgZIJgTUJgWIEgFBFgFNBgFDJgFSFgFGBgFYXgJFOgFgQgFVXgFhBgFbHgJFWVJABVQKcVDgFVOfXVeDFVhaRVmGdViJYVMaRVFNHhBNDhBCXhBEqhBpFhBLXhNJBhSJRheVXhhKEhxlmhZIJhdBQhkIJhbMNhMUJhMZJxNJgxQUJxDEkxDdFxSJRxplmxeSBxeCXxeGFxeYXxepQxegBxWVcxFEQxFLXxFIBxFgBxFxDxFZtxFdcxFbBxFwXyDJXyDlcuASJuDJpuDIBuCpJuGSJuIJFueEFuZIJusJXudWEuoIBuWGJuFBcuFKEuFNFuFQFuFDJuFGJuFVJuFUtuFdHuFTBmBYJmNJYmQhkmLJDmLJomIdXmiJYmvJRmsJRmklmmMBymMuCmclmmcnQiJABiJBNiJBDiBSFiBCJiBEFiBYBiBpFiBLXiBTHiJNciDEfiCZJiECJiJEqiOkHiHKFieNDiHJQieQcieDHieSFieCXieGFieEFieIHiegFihUJixNoioNXiFaBiFKFiFNDiFEPiFYXitFOitFHiFgBiFVEiFmXiFitiFbBiFMFiFrFUCXQUIoQUIJcUHQJUeCEUHwXUUJDUUqXUdWcUcqXUrnQUFNDUFSHUFCFUFEfUFLXUtFOZBXOZXSBZXpFZXVXZEQJZEJkZpDJZOqXZeNHZeCDZUqXZFBQZFEHZFLXvBAFvBKFvBCXvBEPvBpHvBIDvBgFvBuHvQNJvFNFvFGBvFIBvJFcsXCDsXLXsXsXsXlFsXcHsQqXsJQFsEqXseIFsFEHsFjDdBxOdNpRdNJRdEJbdpJRdhZJdnSJdrjNdFNJdFQHdFhNkNJDkYaRkHNRkHSRkVbRkuMRkjSJkcqDoSJFoEiJoYZJoOfXohEBoMGQocqXbBAFbBXFbBaFbBNDbBGBbBLXbBTBbBWDbGJYbIJHbFQqbFpQlDgQlOrFlVJRjGEBjZJRnXvJnXbBnEfHnOPDngJRnxfXnUJWwXEJwNpJwDpBwEfXwrEBMDCJMDGHMDIJMLJDcQGDcQpHcqXccqNFcqCXcFCJRBSBRBGBRBEJRBpQTBNFTBQJTBpBTBVXTFABTFSBTFCFTFGBTFMDrXCJrXLDrDNJrEfHrFQJrFitWNjdWNTR",
+    // 6-kana words
+    "AKLJMANOPFASNJIAEJWXAYJNRAIIbRAIcdaAeEfDAgidRAdjNYAMYEJAMIbRAFNJBAFpJFBBIJYBDZJFBSiJhBGdEBBEJfXBEJqXBEJWRBpaUJBLXrXBIYJMBOcfXBeEfFBestXBjNJRBcDJOBFEqXXNvJRXDMBhXCJNYXOAWpXONJWXHDEBXeIaRXhYJDXZJSJXMDJOXcASJXFVJXaBQqXaBZJFasXdQaFSJQaFEfXaFpJHaFOqXKBNSRKXvJBKQJhXKEJQJKEJGFKINJBKIJjNKgJNSKVElmKVhEBKiJGFKlBgJKjnUJKwsJYKMFIJKFNJDKFIJFKFOfXNJBSFNJBCXNBpJFNJBvQNJBMBNJLJXNJOqXNJeCXNJeGFNdsJCNbTKFNwXUJQNFEPQDiJcQDMSJQSFpBQGMQJQJeOcQyCJEQUJEBQJFBrQFEJqDXDJFDJXpBDJXIMDGiJhDIJGRDJeYcDHrDJDVXgFDkAWpDkIgRDjDEqDMvJRDJFNFDJFIBSKclmSJQOFSJQVHSJQjDSJGJBSJGJFSECJoSHEJqSJHTBSJVJDSViJYSZJNBSJsJDSFSJFSFEfXSJFLXCBUJVCJXSBCJXpBCXVJXCJXsXCJXdFCJNJHCLIJgCHiJFCVNJMChCJhCUHEJCsJTRCJdYcCoQJCCFEfXCFIJgCFUJxCFstFGJBaQGJBIDGQJqXGYJNRGJHKFGeQqDGHEJFGJeLXGHIiJGHdBlGUJEBGkIJTGFQPDGJFEqEAGegEJIJBEJVJXEhQJTEiJNcEJZJFEJoEqEjDEqEPDsXEPGJBEPOqXEPeQFEfDiDEJfEFEfepQEfMiJEqXNBEqDIDEqeSFEqVJXEMvJRYXNJDYXEJHYKVJcYYJEBYJeEcYJUqXYFpJFYFstXpAZJMpBSJFpNBNFpeQPDpHLJDpHIJFpHgJFpeitFpHZJFpJFADpFSJFpJFCJpFOqXpFitBpJFZJLXIJFLIJgRLVNJWLVHJMLwNpJLFGJBLFLJDLFOqXLJFUJIBDJXIBGJBIJBYQIJBIBIBOqXIBcqDIEGJFILNJTIIJEBIOiJhIJeNBIJeIBIhiJIIWoTRIJFAHIJFpBIJFuHIFUtFIJFTHOSBYJOEcqXOHEJqOvBpFOkVJrObBVJOncqDOcNJkHhNJRHuHJuHdMhBgBUqXgBsJXgONJBgHNJDgHHJQgJeitgHsJXgJyNagyDJBgZJDrgsVJQgkEJNgkjSJgJFAHgFCJDgFZtMVJXNFVXQfXVJXDJVXoQJVQVJQVDEfXVDvJHVEqNFVeQfXVHpJFVHxfXVVJSRVVmaRVlIJOhCXVJhHjYkhxCJVhWVUJhWiJcxBNJIxeEqDxfXBFxcFEPxFSJFxFYJXyBDQJydaUJyFOPDuYCJYuLvJRuHLJXuZJLDuFOPDuFZJHuFcqXmKHJdmCQJcmOsVJiJAGFitLCFieOfXiestXiZJMEikNJQirXzFiFQqXiFIJFiFZJFiFvtFUHpJFUteIcUteOcUVCJkUhdHcUbEJEUJqXQUMNJhURjYkUFitFZDGJHZJIxDZJVJXZJFDJZJFpQvBNJBvBSJFvJxBrseQqDsVFVJdFLJDkEJNBkmNJYkFLJDoQJOPoGsJRoEAHBoEJfFbBQqDbBZJHbFVJXlFIJBjYIrXjeitcjjCEBjWMNBwXQfXwXOaFwDsJXwCJTRwrCZJMDNJQcDDJFcqDOPRYiJFTBsJXTQIJBTFEfXTFLJDrXEJFrEJXMrFZJFWEJdEWYTlm",
+    // 7-kana words
+    "ABCDEFACNJTRAMBDJdAcNJVXBLNJEBXSIdWRXErNJkXYDJMBXZJCJaXMNJaYKKVJKcKDEJqXKDcNJhKVJrNYKbgJVXKFVJSBNBYBwDNJeQfXNJeEqXNhGJWENJFiJRQlIJbEQJfXxDQqXcfXQFNDEJQFwXUJDYcnUJDJIBgQDIUJTRDJFEqDSJQSJFSJQIJFSOPeZtSJFZJHCJXQfXCTDEqFGJBSJFGJBOfXGJBcqXGJHNJDGJRLiJEJfXEqEJFEJPEFpBEJYJBZJFYBwXUJYiJMEBYJZJyTYTONJXpQMFXFpeGIDdpJFstXpJFcPDLBVSJRLHQJqXLJFZJFIJBNJDIJBUqXIBkFDJIJEJPTIYJGWRIJeQPDIJeEfHIJFsJXOqGDSFHXEJqXgJCsJCgGQJqXgdQYJEgFMFNBgJFcqDVJwXUJVJFZJchIgJCCxOEJqXxOwXUJyDJBVRuscisciJBiJBieUtqXiJFDJkiFsJXQUGEZJcUJFsJXZtXIrXZDZJDrZJFNJDZJFstXvJFQqXvJFCJEsJXQJqkhkNGBbDJdTRbYJMEBlDwXUJMEFiJFcfXNJDRcNJWMTBLJXC",
+    // 8-kana words
+    "BraFUtHBFSJFdbNBLJXVJQoYJNEBSJBEJfHSJHwXUJCJdAZJMGjaFVJXEJPNJBlEJfFiJFpFbFEJqIJBVJCrIBdHiJhOPFChvJVJZJNJWxGFNIFLueIBQJqUHEJfUFstOZJDrlXEASJRlXVJXSFwVJNJWD",
+    // 9-kana words
+    "QJEJNNJDQJEJIBSFQJEJxegBQJEJfHEPSJBmXEJFSJCDEJqXLXNJFQqXIcQsFNJFIFEJqXUJgFsJXIJBUJEJfHNFvJxEqXNJnXUJFQqD",
+    // 10-kana words
+    "IJBEJqXZJ"
+];
+// Maps each character into its kana value (the index)
+const mapping = "~~AzB~X~a~KN~Q~D~S~C~G~E~Y~p~L~I~O~eH~g~V~hxyumi~~U~~Z~~v~~s~~dkoblPjfnqwMcRTr~W~~~F~~~~~Jt";
+let wordlist$4 = null;
+function hex(word) {
+    return hexlify$f(toUtf8Bytes(word));
+}
+const KiYoKu = "0xe3818de38284e3818f";
+const KyoKu = "0xe3818de38283e3818f";
+function loadWords$4(lang) {
+    if (wordlist$4 !== null) {
+        return;
+    }
+    wordlist$4 = [];
+    // Transforms for normalizing (sort is a not quite UTF-8)
+    const transform = {};
+    // Delete the diacritic marks
+    transform[toUtf8String([227, 130, 154])] = false;
+    transform[toUtf8String([227, 130, 153])] = false;
+    // Some simple transforms that sort out most of the order
+    transform[toUtf8String([227, 130, 133])] = toUtf8String([227, 130, 134]);
+    transform[toUtf8String([227, 129, 163])] = toUtf8String([227, 129, 164]);
+    transform[toUtf8String([227, 130, 131])] = toUtf8String([227, 130, 132]);
+    transform[toUtf8String([227, 130, 135])] = toUtf8String([227, 130, 136]);
+    // Normalize words using the transform
+    function normalize(word) {
+        let result = "";
+        for (let i = 0; i < word.length; i++) {
+            let kana = word[i];
+            const target = transform[kana];
+            if (target === false) {
+                continue;
+            }
+            if (target) {
+                kana = target;
+            }
+            result += kana;
+        }
+        return result;
+    }
+    // Sort how the Japanese list is sorted
+    function sortJapanese(a, b) {
+        a = normalize(a);
+        b = normalize(b);
+        if (a < b) {
+            return -1;
+        }
+        if (a > b) {
+            return 1;
+        }
+        return 0;
+    }
+    // Load all the words
+    for (let length = 3; length <= 9; length++) {
+        const d = data[length - 3];
+        for (let offset = 0; offset < d.length; offset += length) {
+            const word = [];
+            for (let i = 0; i < length; i++) {
+                const k = mapping.indexOf(d[offset + i]);
+                word.push(227);
+                word.push((k & 0x40) ? 130 : 129);
+                word.push((k & 0x3f) + 128);
+            }
+            wordlist$4.push(toUtf8String(word));
+        }
+    }
+    wordlist$4.sort(sortJapanese);
+    // For some reason kyoku and kiyoku are flipped in node (!!).
+    // The order SHOULD be:
+    //   - kyoku
+    //   - kiyoku
+    // This should ignore "if", but that doesn't work here??
+    /* istanbul ignore next */
+    if (hex(wordlist$4[442]) === KiYoKu && hex(wordlist$4[443]) === KyoKu) {
+        const tmp = wordlist$4[442];
+        wordlist$4[442] = wordlist$4[443];
+        wordlist$4[443] = tmp;
+    }
+    // Verify the computed list matches the official list
+    /* istanbul ignore if */
+    if (Wordlist.check(lang) !== "0xcb36b09e6baa935787fd762ce65e80b0c6a8dabdfbc3a7f86ac0e2c4fd111600") {
+        wordlist$4 = null;
+        throw new Error("BIP39 Wordlist for ja (Japanese) FAILED");
+    }
+}
+class LangJa extends Wordlist {
+    constructor() {
+        super("ja");
+    }
+    getWord(index) {
+        loadWords$4(this);
+        return wordlist$4[index];
+    }
+    getWordIndex(word) {
+        loadWords$4(this);
+        return wordlist$4.indexOf(word);
+    }
+    split(mnemonic) {
+        logger$F.checkNormalize();
+        return mnemonic.split(/(?:\u3000| )+/g);
+    }
+    join(words) {
+        return words.join("\u3000");
+    }
+}
+const langJa = new LangJa();
+Wordlist.register(langJa);
 
 "use strict";
-const logger$C = new Logger$d(version$I);
+const data$1 = [
+    "OYAa",
+    "ATAZoATBl3ATCTrATCl8ATDloATGg3ATHT8ATJT8ATJl3ATLlvATLn4ATMT8ATMX8ATMboATMgoAToLbAToMTATrHgATvHnAT3AnAT3JbAT3MTAT8DbAT8JTAT8LmAT8MYAT8MbAT#LnAUHT8AUHZvAUJXrAUJX8AULnrAXJnvAXLUoAXLgvAXMn6AXRg3AXrMbAX3JTAX3QbAYLn3AZLgvAZrSUAZvAcAZ8AaAZ8AbAZ8AnAZ8HnAZ8LgAZ8MYAZ8MgAZ8OnAaAboAaDTrAaFTrAaJTrAaJboAaLVoAaMXvAaOl8AaSeoAbAUoAbAg8AbAl4AbGnrAbMT8AbMXrAbMn4AbQb8AbSV8AbvRlAb8AUAb8AnAb8HgAb8JTAb8NTAb8RbAcGboAcLnvAcMT8AcMX8AcSToAcrAaAcrFnAc8AbAc8MgAfGgrAfHboAfJnvAfLV8AfLkoAfMT8AfMnoAfQb8AfScrAfSgrAgAZ8AgFl3AgGX8AgHZvAgHgrAgJXoAgJX8AgJboAgLZoAgLn4AgOX8AgoATAgoAnAgoCUAgoJgAgoLXAgoMYAgoSeAgrDUAgrJTAhrFnAhrLjAhrQgAjAgoAjJnrAkMX8AkOnoAlCTvAlCV8AlClvAlFg4AlFl6AlFn3AloSnAlrAXAlrAfAlrFUAlrFbAlrGgAlrOXAlvKnAlvMTAl3AbAl3MnAnATrAnAcrAnCZ3AnCl8AnDg8AnFboAnFl3AnHX4AnHbrAnHgrAnIl3AnJgvAnLXoAnLX4AnLbrAnLgrAnLhrAnMXoAnMgrAnOn3AnSbrAnSeoAnvLnAn3OnCTGgvCTSlvCTvAUCTvKnCTvNTCT3CZCT3GUCT3MTCT8HnCUCZrCULf8CULnvCU3HnCU3JUCY6NUCbDb8CbFZoCbLnrCboOTCboScCbrFnCbvLnCb8AgCb8HgCb$LnCkLfoClBn3CloDUDTHT8DTLl3DTSU8DTrAaDTrLXDTrLjDTrOYDTrOgDTvFXDTvFnDT3HUDT3LfDUCT9DUDT4DUFVoDUFV8DUFkoDUGgrDUJnrDULl8DUMT8DUMXrDUMX4DUMg8DUOUoDUOgvDUOg8DUSToDUSZ8DbDXoDbDgoDbGT8DbJn3DbLg3DbLn4DbMXrDbMg8DbOToDboJXGTClvGTDT8GTFZrGTLVoGTLlvGTLl3GTMg8GTOTvGTSlrGToCUGTrDgGTrJYGTrScGTtLnGTvAnGTvQgGUCZrGUDTvGUFZoGUHXrGULnvGUMT8GUoMgGXoLnGXrMXGXrMnGXvFnGYLnvGZOnvGZvOnGZ8LaGZ8LmGbAl3GbDYvGbDlrGbHX3GbJl4GbLV8GbLn3GbMn4GboJTGboRfGbvFUGb3GUGb4JnGgDX3GgFl$GgJlrGgLX6GgLZoGgLf8GgOXoGgrAgGgrJXGgrMYGgrScGgvATGgvOYGnAgoGnJgvGnLZoGnLg3GnLnrGnQn8GnSbrGnrMgHTClvHTDToHTFT3HTQT8HToJTHToJgHTrDUHTrMnHTvFYHTvRfHT8MnHT8SUHUAZ8HUBb4HUDTvHUoMYHXFl6HXJX6HXQlrHXrAUHXrMnHXrSbHXvFYHXvKXHX3LjHX3MeHYvQlHZrScHZvDbHbAcrHbFT3HbFl3HbJT8HbLTrHbMT8HbMXrHbMbrHbQb8HbSX3HboDbHboJTHbrFUHbrHgHbrJTHb8JTHb8MnHb8QgHgAlrHgDT3HgGgrHgHgrHgJTrHgJT8HgLX@HgLnrHgMT8HgMX8HgMboHgOnrHgQToHgRg3HgoHgHgrCbHgrFnHgrLVHgvAcHgvAfHnAloHnCTrHnCnvHnGTrHnGZ8HnGnvHnJT8HnLf8HnLkvHnMg8HnRTrITvFUITvFnJTAXrJTCV8JTFT3JTFT8JTFn4JTGgvJTHT8JTJT8JTJXvJTJl3JTJnvJTLX4JTLf8JTLhvJTMT8JTMXrJTMnrJTObrJTQT8JTSlvJT8DUJT8FkJT8MTJT8OXJT8OgJT8QUJT8RfJUHZoJXFT4JXFlrJXGZ8JXGnrJXLV8JXLgvJXMXoJXMX3JXNboJXPlvJXoJTJXoLkJXrAXJXrHUJXrJgJXvJTJXvOnJX4KnJYAl3JYJT8JYLhvJYQToJYrQXJY6NUJbAl3JbCZrJbDloJbGT8JbGgrJbJXvJbJboJbLf8JbLhrJbLl3JbMnvJbRg8JbSZ8JboDbJbrCZJbrSUJb3KnJb8LnJfRn8JgAXrJgCZrJgDTrJgGZrJgGZ8JgHToJgJT8JgJXoJgJgvJgLX4JgLZ3JgLZ8JgLn4JgMgrJgMn4JgOgvJgPX6JgRnvJgSToJgoCZJgoJbJgoMYJgrJXJgrJgJgrLjJg6MTJlCn3JlGgvJlJl8Jl4AnJl8FnJl8HgJnAToJnATrJnAbvJnDUoJnGnrJnJXrJnJXvJnLhvJnLnrJnLnvJnMToJnMT8JnMXvJnMX3JnMg8JnMlrJnMn4JnOX8JnST4JnSX3JnoAgJnoAnJnoJTJnoObJnrAbJnrAkJnrHnJnrJTJnrJYJnrOYJnrScJnvCUJnvFaJnvJgJnvJnJnvOYJnvQUJnvRUJn3FnJn3JTKnFl3KnLT6LTDlvLTMnoLTOn3LTRl3LTSb4LTSlrLToAnLToJgLTrAULTrAcLTrCULTrHgLTrMgLT3JnLULnrLUMX8LUoJgLVATrLVDTrLVLb8LVoJgLV8MgLV8RTLXDg3LXFlrLXrCnLXrLXLX3GTLX4GgLX4OYLZAXrLZAcrLZAgrLZAhrLZDXyLZDlrLZFbrLZFl3LZJX6LZJX8LZLc8LZLnrLZSU8LZoJTLZoJnLZrAgLZrAnLZrJYLZrLULZrMgLZrSkLZvAnLZvGULZvJeLZvOTLZ3FZLZ4JXLZ8STLZ8ScLaAT3LaAl3LaHT8LaJTrLaJT8LaJXrLaJgvLaJl4LaLVoLaMXrLaMXvLaMX8LbClvLbFToLbHlrLbJn4LbLZ3LbLhvLbMXrLbMnoLbvSULcLnrLc8HnLc8MTLdrMnLeAgoLeOgvLeOn3LfAl3LfLnvLfMl3LfOX8Lf8AnLf8JXLf8LXLgJTrLgJXrLgJl8LgMX8LgRZrLhCToLhrAbLhrFULhrJXLhvJYLjHTrLjHX4LjJX8LjLhrLjSX3LjSZ4LkFX4LkGZ8LkGgvLkJTrLkMXoLkSToLkSU8LkSZ8LkoOYLl3FfLl3MgLmAZrLmCbrLmGgrLmHboLmJnoLmJn3LmLfoLmLhrLmSToLnAX6LnAb6LnCZ3LnCb3LnDTvLnDb8LnFl3LnGnrLnHZvLnHgvLnITvLnJT8LnJX8LnJlvLnLf8LnLg6LnLhvLnLnoLnMXrLnMg8LnQlvLnSbrLnrAgLnrAnLnrDbLnrFkLnrJdLnrMULnrOYLnrSTLnvAnLnvDULnvHgLnvOYLnvOnLn3GgLn4DULn4JTLn4JnMTAZoMTAloMTDb8MTFT8MTJnoMTJnrMTLZrMTLhrMTLkvMTMX8MTRTrMToATMTrDnMTrOnMT3JnMT4MnMT8FUMT8FaMT8FlMT8GTMT8GbMT8GnMT8HnMT8JTMT8JbMT8OTMUCl8MUJTrMUJU8MUMX8MURTrMUSToMXAX6MXAb6MXCZoMXFXrMXHXrMXLgvMXOgoMXrAUMXrAnMXrHgMXrJYMXrJnMXrMTMXrMgMXrOYMXrSZMXrSgMXvDUMXvOTMX3JgMX3OTMX4JnMX8DbMX8FnMX8HbMX8HgMX8HnMX8LbMX8MnMX8OnMYAb8MYGboMYHTvMYHX4MYLTrMYLnvMYMToMYOgvMYRg3MYSTrMbAToMbAXrMbAl3MbAn8MbGZ8MbJT8MbJXrMbMXvMbMX8MbMnoMbrMUMb8AfMb8FbMb8FkMcJXoMeLnrMgFl3MgGTvMgGXoMgGgrMgGnrMgHT8MgHZrMgJnoMgLnrMgLnvMgMT8MgQUoMgrHnMgvAnMg8HgMg8JYMg8LfMloJnMl8ATMl8AXMl8JYMnAToMnAT4MnAZ8MnAl3MnAl4MnCl8MnHT8MnHg8MnJnoMnLZoMnLhrMnMXoMnMX3MnMnrMnOgvMnrFbMnrFfMnrFnMnrNTMnvJXNTMl8OTCT3OTFV8OTFn3OTHZvOTJXrOTOl3OT3ATOT3JUOT3LZOT3LeOT3MbOT8ATOT8AbOT8AgOT8MbOUCXvOUMX3OXHXvOXLl3OXrMUOXvDbOX6NUOX8JbOYFZoOYLbrOYLkoOYMg8OYSX3ObHTrObHT4ObJgrObLhrObMX3ObOX8Ob8FnOeAlrOeJT8OeJXrOeJnrOeLToOeMb8OgJXoOgLXoOgMnrOgOXrOgOloOgoAgOgoJbOgoMYOgoSTOg8AbOjLX4OjMnoOjSV8OnLVoOnrAgOn3DUPXQlrPXvFXPbvFTPdAT3PlFn3PnvFbQTLn4QToAgQToMTQULV8QURg8QUoJnQXCXvQbFbrQb8AaQb8AcQb8FbQb8MYQb8ScQeAlrQeLhrQjAn3QlFXoQloJgQloSnRTLnvRTrGURTrJTRUJZrRUoJlRUrQnRZrLmRZrMnRZrSnRZ8ATRZ8JbRZ8ScRbMT8RbST3RfGZrRfMX8RfMgrRfSZrRnAbrRnGT8RnvJgRnvLfRnvMTRn8AaSTClvSTJgrSTOXrSTRg3STRnvSToAcSToAfSToAnSToHnSToLjSToMTSTrAaSTrEUST3BYST8AgST8LmSUAZvSUAgrSUDT4SUDT8SUGgvSUJXoSUJXvSULTrSU8JTSU8LjSV8AnSV8JgSXFToSXLf8SYvAnSZrDUSZrMUSZrMnSZ8HgSZ8JTSZ8JgSZ8MYSZ8QUSaQUoSbCT3SbHToSbQYvSbSl4SboJnSbvFbSb8HbSb8JgSb8OTScGZrScHgrScJTvScMT8ScSToScoHbScrMTScvAnSeAZrSeAcrSeHboSeJUoSeLhrSeMT8SeMXrSe6JgSgHTrSkJnoSkLnvSk8CUSlFl3SlrSnSl8GnSmAboSmGT8SmJU8",
+    "ATLnDlATrAZoATrJX4ATrMT8ATrMX4ATrRTrATvDl8ATvJUoATvMl8AT3AToAT3MX8AT8CT3AT8DT8AT8HZrAT8HgoAUAgFnAUCTFnAXoMX8AXrAT8AXrGgvAXrJXvAXrOgoAXvLl3AZvAgoAZvFbrAZvJXoAZvJl8AZvJn3AZvMX8AZvSbrAZ8FZoAZ8LZ8AZ8MU8AZ8OTvAZ8SV8AZ8SX3AbAgFZAboJnoAbvGboAb8ATrAb8AZoAb8AgrAb8Al4Ab8Db8Ab8JnoAb8LX4Ab8LZrAb8LhrAb8MT8Ab8OUoAb8Qb8Ab8ST8AcrAUoAcrAc8AcrCZ3AcrFT3AcrFZrAcrJl4AcrJn3AcrMX3AcrOTvAc8AZ8Ac8MT8AfAcJXAgoFn4AgoGgvAgoGnrAgoLc8AgoMXoAgrLnrAkrSZ8AlFXCTAloHboAlrHbrAlrLhrAlrLkoAl3CZrAl3LUoAl3LZrAnrAl4AnrMT8An3HT4BT3IToBX4MnvBb!Ln$CTGXMnCToLZ4CTrHT8CT3JTrCT3RZrCT#GTvCU6GgvCU8Db8CU8GZrCU8HT8CboLl3CbrGgrCbrMU8Cb8DT3Cb8GnrCb8LX4Cb8MT8Cb8ObrCgrGgvCgrKX4Cl8FZoDTrAbvDTrDboDTrGT6DTrJgrDTrMX3DTrRZrDTrRg8DTvAVvDTvFZoDT3DT8DT3Ln3DT4HZrDT4MT8DT8AlrDT8MT8DUAkGbDUDbJnDYLnQlDbDUOYDbMTAnDbMXSnDboAT3DboFn4DboLnvDj6JTrGTCgFTGTGgFnGTJTMnGTLnPlGToJT8GTrCT3GTrLVoGTrLnvGTrMX3GTrMboGTvKl3GZClFnGZrDT3GZ8DTrGZ8FZ8GZ8MXvGZ8On8GZ8ST3GbCnQXGbMbFnGboFboGboJg3GboMXoGb3JTvGb3JboGb3Mn6Gb3Qb8GgDXLjGgMnAUGgrDloGgrHX4GgrSToGgvAXrGgvAZvGgvFbrGgvLl3GgvMnvGnDnLXGnrATrGnrMboGnuLl3HTATMnHTAgCnHTCTCTHTrGTvHTrHTvHTrJX8HTrLl8HTrMT8HTrMgoHTrOTrHTuOn3HTvAZrHTvDTvHTvGboHTvJU8HTvLl3HTvMXrHTvQb4HT4GT6HT4JT8HT4Jb#HT8Al3HT8GZrHT8GgrHT8HX4HT8Jb8HT8JnoHT8LTrHT8LgvHT8SToHT8SV8HUoJUoHUoJX8HUoLnrHXrLZoHXvAl3HX3LnrHX4FkvHX4LhrHX4MXoHX4OnoHZrAZ8HZrDb8HZrGZ8HZrJnrHZvGZ8HZvLnvHZ8JnvHZ8LhrHbCXJlHbMTAnHboJl4HbpLl3HbrJX8HbrLnrHbrMnvHbvRYrHgoSTrHgrFV8HgrGZ8HgrJXoHgrRnvHgvBb!HgvGTrHgvHX4HgvHn!HgvLTrHgvSU8HnDnLbHnFbJbHnvDn8Hn6GgvHn!BTvJTCTLnJTQgFnJTrAnvJTrLX4JTrOUoJTvFn3JTvLnrJTvNToJT3AgoJT3Jn4JT3LhvJT3ObrJT8AcrJT8Al3JT8JT8JT8JnoJT8LX4JT8LnrJT8MX3JT8Rg3JT8Sc8JUoBTvJU8AToJU8GZ8JU8GgvJU8JTrJU8JXrJU8JnrJU8LnvJU8ScvJXHnJlJXrGgvJXrJU8JXrLhrJXrMT8JXrMXrJXrQUoJXvCTvJXvGZ8JXvGgrJXvQT8JX8Ab8JX8DT8JX8GZ8JX8HZvJX8LnrJX8MT8JX8MXoJX8MnvJX8ST3JYGnCTJbAkGbJbCTAnJbLTAcJboDT3JboLb6JbrAnvJbrCn3JbrDl8JbrGboJbrIZoJbrJnvJbrMnvJbrQb4Jb8RZrJeAbAnJgJnFbJgScAnJgrATrJgvHZ8JgvMn4JlJlFbJlLiQXJlLjOnJlRbOlJlvNXoJlvRl3Jl4AcrJl8AUoJl8MnrJnFnMlJnHgGbJnoDT8JnoFV8JnoGgvJnoIT8JnoQToJnoRg3JnrCZ3JnrGgrJnrHTvJnrLf8JnrOX8JnvAT3JnvFZoJnvGT8JnvJl4JnvMT8JnvMX8JnvOXrJnvPX6JnvSX3JnvSZrJn3MT8Jn3MX8Jn3RTrLTATKnLTJnLTLTMXKnLTRTQlLToGb8LTrAZ8LTrCZ8LTrDb8LTrHT8LT3PX6LT4FZoLT$CTvLT$GgrLUvHX3LVoATrLVoAgoLVoJboLVoMX3LVoRg3LV8CZ3LV8FZoLV8GTvLXrDXoLXrFbrLXvAgvLXvFlrLXvLl3LXvRn6LX4Mb8LX8GT8LYCXMnLYrMnrLZoSTvLZrAZvLZrAloLZrFToLZrJXvLZrJboLZrJl4LZrLnrLZrMT8LZrOgvLZrRnvLZrST4LZvMX8LZvSlvLZ8AgoLZ8CT3LZ8JT8LZ8LV8LZ8LZoLZ8Lg8LZ8SV8LZ8SbrLZ$HT8LZ$Mn4La6CTvLbFbMnLbRYFTLbSnFZLboJT8LbrAT9LbrGb3LbrQb8LcrJX8LcrMXrLerHTvLerJbrLerNboLgrDb8LgrGZ8LgrHTrLgrMXrLgrSU8LgvJTrLgvLl3Lg6Ll3LhrLnrLhrMT8LhvAl4LiLnQXLkoAgrLkoJT8LkoJn4LlrSU8Ll3FZoLl3HTrLl3JX8Ll3JnoLl3LToLmLeFbLnDUFbLnLVAnLnrATrLnrAZoLnrAb8LnrAlrLnrGgvLnrJU8LnrLZrLnrLhrLnrMb8LnrOXrLnrSZ8LnvAb4LnvDTrLnvDl8LnvHTrLnvHbrLnvJT8LnvJU8LnvJbrLnvLhvLnvMX8LnvMb8LnvNnoLnvSU8Ln3Al3Ln4FZoLn4GT6Ln4JgvLn4LhrLn4MT8Ln4SToMToCZrMToJX8MToLX4MToLf8MToRg3MTrEloMTvGb6MT3BTrMT3Lb6MT8AcrMT8AgrMT8GZrMT8JnoMT8LnrMT8MX3MUOUAnMXAbFnMXoAloMXoJX8MXoLf8MXoLl8MXrAb8MXrDTvMXrGT8MXrGgrMXrHTrMXrLf8MXrMU8MXrOXvMXrQb8MXvGT8MXvHTrMXvLVoMX3AX3MX3Jn3MX3LhrMX3MX3MX4AlrMX4OboMX8GTvMX8GZrMX8GgrMX8JT8MX8JX8MX8LhrMX8MT8MYDUFbMYMgDbMbGnFfMbvLX4MbvLl3Mb8Mb8Mb8ST4MgGXCnMg8ATrMg8AgoMg8CZrMg8DTrMg8DboMg8HTrMg8JgrMg8LT8MloJXoMl8AhrMl8JT8MnLgAUMnoJXrMnoLX4MnoLhrMnoMT8MnrAl4MnrDb8MnrOTvMnrOgvMnrQb8MnrSU8MnvGgrMnvHZ8Mn3MToMn4DTrMn4LTrMn4Mg8NnBXAnOTFTFnOToAToOTrGgvOTrJX8OT3JXoOT6MTrOT8GgrOT8HTpOT8MToOUoHT8OUoJT8OUoLn3OXrAgoOXrDg8OXrMT8OXvSToOX6CTvOX8CZrOX8OgrOb6HgvOb8AToOb8MT8OcvLZ8OgvAlrOgvHTvOgvJTrOgvJnrOgvLZrOgvLn4OgvMT8OgvRTrOg8AZoOg8DbvOnrOXoOnvJn4OnvLhvOnvRTrOn3GgoOn3JnvOn6JbvOn8OTrPTGYFTPbBnFnPbGnDnPgDYQTPlrAnvPlrETvPlrLnvPlrMXvPlvFX4QTMTAnQTrJU8QYCnJlQYJlQlQbGTQbQb8JnrQb8LZoQb8LnvQb8MT8Qb8Ml8Qb8ST4QloAl4QloHZvQloJX8QloMn8QnJZOlRTrAZvRTrDTrRTvJn4RTvLhvRT4Jb8RZrAZrRZ8AkrRZ8JU8RZ8LV8RZ8LnvRbJlQXRg3GboRg3MnvRg8AZ8Rg8JboRg8Jl4RnLTCbRnvFl3RnvQb8SToAl4SToCZrSToFZoSToHXrSToJU8SToJgvSToJl4SToLhrSToMX3STrAlvSTrCT9STrCgrSTrGgrSTrHXrSTrHboSTrJnoSTrNboSTvLnrST4AZoST8Ab8ST8JT8SUoJn3SU6HZ#SU6JTvSU8Db8SU8HboSU8LgrSV8JT8SZrAcrSZrAl3SZrJT8SZrJnvSZrMT8SZvLUoSZ4FZoSZ8JnoSZ8RZrScoLnrScoMT8ScoMX8ScrAT4ScrAZ8ScrLZ8ScrLkvScvDb8ScvLf8ScvNToSgrFZrShvKnrSloHUoSloLnrSlrMXoSl8HgrSmrJUoSn3BX6",
+    "ATFlOn3ATLgrDYAT4MTAnAT8LTMnAYJnRTrAbGgJnrAbLV8LnAbvNTAnAeFbLg3AgOYMXoAlQbFboAnDboAfAnJgoJTBToDgAnBUJbAl3BboDUAnCTDlvLnCTFTrSnCYoQTLnDTwAbAnDUDTrSnDUHgHgrDX8LXFnDbJXAcrETvLTLnGTFTQbrGTMnGToGT3DUFbGUJlPX3GbQg8LnGboJbFnGb3GgAYGgAg8ScGgMbAXrGgvAbAnGnJTLnvGnvATFgHTDT6ATHTrDlJnHYLnMn8HZrSbJTHZ8LTFnHbFTJUoHgSeMT8HgrLjAnHgvAbAnHlFUrDlHnDgvAnHnHTFT3HnQTGnrJTAaMXvJTGbCn3JTOgrAnJXvAXMnJbMg8SnJbMnRg3Jb8LTMnJnAl3OnJnGYrQlJnJlQY3LTDlCn3LTJjLg3LTLgvFXLTMg3GTLV8HUOgLXFZLg3LXNXrMnLX8QXFnLX9AlMYLYLXPXrLZAbJU8LZDUJU8LZMXrSnLZ$AgFnLaPXrDULbFYrMnLbMn8LXLboJgJgLeFbLg3LgLZrSnLgOYAgoLhrRnJlLkCTrSnLkOnLhrLnFX%AYLnFZoJXLnHTvJbLnLloAbMTATLf8MTHgJn3MTMXrAXMT3MTFnMUITvFnMXFX%AYMXMXvFbMXrFTDbMYAcMX3MbLf8SnMb8JbFnMgMXrMTMgvAXFnMgvGgCmMnAloSnMnFnJTrOXvMXSnOX8HTMnObJT8ScObLZFl3ObMXCZoPTLgrQXPUFnoQXPU3RXJlPX3RkQXPbrJXQlPlrJbFnQUAhrDbQXGnCXvQYLnHlvQbLfLnvRTOgvJbRXJYrQlRYLnrQlRbLnrQlRlFT8JlRlFnrQXSTClCn3STHTrAnSTLZQlrSTMnGTrSToHgGbSTrGTDnSTvGXCnST3HgFbSU3HXAXSbAnJn3SbFT8LnScLfLnv",
+    "AT3JgJX8AT8FZoSnAT8JgFV8AT8LhrDbAZ8JT8DbAb8GgLhrAb8SkLnvAe8MT8SnAlMYJXLVAl3GYDTvAl3LfLnvBUDTvLl3CTOn3HTrCT3DUGgrCU8MT8AbCbFTrJUoCgrDb8MTDTLV8JX8DTLnLXQlDT8LZrSnDUQb8FZ8DUST4JnvDb8ScOUoDj6GbJl4GTLfCYMlGToAXvFnGboAXvLnGgAcrJn3GgvFnSToGnLf8JnvGn#HTDToHTLnFXJlHTvATFToHTvHTDToHTvMTAgoHT3STClvHT4AlFl6HT8HTDToHUoDgJTrHUoScMX3HbRZrMXoHboJg8LTHgDb8JTrHgMToLf8HgvLnLnoHnHn3HT4Hn6MgvAnJTJU8ScvJT3AaQT8JT8HTrAnJXrRg8AnJbAloMXoJbrATFToJbvMnoSnJgDb6GgvJgDb8MXoJgSX3JU8JguATFToJlPYLnQlJlQkDnLbJlQlFYJlJl8Lf8OTJnCTFnLbJnLTHXMnJnLXGXCnJnoFfRg3JnrMYRg3Jn3HgFl3KT8Dg8LnLTRlFnPTLTvPbLbvLVoSbrCZLXMY6HT3LXNU7DlrLXNXDTATLX8DX8LnLZDb8JU8LZMnoLhrLZSToJU8LZrLaLnrLZvJn3SnLZ8LhrSnLaJnoMT8LbFlrHTvLbrFTLnrLbvATLlvLb6OTFn3LcLnJZOlLeAT6Mn4LeJT3ObrLg6LXFlrLhrJg8LnLhvDlPX4LhvLfLnvLj6JTFT3LnFbrMXoLnQluCTvLnrQXCY6LnvLfLnvLnvMgLnvLnvSeLf8MTMbrJn3MT3JgST3MT8AnATrMT8LULnrMUMToCZrMUScvLf8MXoDT8SnMX6ATFToMX8AXMT8MX8FkMT8MX8HTrDUMX8ScoSnMYJT6CTvMgAcrMXoMg8SToAfMlvAXLg3MnFl3AnvOT3AnFl3OUoATHT8OU3RnLXrOXrOXrSnObPbvFn6Og8HgrSnOg8OX8DbPTvAgoJgPU3RYLnrPXrDnJZrPb8CTGgvPlrLTDlvPlvFUJnoQUvFXrQlQeMnoAl3QlrQlrSnRTFTrJUoSTDlLiLXSTFg6HT3STJgoMn4STrFTJTrSTrLZFl3ST4FnMXoSUrDlHUoScvHTvSnSfLkvMXo",
+    "AUoAcrMXoAZ8HboAg8AbOg6ATFgAg8AloMXoAl3AT8JTrAl8MX8MXoCT3SToJU8Cl8Db8MXoDT8HgrATrDboOT8MXoGTOTrATMnGT8LhrAZ8GnvFnGnQXHToGgvAcrHTvAXvLl3HbrAZoMXoHgBlFXLg3HgMnFXrSnHgrSb8JUoHn6HT8LgvITvATrJUoJUoLZrRnvJU8HT8Jb8JXvFX8QT8JXvLToJTrJYrQnGnQXJgrJnoATrJnoJU8ScvJnvMnvMXoLTCTLgrJXLTJlRTvQlLbRnJlQYvLbrMb8LnvLbvFn3RnoLdCVSTGZrLeSTvGXCnLg3MnoLn3MToLlrETvMT8SToAl3MbrDU6GTvMb8LX4LhrPlrLXGXCnSToLf8Rg3STrDb8LTrSTvLTHXMnSb3RYLnMnSgOg6ATFg",
+    "HUDlGnrQXrJTrHgLnrAcJYMb8DULc8LTvFgGnCk3Mg8JbAnLX4QYvFYHnMXrRUoJnGnvFnRlvFTJlQnoSTrBXHXrLYSUJgLfoMT8Se8DTrHbDb",
+    "AbDl8SToJU8An3RbAb8ST8DUSTrGnrAgoLbFU6Db8LTrMg8AaHT8Jb8ObDl8SToJU8Pb3RlvFYoJl"
+];
+const codes = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+function getHangul(code) {
+    if (code >= 40) {
+        code = code + 168 - 40;
+    }
+    else if (code >= 19) {
+        code = code + 97 - 19;
+    }
+    return toUtf8String([225, (code >> 6) + 132, (code & 0x3f) + 128]);
+}
+let wordlist$5 = null;
+function loadWords$5(lang) {
+    if (wordlist$5 != null) {
+        return;
+    }
+    wordlist$5 = [];
+    data$1.forEach((data, length) => {
+        length += 4;
+        for (let i = 0; i < data.length; i += length) {
+            let word = "";
+            for (let j = 0; j < length; j++) {
+                word += getHangul(codes.indexOf(data[i + j]));
+            }
+            wordlist$5.push(word);
+        }
+    });
+    wordlist$5.sort();
+    // Verify the computed list matches the official list
+    /* istanbul ignore if */
+    if (Wordlist.check(lang) !== "0xf9eddeace9c5d3da9c93cf7d3cd38f6a13ed3affb933259ae865714e8a3ae71a") {
+        wordlist$5 = null;
+        throw new Error("BIP39 Wordlist for ko (Korean) FAILED");
+    }
+}
+class LangKo extends Wordlist {
+    constructor() {
+        super("ko");
+    }
+    getWord(index) {
+        loadWords$5(this);
+        return wordlist$5[index];
+    }
+    getWordIndex(word) {
+        loadWords$5(this);
+        return wordlist$5.indexOf(word);
+    }
+}
+const langKo = new LangKo();
+Wordlist.register(langKo);
+
+"use strict";
+const words$4 = "AbacoAbbaglioAbbinatoAbeteAbissoAbolireAbrasivoAbrogatoAccadereAccennoAccusatoAcetoneAchilleAcidoAcquaAcreAcrilicoAcrobataAcutoAdagioAddebitoAddomeAdeguatoAderireAdipeAdottareAdulareAffabileAffettoAffissoAffrantoAforismaAfosoAfricanoAgaveAgenteAgevoleAggancioAgireAgitareAgonismoAgricoloAgrumetoAguzzoAlabardaAlatoAlbatroAlberatoAlboAlbumeAlceAlcolicoAlettoneAlfaAlgebraAlianteAlibiAlimentoAllagatoAllegroAllievoAllodolaAllusivoAlmenoAlogenoAlpacaAlpestreAltalenaAlternoAlticcioAltroveAlunnoAlveoloAlzareAmalgamaAmanitaAmarenaAmbitoAmbratoAmebaAmericaAmetistaAmicoAmmassoAmmendaAmmirareAmmonitoAmoreAmpioAmpliareAmuletoAnacardoAnagrafeAnalistaAnarchiaAnatraAncaAncellaAncoraAndareAndreaAnelloAngeloAngolareAngustoAnimaAnnegareAnnidatoAnnoAnnuncioAnonimoAnticipoAnziApaticoAperturaApodeApparireAppetitoAppoggioApprodoAppuntoAprileArabicaArachideAragostaAraldicaArancioAraturaArazzoArbitroArchivioArditoArenileArgentoArgineArgutoAriaArmoniaArneseArredatoArringaArrostoArsenicoArsoArteficeArzilloAsciuttoAscoltoAsepsiAsetticoAsfaltoAsinoAsolaAspiratoAsproAssaggioAsseAssolutoAssurdoAstaAstenutoAsticeAstrattoAtavicoAteismoAtomicoAtonoAttesaAttivareAttornoAttritoAttualeAusilioAustriaAutistaAutonomoAutunnoAvanzatoAvereAvvenireAvvisoAvvolgereAzioneAzotoAzzimoAzzurroBabeleBaccanoBacinoBacoBadessaBadilataBagnatoBaitaBalconeBaldoBalenaBallataBalzanoBambinoBandireBaraondaBarbaroBarcaBaritonoBarlumeBaroccoBasilicoBassoBatostaBattutoBauleBavaBavosaBeccoBeffaBelgioBelvaBendaBenevoleBenignoBenzinaBereBerlinaBetaBibitaBiciBidoneBifidoBigaBilanciaBimboBinocoloBiologoBipedeBipolareBirbanteBirraBiscottoBisestoBisnonnoBisonteBisturiBizzarroBlandoBlattaBollitoBonificoBordoBoscoBotanicoBottinoBozzoloBraccioBradipoBramaBrancaBravuraBretellaBrevettoBrezzaBrigliaBrillanteBrindareBroccoloBrodoBronzinaBrulloBrunoBubboneBucaBudinoBuffoneBuioBulboBuonoBurloneBurrascaBussolaBustaCadettoCaducoCalamaroCalcoloCalesseCalibroCalmoCaloriaCambusaCamerataCamiciaCamminoCamolaCampaleCanapaCandelaCaneCaninoCanottoCantinaCapaceCapelloCapitoloCapogiroCapperoCapraCapsulaCarapaceCarcassaCardoCarismaCarovanaCarrettoCartolinaCasaccioCascataCasermaCasoCassoneCastelloCasualeCatastaCatenaCatrameCautoCavilloCedibileCedrataCefaloCelebreCellulareCenaCenoneCentesimoCeramicaCercareCertoCerumeCervelloCesoiaCespoCetoChelaChiaroChiccaChiedereChimeraChinaChirurgoChitarraCiaoCiclismoCifrareCignoCilindroCiottoloCircaCirrosiCitricoCittadinoCiuffoCivettaCivileClassicoClinicaCloroCoccoCodardoCodiceCoerenteCognomeCollareColmatoColoreColposoColtivatoColzaComaCometaCommandoComodoComputerComuneConcisoCondurreConfermaCongelareConiugeConnessoConoscereConsumoContinuoConvegnoCopertoCopioneCoppiaCopricapoCorazzaCordataCoricatoCorniceCorollaCorpoCorredoCorsiaCorteseCosmicoCostanteCotturaCovatoCratereCravattaCreatoCredereCremosoCrescitaCretaCricetoCrinaleCrisiCriticoCroceCronacaCrostataCrucialeCruscaCucireCuculoCuginoCullatoCupolaCuratoreCursoreCurvoCuscinoCustodeDadoDainoDalmataDamerinoDanielaDannosoDanzareDatatoDavantiDavveroDebuttoDecennioDecisoDeclinoDecolloDecretoDedicatoDefinitoDeformeDegnoDelegareDelfinoDelirioDeltaDemenzaDenotatoDentroDepositoDerapataDerivareDerogaDescrittoDesertoDesiderioDesumereDetersivoDevotoDiametroDicembreDiedroDifesoDiffusoDigerireDigitaleDiluvioDinamicoDinnanziDipintoDiplomaDipoloDiradareDireDirottoDirupoDisagioDiscretoDisfareDisgeloDispostoDistanzaDisumanoDitoDivanoDiveltoDividereDivoratoDobloneDocenteDoganaleDogmaDolceDomatoDomenicaDominareDondoloDonoDormireDoteDottoreDovutoDozzinaDragoDruidoDubbioDubitareDucaleDunaDuomoDupliceDuraturoEbanoEccessoEccoEclissiEconomiaEderaEdicolaEdileEditoriaEducareEgemoniaEgliEgoismoEgregioElaboratoElargireEleganteElencatoElettoElevareElficoElicaElmoElsaElusoEmanatoEmblemaEmessoEmiroEmotivoEmozioneEmpiricoEmuloEndemicoEnduroEnergiaEnfasiEnotecaEntrareEnzimaEpatiteEpilogoEpisodioEpocaleEppureEquatoreErarioErbaErbosoEredeEremitaErigereErmeticoEroeErosivoErranteEsagonoEsameEsanimeEsaudireEscaEsempioEsercitoEsibitoEsigenteEsistereEsitoEsofagoEsortatoEsosoEspansoEspressoEssenzaEssoEstesoEstimareEstoniaEstrosoEsultareEtilicoEtnicoEtruscoEttoEuclideoEuropaEvasoEvidenzaEvitatoEvolutoEvvivaFabbricaFaccendaFachiroFalcoFamigliaFanaleFanfaraFangoFantasmaFareFarfallaFarinosoFarmacoFasciaFastosoFasulloFaticareFatoFavolosoFebbreFecolaFedeFegatoFelpaFeltroFemminaFendereFenomenoFermentoFerroFertileFessuraFestivoFettaFeudoFiabaFiduciaFifaFiguratoFiloFinanzaFinestraFinireFioreFiscaleFisicoFiumeFlaconeFlamencoFleboFlemmaFloridoFluenteFluoroFobicoFocacciaFocosoFoderatoFoglioFolataFolcloreFolgoreFondenteFoneticoFoniaFontanaForbitoForchettaForestaFormicaFornaioForoFortezzaForzareFosfatoFossoFracassoFranaFrassinoFratelloFreccettaFrenataFrescoFrigoFrollinoFrondeFrugaleFruttaFucilataFucsiaFuggenteFulmineFulvoFumanteFumettoFumosoFuneFunzioneFuocoFurboFurgoneFuroreFusoFutileGabbianoGaffeGalateoGallinaGaloppoGamberoGammaGaranziaGarboGarofanoGarzoneGasdottoGasolioGastricoGattoGaudioGazeboGazzellaGecoGelatinaGelsoGemelloGemmatoGeneGenitoreGennaioGenotipoGergoGhepardoGhiaccioGhisaGialloGildaGineproGiocareGioielloGiornoGioveGiratoGironeGittataGiudizioGiuratoGiustoGlobuloGlutineGnomoGobbaGolfGomitoGommoneGonfioGonnaGovernoGracileGradoGraficoGrammoGrandeGrattareGravosoGraziaGrecaGreggeGrifoneGrigioGrinzaGrottaGruppoGuadagnoGuaioGuantoGuardareGufoGuidareIbernatoIconaIdenticoIdillioIdoloIdraIdricoIdrogenoIgieneIgnaroIgnoratoIlareIllesoIllogicoIlludereImballoImbevutoImboccoImbutoImmaneImmersoImmolatoImpaccoImpetoImpiegoImportoImprontaInalareInarcareInattivoIncantoIncendioInchinoIncisivoInclusoIncontroIncrocioIncuboIndagineIndiaIndoleIneditoInfattiInfilareInflittoIngaggioIngegnoIngleseIngordoIngrossoInnescoInodoreInoltrareInondatoInsanoInsettoInsiemeInsonniaInsulinaIntasatoInteroIntonacoIntuitoInumidireInvalidoInveceInvitoIperboleIpnoticoIpotesiIppicaIrideIrlandaIronicoIrrigatoIrrorareIsolatoIsotopoIstericoIstitutoIstriceItaliaIterareLabbroLabirintoLaccaLaceratoLacrimaLacunaLaddoveLagoLampoLancettaLanternaLardosoLargaLaringeLastraLatenzaLatinoLattugaLavagnaLavoroLegaleLeggeroLemboLentezzaLenzaLeoneLepreLesivoLessatoLestoLetteraleLevaLevigatoLiberoLidoLievitoLillaLimaturaLimitareLimpidoLineareLinguaLiquidoLiraLiricaLiscaLiteLitigioLivreaLocandaLodeLogicaLombareLondraLongevoLoquaceLorenzoLotoLotteriaLuceLucidatoLumacaLuminosoLungoLupoLuppoloLusingaLussoLuttoMacabroMacchinaMaceroMacinatoMadamaMagicoMagliaMagneteMagroMaiolicaMalafedeMalgradoMalintesoMalsanoMaltoMalumoreManaManciaMandorlaMangiareManifestoMannaroManovraMansardaMantideManubrioMappaMaratonaMarcireMarettaMarmoMarsupioMascheraMassaiaMastinoMaterassoMatricolaMattoneMaturoMazurcaMeandroMeccanicoMecenateMedesimoMeditareMegaMelassaMelisMelodiaMeningeMenoMensolaMercurioMerendaMerloMeschinoMeseMessereMestoloMetalloMetodoMettereMiagolareMicaMicelioMicheleMicroboMidolloMieleMiglioreMilanoMiliteMimosaMineraleMiniMinoreMirinoMirtilloMiscelaMissivaMistoMisurareMitezzaMitigareMitraMittenteMnemonicoModelloModificaModuloMoganoMogioMoleMolossoMonasteroMoncoMondinaMonetarioMonileMonotonoMonsoneMontatoMonvisoMoraMordereMorsicatoMostroMotivatoMotosegaMottoMovenzaMovimentoMozzoMuccaMucosaMuffaMughettoMugnaioMulattoMulinelloMultiploMummiaMuntoMuovereMuraleMusaMuscoloMusicaMutevoleMutoNababboNaftaNanometroNarcisoNariceNarratoNascereNastrareNaturaleNauticaNaviglioNebulosaNecrosiNegativoNegozioNemmenoNeofitaNerettoNervoNessunoNettunoNeutraleNeveNevroticoNicchiaNinfaNitidoNobileNocivoNodoNomeNominaNordicoNormaleNorvegeseNostranoNotareNotiziaNotturnoNovellaNucleoNullaNumeroNuovoNutrireNuvolaNuzialeOasiObbedireObbligoObeliscoOblioOboloObsoletoOccasioneOcchioOccidenteOccorrereOccultareOcraOculatoOdiernoOdorareOffertaOffrireOffuscatoOggettoOggiOgnunoOlandeseOlfattoOliatoOlivaOlogrammaOltreOmaggioOmbelicoOmbraOmegaOmissioneOndosoOnereOniceOnnivoroOnorevoleOntaOperatoOpinioneOppostoOracoloOrafoOrdineOrecchinoOreficeOrfanoOrganicoOrigineOrizzonteOrmaOrmeggioOrnativoOrologioOrrendoOrribileOrtensiaOrticaOrzataOrzoOsareOscurareOsmosiOspedaleOspiteOssaOssidareOstacoloOsteOtiteOtreOttagonoOttimoOttobreOvaleOvestOvinoOviparoOvocitoOvunqueOvviareOzioPacchettoPacePacificoPadellaPadronePaesePagaPaginaPalazzinaPalesarePallidoPaloPaludePandoroPannelloPaoloPaonazzoPapricaParabolaParcellaParerePargoloPariParlatoParolaPartireParvenzaParzialePassivoPasticcaPataccaPatologiaPattumePavonePeccatoPedalarePedonalePeggioPelosoPenarePendicePenisolaPennutoPenombraPensarePentolaPepePepitaPerbenePercorsoPerdonatoPerforarePergamenaPeriodoPermessoPernoPerplessoPersuasoPertugioPervasoPesatorePesistaPesoPestiferoPetaloPettinePetulantePezzoPiacerePiantaPiattinoPiccinoPicozzaPiegaPietraPifferoPigiamaPigolioPigroPilaPiliferoPillolaPilotaPimpantePinetaPinnaPinoloPioggiaPiomboPiramidePireticoPiritePirolisiPitonePizzicoPlaceboPlanarePlasmaPlatanoPlenarioPochezzaPoderosoPodismoPoesiaPoggiarePolentaPoligonoPollicePolmonitePolpettaPolsoPoltronaPolverePomicePomodoroPontePopolosoPorfidoPorosoPorporaPorrePortataPosaPositivoPossessoPostulatoPotassioPoterePranzoPrassiPraticaPreclusoPredicaPrefissoPregiatoPrelievoPremerePrenotarePreparatoPresenzaPretestoPrevalsoPrimaPrincipePrivatoProblemaProcuraProdurreProfumoProgettoProlungaPromessaPronomePropostaProrogaProtesoProvaPrudentePrugnaPruritoPsichePubblicoPudicaPugilatoPugnoPulcePulitoPulsantePuntarePupazzoPupillaPuroQuadroQualcosaQuasiQuerelaQuotaRaccoltoRaddoppioRadicaleRadunatoRafficaRagazzoRagioneRagnoRamarroRamingoRamoRandagioRantolareRapatoRapinaRappresoRasaturaRaschiatoRasenteRassegnaRastrelloRataRavvedutoRealeRecepireRecintoReclutaReconditoRecuperoRedditoRedimereRegalatoRegistroRegolaRegressoRelazioneRemareRemotoRennaReplicaReprimereReputareResaResidenteResponsoRestauroReteRetinaRetoricaRettificaRevocatoRiassuntoRibadireRibelleRibrezzoRicaricaRiccoRicevereRiciclatoRicordoRicredutoRidicoloRidurreRifasareRiflessoRiformaRifugioRigareRigettatoRighelloRilassatoRilevatoRimanereRimbalzoRimedioRimorchioRinascitaRincaroRinforzoRinnovoRinomatoRinsavitoRintoccoRinunciaRinvenireRiparatoRipetutoRipienoRiportareRipresaRipulireRisataRischioRiservaRisibileRisoRispettoRistoroRisultatoRisvoltoRitardoRitegnoRitmicoRitrovoRiunioneRivaRiversoRivincitaRivoltoRizomaRobaRoboticoRobustoRocciaRocoRodaggioRodereRoditoreRogitoRollioRomanticoRompereRonzioRosolareRospoRotanteRotondoRotulaRovescioRubizzoRubricaRugaRullinoRumineRumorosoRuoloRupeRussareRusticoSabatoSabbiareSabotatoSagomaSalassoSaldaturaSalgemmaSalivareSalmoneSaloneSaltareSalutoSalvoSapereSapidoSaporitoSaracenoSarcasmoSartoSassosoSatelliteSatiraSatolloSaturnoSavanaSavioSaziatoSbadiglioSbalzoSbancatoSbarraSbattereSbavareSbendareSbirciareSbloccatoSbocciatoSbrinareSbruffoneSbuffareScabrosoScadenzaScalaScambiareScandaloScapolaScarsoScatenareScavatoSceltoScenicoScettroSchedaSchienaSciarpaScienzaScindereScippoSciroppoScivoloSclerareScodellaScolpitoScompartoSconfortoScoprireScortaScossoneScozzeseScribaScrollareScrutinioScuderiaScultoreScuolaScuroScusareSdebitareSdoganareSeccaturaSecondoSedanoSeggiolaSegnalatoSegregatoSeguitoSelciatoSelettivoSellaSelvaggioSemaforoSembrareSemeSeminatoSempreSensoSentireSepoltoSequenzaSerataSerbatoSerenoSerioSerpenteSerraglioServireSestinaSetolaSettimanaSfaceloSfaldareSfamatoSfarzosoSfaticatoSferaSfidaSfilatoSfingeSfocatoSfoderareSfogoSfoltireSforzatoSfrattoSfruttatoSfuggitoSfumareSfusoSgabelloSgarbatoSgonfiareSgorbioSgrassatoSguardoSibiloSiccomeSierraSiglaSignoreSilenzioSillabaSimboloSimpaticoSimulatoSinfoniaSingoloSinistroSinoSintesiSinusoideSiparioSismaSistoleSituatoSlittaSlogaturaSlovenoSmarritoSmemoratoSmentitoSmeraldoSmilzoSmontareSmottatoSmussatoSnellireSnervatoSnodoSobbalzoSobrioSoccorsoSocialeSodaleSoffittoSognoSoldatoSolenneSolidoSollazzoSoloSolubileSolventeSomaticoSommaSondaSonettoSonniferoSopireSoppesoSopraSorgereSorpassoSorrisoSorsoSorteggioSorvolatoSospiroSostaSottileSpadaSpallaSpargereSpatolaSpaventoSpazzolaSpecieSpedireSpegnereSpelaturaSperanzaSpessoreSpettraleSpezzatoSpiaSpigolosoSpillatoSpinosoSpiraleSplendidoSportivoSposoSprangaSprecareSpronatoSpruzzoSpuntinoSquilloSradicareSrotolatoStabileStaccoStaffaStagnareStampatoStantioStarnutoStaseraStatutoSteloSteppaSterzoStilettoStimaStirpeStivaleStizzosoStonatoStoricoStrappoStregatoStriduloStrozzareStruttoStuccareStufoStupendoSubentroSuccosoSudoreSuggeritoSugoSultanoSuonareSuperboSupportoSurgelatoSurrogatoSussurroSuturaSvagareSvedeseSveglioSvelareSvenutoSveziaSviluppoSvistaSvizzeraSvoltaSvuotareTabaccoTabulatoTacciareTaciturnoTaleTalismanoTamponeTanninoTaraTardivoTargatoTariffaTarpareTartarugaTastoTatticoTavernaTavolataTazzaTecaTecnicoTelefonoTemerarioTempoTemutoTendoneTeneroTensioneTentacoloTeoremaTermeTerrazzoTerzettoTesiTesseratoTestatoTetroTettoiaTifareTigellaTimbroTintoTipicoTipografoTiraggioTiroTitanioTitoloTitubanteTizioTizzoneToccareTollerareToltoTombolaTomoTonfoTonsillaTopazioTopologiaToppaTorbaTornareTorroneTortoraToscanoTossireTostaturaTotanoTraboccoTracheaTrafilaTragediaTralcioTramontoTransitoTrapanoTrarreTraslocoTrattatoTraveTrecciaTremolioTrespoloTributoTrichecoTrifoglioTrilloTrinceaTrioTristezzaTrituratoTrivellaTrombaTronoTroppoTrottolaTrovareTruccatoTubaturaTuffatoTulipanoTumultoTunisiaTurbareTurchinoTutaTutelaUbicatoUccelloUccisoreUdireUditivoUffaUfficioUgualeUlisseUltimatoUmanoUmileUmorismoUncinettoUngereUnghereseUnicornoUnificatoUnisonoUnitarioUnteUovoUpupaUraganoUrgenzaUrloUsanzaUsatoUscitoUsignoloUsuraioUtensileUtilizzoUtopiaVacanteVaccinatoVagabondoVagliatoValangaValgoValicoVallettaValorosoValutareValvolaVampataVangareVanitosoVanoVantaggioVanveraVaporeVaranoVarcatoVarianteVascaVedettaVedovaVedutoVegetaleVeicoloVelcroVelinaVellutoVeloceVenatoVendemmiaVentoVeraceVerbaleVergognaVerificaVeroVerrucaVerticaleVescicaVessilloVestaleVeteranoVetrinaVetustoViandanteVibranteVicendaVichingoVicinanzaVidimareVigiliaVignetoVigoreVileVillanoViminiVincitoreViolaViperaVirgolaVirologoVirulentoViscosoVisioneVispoVissutoVisuraVitaVitelloVittimaVivandaVividoViziareVoceVogaVolatileVolereVolpeVoragineVulcanoZampognaZannaZappatoZatteraZavorraZefiroZelanteZeloZenzeroZerbinoZibettoZincoZirconeZittoZollaZoticoZuccheroZufoloZuluZuppa";
+let wordlist$6 = null;
+function loadWords$6(lang) {
+    if (wordlist$6 != null) {
+        return;
+    }
+    wordlist$6 = words$4.replace(/([A-Z])/g, " $1").toLowerCase().substring(1).split(" ");
+    // Verify the computed list matches the official list
+    /* istanbul ignore if */
+    if (Wordlist.check(lang) !== "0x5c1362d88fd4cf614a96f3234941d29f7d37c08c5292fde03bf62c2db6ff7620") {
+        wordlist$6 = null;
+        throw new Error("BIP39 Wordlist for it (Italian) FAILED");
+    }
+}
+class LangIt extends Wordlist {
+    constructor() {
+        super("it");
+    }
+    getWord(index) {
+        loadWords$6(this);
+        return wordlist$6[index];
+    }
+    getWordIndex(word) {
+        loadWords$6(this);
+        return wordlist$6.indexOf(word);
+    }
+}
+const langIt = new LangIt();
+Wordlist.register(langIt);
+
+"use strict";
+const data$2 = "}aE#4A=Yv&co#4N#6G=cJ&SM#66|/Z#4t&kn~46#4K~4q%b9=IR#7l,mB#7W_X2*dl}Uo~7s}Uf&Iw#9c&cw~6O&H6&wx&IG%v5=IQ~8a&Pv#47$PR&50%Ko&QM&3l#5f,D9#4L|/H&tQ;v0~6n]nN<di,AM=W5%QO&ka&ua,hM^tm=zV=JA=wR&+X]7P&NB#4J#5L|/b[dA}tJ<Do&6m&u2[U1&Kb.HM&mC=w0&MW<rY,Hq#6M}QG,13&wP}Jp]Ow%ue&Kg<HP<D9~4k~9T&I2_c6$9T#9/[C5~7O~4a=cs&O7=KK=An&l9$6U$8A&uD&QI|/Y&bg}Ux&F2#6b}E2&JN&kW&kp=U/&bb=Xl<Cj}k+~5J#6L&5z&9i}b4&Fo,ho(X0_g3~4O$Fz&QE<HN=Ww]6/%GF-Vw=tj&/D&PN#9g=YO}cL&Of&PI~5I&Ip=vU=IW#9G;0o-wU}ss&QR<BT&R9=tk$PY_dh&Pq-yh]7T,nj.Xu=EP&76=cI&Fs*Xg}z7$Gb&+I=DF,AF=cA}rL#7j=Dz&3y<Aa$52=PQ}b0(iY$Fa}oL&xV#6U=ec=WZ,xh%RY<dp#9N&Fl&44=WH*A7=sh&TB&8P=07;u+&PK}uh}J5#72)V/=xC,AB$k0&f6;1E|+5=1B,3v]6n&wR%b+&xx]7f=Ol}fl;+D^wG]7E;nB;uh^Ir&l5=JL,nS=cf=g5;u6|/Q$Gc=MH%Hg#5d%M6^86=U+$Gz,l/,ir^5y&Ba&/F-IY&FI&be%IZ#77&PW_Nu$kE(Yf&NX]7Z,Jy&FJ(Xo&Nz#/d=y7&MX<Ag}Z+;nE]Dt(iG#4D=13&Pj~4c%v8&Zo%OL&/X#4W<HR&ie~6J_1O(Y2=y5=Ad*cv_eB#6k&PX:BU#7A;uk&Ft&Fx_dD=U2;vB=U5=4F}+O&GN.HH:9s=b0%NV(jO&IH=JT}Z9=VZ<Af,Kx^4m&uJ%c6,6r;9m#+L}cf%Kh&F3~4H=vP}bu,Hz|++,1w]nv}k6;uu$jw*Kl*WX&uM[x7&Fr[m7$NO&QN]hu=JN}nR^8g#/h(ps|KC;vd}xz=V0}p6&FD$G1#7K<bG_4p~8g&cf;u4=tl}+k%5/}fz;uw<cA=u1}gU}VM=LJ=eX&+L&Pr#4U}p2:nC,2K]7H:jF&9x}uX#9O=MB<fz~8X~5m&4D&kN&u5%E/(h7(ZF&VG<de(qM|/e-Wt=3x(a+,/R]f/&ND$Ro&nU}0g=KA%kH&NK$Ke<dS}cB&IX~5g$TN]6m=Uv,Is&Py=Ef%Kz#+/%bi&+A<F4$OG&4C&FL#9V<Zk=2I_eE&6c]nw&kq$HG}y+&A8$P3}OH=XP]70%IS(AJ_gH%GZ&tY&AZ=vb~6y&/r=VI=Wv<Zi=fl=xf&eL}c8}OL=MJ=g8$F7=YT}9u=0+^xC}JH&nL^N0~4T]K2,Cy%OC#6s;vG(AC^xe^cG&MF}Br#9P;wD-7h$O/&xA}Fn^PC]6i]7G&8V$Qs;vl(TB~73~4l<mW&6V=2y&uY&+3)aP}XF;LP&kx$wU=t7;uy<FN&lz)7E=Oo*Y+;wI}9q}le;J6&Ri&4t&Qr#8B=cb&vG=J5|Ql(h5<Yy~4+}QD,Lx=wn%K/&RK=dO&Pw,Q9=co%4u;9u}g0@6a^4I%b0=zo|/c&tX=dQ=OS#+b=yz_AB&wB&Pm=W9$HP_gR=62=AO=ti=hI,oA&jr&dH=tm&b6$P2(x8=zi;nG~7F;05]0n[Ix&3m}rg=Xp=cd&uz]7t;97=cN;vV<jf&FF&F1=6Q&Ik*Kk&P4,2z=fQ]7D&3u,H0=d/}Uw<ZN<7R}Kv;0f$H7,MD]7n$F0#88~9Z%da=by;+T#/u=VF&fO&kr^kf<AB]sU,I5$Ng&Pz;0i&QD&vM=Yl:BM;nJ_xJ]U7&Kf&30,3f|Z9*dC)je_jA&Q4&Kp$NH(Yz#6S&Id%Ib=KX,AD=KV%dP}tW&Pk^+E_Ni=cq,3R}VZ(Si=b+}rv;0j}rZ]uA,/w(Sx&Jv$w9&4d&wE,NJ$Gy=J/]Ls#7k<ZQ<Y/&uj]Ov$PM;v3,2F&+u:up=On&3e,Jv;90=J+&Qm]6q}bK#+d~8Y(h2]hA;99&AS=I/}qB&dQ}yJ-VM}Vl&ui,iB&G3|Dc]7d=eQ%dX%JC_1L~4d^NP;vJ&/1)ZI#7N]9X[bQ&PL=0L(UZ,Lm&kc&IR}n7(iR<AQ<dg=33=vN}ft}au]7I,Ba=x9=dR~6R&Tq=Xi,3d$Nr&Bc}DI&ku&vf]Dn,/F&iD,Ll&Nw=0y&I7=Ls=/A&tU=Qe}Ua&uk&+F=g4=gh=Vj#+1&Qn}Uy*44#5F,Pc&Rz*Xn=oh=5W;0n_Nf(iE<Y7=vr=Zu]oz#5Z%mI=kN=Bv_Jp(T2;vt_Ml<FS&uI=L/&6P]64$M7}86<bo%QX(SI%IY&VK=Al&Ux;vv;ut*E/%uh<ZE|O3,M2(yc]yu=Wk&tp:Ex}hr,Cl&WE)+Z=8U}I2_4Q,hA_si=iw=OM=tM=yZ%Ia=U7;wT}b+;uo=Za}yS!5x}HD}fb#5O_dA;Nv%uB(yB;01(Sf}Fk;v7}Pt#8v<mZ#7L,/r&Pl~4w&f5=Ph$Fw_LF&8m,bL=yJ&BH}p/*Jn}tU~5Q;wB(h6]Df]8p^+B;E4&Wc=d+;Ea&bw$8C&FN,DM=Yf}mP~5w=fT#6V=mC=Fi=AV}jB&AN}lW}aH#/D)dZ;hl;vE}/7,CJ;31&w8,hj%u9_Js=jJ&4M~8k=TN&eC}nL&uc-wi&lX}dj=Mv=e2#6u=cr$uq$6G]8W}Jb:nm=Yg<b3(UA;vX&6n&xF=KT,jC,De&R8&oY=Zv&oB]7/=Z2&Oa}bf,hh(4h^tZ&72&Nx;D2&xL~5h~40)ZG)h+=OJ&RA]Bv$yB=Oq=df,AQ%Jn}OJ;11,3z&Tl&tj;v+^Hv,Dh(id=s+]7N&N3)9Q~8f,S4=uW=w4&uX,LX&3d]CJ&yp&8x<b2_do&lP=y/<cy_dG=Oi=7R(VH(lt_1T,Iq_AA;12^6T%k6#8K[B1{oO<AU[Bt;1b$9S&Ps<8T=St{bY,jB(Zp&63&Uv$9V,PM]6v&Af}zW[bW_oq}sm}nB&Kq&gC&ff_eq_2m&5F&TI}rf}Gf;Zr_z9;ER&jk}iz_sn<BN~+n&vo=Vi%97|ZR=Wc,WE&6t]6z%85(ly#84=KY)6m_5/=aX,N3}Tm&he&6K]tR_B2-I3;u/&hU&lH<AP=iB&IA=XL;/5&Nh=wv<BH#79=vS=zl<AA=0X_RG}Bw&9p$NW,AX&kP_Lp&/Z(Tc]Mu}hs#6I}5B&cI<bq&H9#6m=K9}vH(Y1(Y0#4B&w6,/9&gG<bE,/O=zb}I4_l8<B/;wL%Qo<HO[Mq=XX}0v&BP&F4(mG}0i}nm,EC=9u{I3,xG&/9=JY*DK&hR)BX=EI=cx=b/{6k}yX%A+&wa}Xb=la;wi^lL;0t}jo&Qb=xg=XB}iO<qo{bR=NV&8f=a0&Jy;0v=uK)HK;vN#6h&jB(h/%ud&NI%wY.X7=Pt}Cu-uL&Gs_hl%mH,tm]78=Lb^Q0#7Y=1u<Bt&+Q=Co_RH,w3;1e}ux<aU;ui}U3&Q5%bt]63&UQ|0l&uL}O7&3o,AV&dm|Nj(Xt*5+(Uu&Hh(p7(UF=VR=Bp^Jl&Hd[ix)9/=Iq]C8<67]66}mB%6f}bb}JI]8T$HA}db=YM&pa=2J}tS&Y0=PS&y4=cX$6E,hX,XP&nR;04,FQ&l0&Vm_Dv#5Y~8Z=Bi%MA]6x=JO:+p,Az&9q,Hj~6/}SD=K1:EJ}nA;Qo#/E]9R,Ie&6X%W3]61&v4=xX_MC=0q;06(Xq=fs}IG}Dv=0l}o7$iZ;9v&LH&DP-7a&OY,SZ,Kz,Cv&dh=fx|Nh,F/~7q=XF&w+;9n&Gw;0h}Z7<7O&JK(S7&LS<AD<ac=wo<Dt&zw%4B=4v#8P;9o~6p*vV=Tm,Or&I6=1q}nY=P0=gq&Bl&Uu,Ch%yb}UY=zh}dh}rl(T4_xk(YA#8R*xH,IN}Jn]7V}C4&Ty}j3]7p=cL=3h&wW%Qv<Z3=f0&RI&+S(ic_zq}oN&/Y=z1;Td=LW=0e=OI(Vc,+b^ju(UL;0r:Za%8v=Rp=zw&58&73&wK}qX]6y&8E)a2}WR=wP^ur&nQ<cH}Re=Aq&wk}Q0&+q=PP,Gc|/d^k5,Fw]8Y}Pg]p3=ju=ed}r5_yf&Cs]7z$/G<Cm&Jp&54_1G_gP_Ll}JZ;0u]k8_7k(Sg]65{9i=LN&Sx&WK,iW&fD&Lk{9a}Em-9c#8N&io=sy]8d&nT&IK(lx#7/$lW(Td<s8~49,3o<7Y=MW(T+_Jr&Wd,iL}Ct=xh&5V;v4&8n%Kx=iF&l2_0B{B+,If(J0,Lv;u8=Kx-vB=HC&vS=Z6&fU&vE^xK;3D=4h=MR#45:Jw;0d}iw=LU}I5=I0]gB*im,K9}GU,1k_4U&Tt=Vs(iX&lU(TF#7y,ZO}oA&m5#5P}PN}Uz=hM<B1&FB<aG,e6~7T<tP(UQ_ZT=wu&F8)aQ]iN,1r_Lo&/g:CD}84{J1_Ki&Na&3n$jz&FE=dc;uv;va}in}ll=fv(h1&3h}fp=Cy}BM(+E~8m}lo%v7=hC(T6$cj=BQ=Bw(DR,2j=Ks,NS|F+;00=fU=70}Mb(YU;+G&m7&hr=Sk%Co]t+(X5_Jw}0r}gC(AS-IP&QK<Z2#8Q$WC]WX}T2&pG_Ka,HC=R4&/N;Z+;ch(C7,D4$3p_Mk&B2$8D=n9%Ky#5z(CT&QJ#7B]DC]gW}nf~5M;Iw#80}Tc_1F#4Z-aC}Hl=ph=fz,/3=aW}JM}nn;DG;vm}wn,4P}T3;wx&RG$u+}zK=0b;+J_Ek{re<aZ=AS}yY#5D]7q,Cp}xN=VP*2C}GZ}aG~+m_Cs=OY#6r]6g<GS}LC(UB=3A=Bo}Jy<c4}Is;1P<AG}Op<Z1}ld}nS=1Z,yM&95&98=CJ(4t:2L$Hk=Zo}Vc;+I}np&N1}9y=iv}CO*7p=jL)px]tb^zh&GS&Vl%v/;vR=14=zJ&49|/f]hF}WG;03=8P}o/&Gg&rp;DB,Kv}Ji&Pb;aA^ll(4j%yt}+K$Ht#4y&hY]7Y<F1,eN}bG(Uh%6Z]t5%G7;+F_RE;it}tL=LS&Da=Xx(S+(4f=8G=yI}cJ}WP=37=jS}pX}hd)fp<A8=Jt~+o$HJ=M6}iX=g9}CS=dv=Cj(mP%Kd,xq|+9&LD(4/=Xm&QP=Lc}LX&fL;+K=Op(lu=Qs.qC:+e&L+=Jj#8w;SL]7S(b+#4I=c1&nG_Lf&uH;+R)ZV<bV%B/,TE&0H&Jq&Ah%OF&Ss(p2,Wv&I3=Wl}Vq;1L&lJ#9b_1H=8r=b8=JH(SZ=hD=J2#7U,/U#/X~6P,FU<eL=jx,mG=hG=CE&PU=Se(qX&LY=X6=y4&tk&QQ&tf=4g&xI}W+&mZ=Dc#7w}Lg;DA;wQ_Kb(cJ=hR%yX&Yb,hw{bX_4X;EP;1W_2M}Uc=b5(YF,CM&Tp^OJ{DD]6s=vF=Yo~8q}XH}Fu%P5(SJ=Qt;MO]s8<F3&B3&8T(Ul-BS*dw&dR<87}/8]62$PZ]Lx<Au}9Q]7c=ja=KR,Go,Us&v6(qk}pG&G2=ev^GM%w4&H4]7F&dv]J6}Ew:9w=sj-ZL}Ym$+h(Ut(Um~4n=Xs(U7%eE=Qc_JR<CA#6t<Fv|/I,IS,EG<F2(Xy$/n<Fa(h9}+9_2o&N4#7X<Zq|+f_Dp=dt&na,Ca=NJ)jY=8C=YG=s6&Q+<DO}D3=xB&R1(lw;Qn<bF(Cu|/B}HV=SS&n7,10&u0]Dm%A6^4Q=WR(TD=Xo<GH,Rj(l8)bP&n/=LM&CF,F5&ml=PJ;0k=LG=tq,Rh,D6@4i=1p&+9=YC%er_Mh;nI;0q=Fw]80=xq=FM$Gv;v6&nc;wK%H2&Kj;vs,AA=YP,66}bI(qR~5U=6q~4b$Ni=K5.X3$So&Iu(p+]8G=Cf=RY(TS_O3(iH&57=fE=Dg_Do#9z#7H;FK{qd_2k%JR}en&gh_z8;Rx}9p<cN_Ne,DO;LN_7o~/p=NF=5Y}gN<ce<C1,QE]Wv=3u<BC}GK]yq}DY&u/_hj=II(pz&rC,jV&+Z}ut=NQ;Cg-SR_ZS,+o=u/;Oy_RK_QF(Fx&xP}Wr&TA,Uh&g1=yr{ax[VF$Pg(YB;Ox=Vy;+W(Sp}XV%dd&33(l/]l4#4Y}OE=6c=bw(A7&9t%wd&N/&mo,JH&Qe)fm=Ao}fu=tH";
+const deltaData = "FAZDC6BALcLZCA+GBARCW8wNCcDDZ8LVFBOqqDUiou+M42TFAyERXFb7EjhP+vmBFpFrUpfDV2F7eB+eCltCHJFWLFCED+pWTojEIHFXc3aFn4F68zqjEuKidS1QBVPDEhE7NA4mhMF7oThD49ot3FgtzHFCK0acW1x8DH1EmLoIlrWFBLE+y5+NA3Cx65wJHTaEZVaK1mWAmPGxgYCdxwOjTDIt/faOEhTl1vqNsKtJCOhJWuio2g07KLZEQsFBUpNtwEByBgxFslFheFbiEPvi61msDvApxCzB6rBCzox7joYA5UdDc+Cb4FSgIabpXFAj3bjkmFAxCZE+mD/SFf/0ELecYCt3nLoxC6WEZf2tKDB4oZvrEmqFkKk7BwILA7gtYBpsTq//D4jD0F0wEB9pyQ1BD5Ba0oYHDI+sbDFhvrHXdDHfgFEIJLi5r8qercNFBgFLC4bo5ERJtamWBDFy73KCEb6M8VpmEt330ygCTK58EIIFkYgF84gtGA9Uyh3m68iVrFbWFbcbqiCYHZ9J1jeRPbL8yswhMiDbhEhdNoSwFbZrLT740ABEqgCkO8J1BLd1VhKKR4sD1yUo0z+FF59Mvg71CFbyEhbHSFBKEIKyoQNgQppq9T0KAqePu0ZFGrXOHdKJqkoTFhYvpDNyuuznrN84thJbsCoO6Cu6Xlvntvy0QYuAExQEYtTUBf3CoCqwgGFZ4u1HJFzDVwEy3cjcpV4QvsPaBC3rCGyCF23o4K3pp2gberGgFEJEHo4nHICtyKH2ZqyxhN05KBBJIQlKh/Oujv/DH32VrlqFdIFC7Fz9Ct4kaqFME0UETLprnN9kfy+kFmtQBB0+5CFu0N9Ij8l/VvJDh2oq3hT6EzjTHKFN7ZjZwoTsAZ4Exsko6Fpa6WC+sduz8jyrLpegTv2h1EBeYpLpm2czQW0KoCcS0bCVXCmuWJDBjN1nQNLdF58SFJ0h7i3pC3oEOKy/FjBklL70XvBEEIWp2yZ04xObzAWDDJG7f+DbqBEA7LyiR95j7MDVdDViz2RE5vWlBMv5e4+VfhP3aXNPhvLSynb9O2x4uFBV+3jqu6d5pCG28/sETByvmu/+IJ0L3wb4rj9DNOLBF6XPIODr4L19U9RRofAG6Nxydi8Bki8BhGJbBAJKzbJxkZSlF9Q2Cu8oKqggB9hBArwLLqEBWEtFowy8XK8bEyw9snT+BeyFk1ZCSrdmgfEwFePTgCjELBEnIbjaDDPJm36rG9pztcEzT8dGk23SBhXBB1H4z+OWze0ooFzz8pDBYFvp9j9tvFByf9y4EFdVnz026CGR5qMr7fxMHN8UUdlyJAzlTBDRC28k+L4FB8078ljyD91tUj1ocnTs8vdEf7znbzm+GIjEZnoZE5rnLL700Xc7yHfz05nWxy03vBB9YGHYOWxgMQGBCR24CVYNE1hpfKxN0zKnfJDmmMgMmBWqNbjfSyFCBWSCGCgR8yFXiHyEj+VtD1FB3FpC1zI0kFbzifiKTLm9yq5zFmur+q8FHqjoOBWsBPiDbnCC2ErunV6cJ6TygXFYHYp7MKN9RUlSIS8/xBAGYLzeqUnBF4QbsTuUkUqGs6CaiDWKWjQK9EJkjpkTmNCPYXL";
+// @TODO: Load lazily
+const wordlist$7 = {
+    zh_cn: null,
+    zh_tw: null
+};
+const Checks = {
+    zh_cn: "0x17bcc4d8547e5a7135e365d1ab443aaae95e76d8230c2782c67305d4f21497a1",
+    zh_tw: "0x51e720e90c7b87bec1d70eb6e74a21a449bd3ec9c020b01d3a40ed991b60ce5d"
+};
+const codes$1 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const style = "~!@#$%^&*_-=[]{}|;:,.()<>?";
+function loadWords$7(lang) {
+    if (wordlist$7[lang.locale] !== null) {
+        return;
+    }
+    wordlist$7[lang.locale] = [];
+    let deltaOffset = 0;
+    for (let i = 0; i < 2048; i++) {
+        const s = style.indexOf(data$2[i * 3]);
+        const bytes = [
+            228 + (s >> 2),
+            128 + codes$1.indexOf(data$2[i * 3 + 1]),
+            128 + codes$1.indexOf(data$2[i * 3 + 2]),
+        ];
+        if (lang.locale === "zh_tw") {
+            const common = s % 4;
+            for (let i = common; i < 3; i++) {
+                bytes[i] = codes$1.indexOf(deltaData[deltaOffset++]) + ((i == 0) ? 228 : 128);
+            }
+        }
+        wordlist$7[lang.locale].push(toUtf8String(bytes));
+    }
+    // Verify the computed list matches the official list
+    /* istanbul ignore if */
+    if (Wordlist.check(lang) !== Checks[lang.locale]) {
+        wordlist$7[lang.locale] = null;
+        throw new Error("BIP39 Wordlist for " + lang.locale + " (Chinese) FAILED");
+    }
+}
+class LangZh extends Wordlist {
+    constructor(country) {
+        super("zh_" + country);
+    }
+    getWord(index) {
+        loadWords$7(this);
+        return wordlist$7[this.locale][index];
+    }
+    getWordIndex(word) {
+        loadWords$7(this);
+        return wordlist$7[this.locale].indexOf(word);
+    }
+    split(mnemonic) {
+        mnemonic = mnemonic.replace(/(?:\u3000| )+/g, "");
+        return mnemonic.split("");
+    }
+}
+const langZhCn = new LangZh("cn");
+Wordlist.register(langZhCn);
+Wordlist.register(langZhCn, "zh");
+const langZhTw = new LangZh("tw");
+Wordlist.register(langZhTw);
+
+const wordlists = {
+    cz: langCz,
+    en: langEn,
+    es: langEs,
+    fr: langFr,
+    it: langIt,
+    ja: langJa,
+    ko: langKo,
+    zh: langZhCn,
+    zh_cn: langZhCn,
+    zh_tw: langZhTw
+};
+
+"use strict";
+
+const version$L = "hdnode/5.0.7";
+
+"use strict";
+const logger$H = new Logger$d(version$L);
 const N = BigNumber.from("0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
 // "Bitcoin seed"
 const MasterSecret = toUtf8Bytes("Bitcoin seed");
@@ -26929,16 +28160,16 @@ function bytes32(value) {
     return hexZeroPad$b(hexlify$b(value), 32);
 }
 function base58check(data) {
-    return Base58.encode(concat$b([data, hexDataSlice$b(browser_3(browser_3(data)), 0, 4)]));
+    return Base58.encode(concat$b([data, hexDataSlice$b(sha256$2(sha256$2(data)), 0, 4)]));
 }
 function getWordlist(wordlist) {
     if (wordlist == null) {
-        return browser_2$3["en"];
+        return wordlists["en"];
     }
     if (typeof (wordlist) === "string") {
-        const words = browser_2$3[wordlist];
+        const words = wordlists[wordlist];
         if (words == null) {
-            logger$C.throwArgumentError("unknown locale", "wordlist", wordlist);
+            logger$H.throwArgumentError("unknown locale", "wordlist", wordlist);
         }
         return words;
     }
@@ -26956,7 +28187,7 @@ class HDNode {
      *   - fromSeed
      */
     constructor(constructorGuard, privateKey, publicKey, parentFingerprint, chainCode, index, depth, mnemonicOrPath) {
-        logger$C.checkNew(new.target, HDNode);
+        logger$H.checkNew(new.target, HDNode);
         /* istanbul ignore if */
         if (constructorGuard !== _constructorGuard$3) {
             throw new Error("HDNode constructor cannot be called directly");
@@ -26971,7 +28202,7 @@ class HDNode {
             defineReadOnly(this, "publicKey", hexlify$b(publicKey));
         }
         defineReadOnly(this, "parentFingerprint", parentFingerprint);
-        defineReadOnly(this, "fingerprint", hexDataSlice$b(browser_2$2(browser_3(this.publicKey)), 0, 4));
+        defineReadOnly(this, "fingerprint", hexDataSlice$b(ripemd160$2(sha256$2(this.publicKey)), 0, 4));
         defineReadOnly(this, "address", computeAddress$1(this.publicKey));
         defineReadOnly(this, "chainCode", chainCode);
         defineReadOnly(this, "index", index);
@@ -27042,7 +28273,7 @@ class HDNode {
         for (let i = 24; i >= 0; i -= 8) {
             data[33 + (i >> 3)] = ((index >> (24 - i)) & 0xff);
         }
-        const I = arrayify$b(browser_5(browser_1$2.sha512, this.chainCode, data));
+        const I = arrayify$b(computeHmac(SupportedAlgorithm.sha512, this.chainCode, data));
         const IL = I.slice(0, 32);
         const IR = I.slice(32);
         // The private key
@@ -27103,7 +28334,7 @@ class HDNode {
         if (seedArray.length < 16 || seedArray.length > 64) {
             throw new Error("invalid seed");
         }
-        const I = arrayify$b(browser_5(browser_1$2.sha512, MasterSecret, seedArray));
+        const I = arrayify$b(computeHmac(SupportedAlgorithm.sha512, MasterSecret, seedArray));
         return new HDNode(_constructorGuard$3, bytes32(I.slice(0, 32)), null, "0x00000000", bytes32(I.slice(32)), 0, 0, mnemonic);
     }
     static fromMnemonic(mnemonic, password, wordlist) {
@@ -27123,7 +28354,7 @@ class HDNode {
     static fromExtendedKey(extendedKey) {
         const bytes = Base58.decode(extendedKey);
         if (bytes.length !== 82 || base58check(bytes.slice(0, 78)) !== extendedKey) {
-            logger$C.throwArgumentError("invalid extended key", "extendedKey", "[REDACTED]");
+            logger$H.throwArgumentError("invalid extended key", "extendedKey", "[REDACTED]");
         }
         const depth = bytes[4];
         const parentFingerprint = hexlify$b(bytes.slice(5, 9));
@@ -27143,7 +28374,7 @@ class HDNode {
                 }
                 return new HDNode(_constructorGuard$3, hexlify$b(key.slice(1)), null, parentFingerprint, chainCode, index, depth, null);
         }
-        return logger$C.throwArgumentError("invalid extended key", "extendedKey", "[REDACTED]");
+        return logger$H.throwArgumentError("invalid extended key", "extendedKey", "[REDACTED]");
     }
 }
 function mnemonicToSeed(mnemonic, password) {
@@ -27151,11 +28382,11 @@ function mnemonicToSeed(mnemonic, password) {
         password = "";
     }
     const salt = toUtf8Bytes("mnemonic" + password, UnicodeNormalizationForm.NFKD);
-    return browser_1$3(toUtf8Bytes(mnemonic, UnicodeNormalizationForm.NFKD), salt, 2048, 64, "sha512");
+    return pbkdf2(toUtf8Bytes(mnemonic, UnicodeNormalizationForm.NFKD), salt, 2048, 64, "sha512");
 }
 function mnemonicToEntropy(mnemonic, wordlist) {
     wordlist = getWordlist(wordlist);
-    logger$C.checkNormalize();
+    logger$H.checkNormalize();
     const words = wordlist.split(mnemonic);
     if ((words.length % 3) !== 0) {
         throw new Error("invalid mnemonic");
@@ -27177,7 +28408,7 @@ function mnemonicToEntropy(mnemonic, wordlist) {
     const entropyBits = 32 * words.length / 3;
     const checksumBits = words.length / 3;
     const checksumMask = getUpperMask(checksumBits);
-    const checksum = arrayify$b(browser_3(entropy.slice(0, entropyBits / 8)))[0] & checksumMask;
+    const checksum = arrayify$b(sha256$2(entropy.slice(0, entropyBits / 8)))[0] & checksumMask;
     if (checksum !== (entropy[entropy.length - 1] & checksumMask)) {
         throw new Error("invalid checksum");
     }
@@ -27209,7 +28440,7 @@ function entropyToMnemonic(entropy, wordlist) {
     }
     // Compute the checksum bits
     const checksumBits = entropy.length / 4;
-    const checksum = arrayify$b(browser_3(entropy))[0] & getUpperMask(checksumBits);
+    const checksum = arrayify$b(sha256$2(entropy))[0] & getUpperMask(checksumBits);
     // Shift the checksum into the word indices
     indices[indices.length - 1] <<= checksumBits;
     indices[indices.length - 1] |= (checksum >> (8 - checksumBits));
@@ -28025,7 +29256,7 @@ var aesJs = createCommonjsModule(function (module, exports) {
 })(commonjsGlobal);
 });
 
-const version$J = "logger/5.0.5";
+const version$M = "logger/5.0.8";
 
 "use strict";
 let _permanentCensorErrors$i = false;
@@ -28287,7 +29518,7 @@ class Logger$i {
     }
     static globalLogger() {
         if (!_globalLogger$i) {
-            _globalLogger$i = new Logger$i(version$J);
+            _globalLogger$i = new Logger$i(version$M);
         }
         return _globalLogger$i;
     }
@@ -28316,32 +29547,35 @@ class Logger$i {
         }
         _logLevel$i = level;
     }
+    static from(version) {
+        return new Logger$i(version);
+    }
 }
 Logger$i.errors = ErrorCode$i;
 Logger$i.levels = LogLevel$i;
 
-const version$K = "bytes/5.0.4";
+const version$N = "bytes/5.0.7";
 
 "use strict";
-const logger$D = new Logger$i(version$K);
+const logger$I = new Logger$i(version$N);
 ///////////////////////////////
-function isHexable$f(value) {
+function isHexable$g(value) {
     return !!(value.toHexString);
 }
-function addSlice$f(array) {
+function addSlice$g(array) {
     if (array.slice) {
         return array;
     }
     array.slice = function () {
         const args = Array.prototype.slice.call(arguments);
-        return addSlice$f(new Uint8Array(Array.prototype.slice.apply(array, args)));
+        return addSlice$g(new Uint8Array(Array.prototype.slice.apply(array, args)));
     };
     return array;
 }
-function isBytesLike$f(value) {
-    return ((isHexString$f(value) && !(value.length % 2)) || isBytes$f(value));
+function isBytesLike$g(value) {
+    return ((isHexString$g(value) && !(value.length % 2)) || isBytes$g(value));
 }
-function isBytes$f(value) {
+function isBytes$g(value) {
     if (value == null) {
         return false;
     }
@@ -28362,12 +29596,12 @@ function isBytes$f(value) {
     }
     return true;
 }
-function arrayify$f(value, options) {
+function arrayify$g(value, options) {
     if (!options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$D.checkSafeUint53(value, "invalid arrayify value");
+        logger$I.checkSafeUint53(value, "invalid arrayify value");
         const result = [];
         while (value) {
             result.unshift(value & 0xff);
@@ -28376,15 +29610,15 @@ function arrayify$f(value, options) {
         if (result.length === 0) {
             result.push(0);
         }
-        return addSlice$f(new Uint8Array(result));
+        return addSlice$g(new Uint8Array(result));
     }
     if (options.allowMissingPrefix && typeof (value) === "string" && value.substring(0, 2) !== "0x") {
         value = "0x" + value;
     }
-    if (isHexable$f(value)) {
+    if (isHexable$g(value)) {
         value = value.toHexString();
     }
-    if (isHexString$f(value)) {
+    if (isHexString$g(value)) {
         let hex = value.substring(2);
         if (hex.length % 2) {
             if (options.hexPad === "left") {
@@ -28394,32 +29628,32 @@ function arrayify$f(value, options) {
                 hex += "0";
             }
             else {
-                logger$D.throwArgumentError("hex data is odd-length", "value", value);
+                logger$I.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         const result = [];
         for (let i = 0; i < hex.length; i += 2) {
             result.push(parseInt(hex.substring(i, i + 2), 16));
         }
-        return addSlice$f(new Uint8Array(result));
+        return addSlice$g(new Uint8Array(result));
     }
-    if (isBytes$f(value)) {
-        return addSlice$f(new Uint8Array(value));
+    if (isBytes$g(value)) {
+        return addSlice$g(new Uint8Array(value));
     }
-    return logger$D.throwArgumentError("invalid arrayify value", "value", value);
+    return logger$I.throwArgumentError("invalid arrayify value", "value", value);
 }
-function concat$f(items) {
-    const objects = items.map(item => arrayify$f(item));
+function concat$g(items) {
+    const objects = items.map(item => arrayify$g(item));
     const length = objects.reduce((accum, item) => (accum + item.length), 0);
     const result = new Uint8Array(length);
     objects.reduce((offset, object) => {
         result.set(object, offset);
         return offset + object.length;
     }, 0);
-    return addSlice$f(result);
+    return addSlice$g(result);
 }
-function stripZeros$f(value) {
-    let result = arrayify$f(value);
+function stripZeros$g(value) {
+    let result = arrayify$g(value);
     if (result.length === 0) {
         return result;
     }
@@ -28434,16 +29668,16 @@ function stripZeros$f(value) {
     }
     return result;
 }
-function zeroPad$f(value, length) {
-    value = arrayify$f(value);
+function zeroPad$g(value, length) {
+    value = arrayify$g(value);
     if (value.length > length) {
-        logger$D.throwArgumentError("value out of range", "value", arguments[0]);
+        logger$I.throwArgumentError("value out of range", "value", arguments[0]);
     }
     const result = new Uint8Array(length);
     result.set(value, length - value.length);
-    return addSlice$f(result);
+    return addSlice$g(result);
 }
-function isHexString$f(value, length) {
+function isHexString$g(value, length) {
     if (typeof (value) !== "string" || !value.match(/^0x[0-9A-Fa-f]*$/)) {
         return false;
     }
@@ -28452,16 +29686,16 @@ function isHexString$f(value, length) {
     }
     return true;
 }
-const HexCharacters$f = "0123456789abcdef";
-function hexlify$f(value, options) {
+const HexCharacters$g = "0123456789abcdef";
+function hexlify$g(value, options) {
     if (!options) {
         options = {};
     }
     if (typeof (value) === "number") {
-        logger$D.checkSafeUint53(value, "invalid hexlify value");
+        logger$I.checkSafeUint53(value, "invalid hexlify value");
         let hex = "";
         while (value) {
-            hex = HexCharacters$f[value & 0x0f] + hex;
+            hex = HexCharacters$g[value & 0x0f] + hex;
             value = Math.floor(value / 16);
         }
         if (hex.length) {
@@ -28475,10 +29709,10 @@ function hexlify$f(value, options) {
     if (options.allowMissingPrefix && typeof (value) === "string" && value.substring(0, 2) !== "0x") {
         value = "0x" + value;
     }
-    if (isHexable$f(value)) {
+    if (isHexable$g(value)) {
         return value.toHexString();
     }
-    if (isHexString$f(value)) {
+    if (isHexString$g(value)) {
         if (value.length % 2) {
             if (options.hexPad === "left") {
                 value = "0x0" + value.substring(2);
@@ -28487,20 +29721,20 @@ function hexlify$f(value, options) {
                 value += "0";
             }
             else {
-                logger$D.throwArgumentError("hex data is odd-length", "value", value);
+                logger$I.throwArgumentError("hex data is odd-length", "value", value);
             }
         }
         return value.toLowerCase();
     }
-    if (isBytes$f(value)) {
+    if (isBytes$g(value)) {
         let result = "0x";
         for (let i = 0; i < value.length; i++) {
             let v = value[i];
-            result += HexCharacters$f[(v & 0xf0) >> 4] + HexCharacters$f[v & 0x0f];
+            result += HexCharacters$g[(v & 0xf0) >> 4] + HexCharacters$g[v & 0x0f];
         }
         return result;
     }
-    return logger$D.throwArgumentError("invalid hexlify value", "value", value);
+    return logger$I.throwArgumentError("invalid hexlify value", "value", value);
 }
 /*
 function unoddify(value: BytesLike | Hexable | number): BytesLike | Hexable | number {
@@ -28510,21 +29744,21 @@ function unoddify(value: BytesLike | Hexable | number): BytesLike | Hexable | nu
     return value;
 }
 */
-function hexDataLength$f(data) {
+function hexDataLength$g(data) {
     if (typeof (data) !== "string") {
-        data = hexlify$f(data);
+        data = hexlify$g(data);
     }
-    else if (!isHexString$f(data) || (data.length % 2)) {
+    else if (!isHexString$g(data) || (data.length % 2)) {
         return null;
     }
     return (data.length - 2) / 2;
 }
-function hexDataSlice$f(data, offset, endOffset) {
+function hexDataSlice$g(data, offset, endOffset) {
     if (typeof (data) !== "string") {
-        data = hexlify$f(data);
+        data = hexlify$g(data);
     }
-    else if (!isHexString$f(data) || (data.length % 2)) {
-        logger$D.throwArgumentError("invalid hexData", "value", data);
+    else if (!isHexString$g(data) || (data.length % 2)) {
+        logger$I.throwArgumentError("invalid hexData", "value", data);
     }
     offset = 2 + 2 * offset;
     if (endOffset != null) {
@@ -28532,26 +29766,26 @@ function hexDataSlice$f(data, offset, endOffset) {
     }
     return "0x" + data.substring(offset);
 }
-function hexConcat$f(items) {
+function hexConcat$g(items) {
     let result = "0x";
     items.forEach((item) => {
-        result += hexlify$f(item).substring(2);
+        result += hexlify$g(item).substring(2);
     });
     return result;
 }
-function hexValue$f(value) {
-    const trimmed = hexStripZeros$f(hexlify$f(value, { hexPad: "left" }));
+function hexValue$g(value) {
+    const trimmed = hexStripZeros$g(hexlify$g(value, { hexPad: "left" }));
     if (trimmed === "0x") {
         return "0x0";
     }
     return trimmed;
 }
-function hexStripZeros$f(value) {
+function hexStripZeros$g(value) {
     if (typeof (value) !== "string") {
-        value = hexlify$f(value);
+        value = hexlify$g(value);
     }
-    if (!isHexString$f(value)) {
-        logger$D.throwArgumentError("invalid hex string", "value", value);
+    if (!isHexString$g(value)) {
+        logger$I.throwArgumentError("invalid hex string", "value", value);
     }
     value = value.substring(2);
     let offset = 0;
@@ -28560,22 +29794,22 @@ function hexStripZeros$f(value) {
     }
     return "0x" + value.substring(offset);
 }
-function hexZeroPad$f(value, length) {
+function hexZeroPad$g(value, length) {
     if (typeof (value) !== "string") {
-        value = hexlify$f(value);
+        value = hexlify$g(value);
     }
-    else if (!isHexString$f(value)) {
-        logger$D.throwArgumentError("invalid hex string", "value", value);
+    else if (!isHexString$g(value)) {
+        logger$I.throwArgumentError("invalid hex string", "value", value);
     }
     if (value.length > 2 * length + 2) {
-        logger$D.throwArgumentError("value out of range", "value", arguments[1]);
+        logger$I.throwArgumentError("value out of range", "value", arguments[1]);
     }
     while (value.length < 2 * length + 2) {
         value = "0x0" + value.substring(2);
     }
     return value;
 }
-function splitSignature$f(signature) {
+function splitSignature$g(signature) {
     const result = {
         r: "0x",
         s: "0x",
@@ -28583,14 +29817,14 @@ function splitSignature$f(signature) {
         recoveryParam: 0,
         v: 0
     };
-    if (isBytesLike$f(signature)) {
-        const bytes = arrayify$f(signature);
+    if (isBytesLike$g(signature)) {
+        const bytes = arrayify$g(signature);
         if (bytes.length !== 65) {
-            logger$D.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
+            logger$I.throwArgumentError("invalid signature string; must be 65 bytes", "signature", signature);
         }
         // Get the r, s and v
-        result.r = hexlify$f(bytes.slice(0, 32));
-        result.s = hexlify$f(bytes.slice(32, 64));
+        result.r = hexlify$g(bytes.slice(0, 32));
+        result.s = hexlify$g(bytes.slice(32, 64));
         result.v = bytes[64];
         // Allow a recid to be used as the v
         if (result.v < 27) {
@@ -28598,7 +29832,7 @@ function splitSignature$f(signature) {
                 result.v += 27;
             }
             else {
-                logger$D.throwArgumentError("signature invalid v byte", "signature", signature);
+                logger$I.throwArgumentError("signature invalid v byte", "signature", signature);
             }
         }
         // Compute recoveryParam from v
@@ -28607,7 +29841,7 @@ function splitSignature$f(signature) {
         if (result.recoveryParam) {
             bytes[32] |= 0x80;
         }
-        result._vs = hexlify$f(bytes.slice(32, 64));
+        result._vs = hexlify$g(bytes.slice(32, 64));
     }
     else {
         result.r = signature.r;
@@ -28618,30 +29852,30 @@ function splitSignature$f(signature) {
         // If the _vs is available, use it to populate missing s, v and recoveryParam
         // and verify non-missing s, v and recoveryParam
         if (result._vs != null) {
-            const vs = zeroPad$f(arrayify$f(result._vs), 32);
-            result._vs = hexlify$f(vs);
+            const vs = zeroPad$g(arrayify$g(result._vs), 32);
+            result._vs = hexlify$g(vs);
             // Set or check the recid
             const recoveryParam = ((vs[0] >= 128) ? 1 : 0);
             if (result.recoveryParam == null) {
                 result.recoveryParam = recoveryParam;
             }
             else if (result.recoveryParam !== recoveryParam) {
-                logger$D.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
+                logger$I.throwArgumentError("signature recoveryParam mismatch _vs", "signature", signature);
             }
             // Set or check the s
             vs[0] &= 0x7f;
-            const s = hexlify$f(vs);
+            const s = hexlify$g(vs);
             if (result.s == null) {
                 result.s = s;
             }
             else if (result.s !== s) {
-                logger$D.throwArgumentError("signature v mismatch _vs", "signature", signature);
+                logger$I.throwArgumentError("signature v mismatch _vs", "signature", signature);
             }
         }
         // Use recid and v to populate each other
         if (result.recoveryParam == null) {
             if (result.v == null) {
-                logger$D.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
+                logger$I.throwArgumentError("signature missing v and recoveryParam", "signature", signature);
             }
             else {
                 result.recoveryParam = 1 - (result.v % 2);
@@ -28652,48 +29886,48 @@ function splitSignature$f(signature) {
                 result.v = 27 + result.recoveryParam;
             }
             else if (result.recoveryParam !== (1 - (result.v % 2))) {
-                logger$D.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
+                logger$I.throwArgumentError("signature recoveryParam mismatch v", "signature", signature);
             }
         }
-        if (result.r == null || !isHexString$f(result.r)) {
-            logger$D.throwArgumentError("signature missing or invalid r", "signature", signature);
+        if (result.r == null || !isHexString$g(result.r)) {
+            logger$I.throwArgumentError("signature missing or invalid r", "signature", signature);
         }
         else {
-            result.r = hexZeroPad$f(result.r, 32);
+            result.r = hexZeroPad$g(result.r, 32);
         }
-        if (result.s == null || !isHexString$f(result.s)) {
-            logger$D.throwArgumentError("signature missing or invalid s", "signature", signature);
+        if (result.s == null || !isHexString$g(result.s)) {
+            logger$I.throwArgumentError("signature missing or invalid s", "signature", signature);
         }
         else {
-            result.s = hexZeroPad$f(result.s, 32);
+            result.s = hexZeroPad$g(result.s, 32);
         }
-        const vs = arrayify$f(result.s);
+        const vs = arrayify$g(result.s);
         if (vs[0] >= 128) {
-            logger$D.throwArgumentError("signature s out of range", "signature", signature);
+            logger$I.throwArgumentError("signature s out of range", "signature", signature);
         }
         if (result.recoveryParam) {
             vs[0] |= 0x80;
         }
-        const _vs = hexlify$f(vs);
+        const _vs = hexlify$g(vs);
         if (result._vs) {
-            if (!isHexString$f(result._vs)) {
-                logger$D.throwArgumentError("signature invalid _vs", "signature", signature);
+            if (!isHexString$g(result._vs)) {
+                logger$I.throwArgumentError("signature invalid _vs", "signature", signature);
             }
-            result._vs = hexZeroPad$f(result._vs, 32);
+            result._vs = hexZeroPad$g(result._vs, 32);
         }
         // Set or check the _vs
         if (result._vs == null) {
             result._vs = _vs;
         }
         else if (result._vs !== _vs) {
-            logger$D.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
+            logger$I.throwArgumentError("signature _vs mismatch v and s", "signature", signature);
         }
     }
     return result;
 }
-function joinSignature$f(signature) {
-    signature = splitSignature$f(signature);
-    return hexlify$f(concat$f([
+function joinSignature$g(signature) {
+    signature = splitSignature$g(signature);
+    return hexlify$g(concat$g([
         signature.r,
         signature.s,
         (signature.recoveryParam ? "0x1c" : "0x1b")
@@ -28702,17 +29936,17 @@ function joinSignature$f(signature) {
 
 "use strict";
 function keccak256$5(data) {
-    return '0x' + sha3.keccak_256(arrayify$f(data));
+    return '0x' + sha3.keccak_256(arrayify$g(data));
 }
 
-const version$L = "json-wallets/5.0.6";
+const version$O = "json-wallets/5.0.9";
 
 "use strict";
 function looseArrayify(hexString) {
     if (typeof (hexString) === 'string' && hexString.substring(0, 2) !== '0x') {
         hexString = '0x' + hexString;
     }
-    return arrayify$f(hexString);
+    return arrayify$g(hexString);
 }
 function zpad(value, length) {
     value = String(value);
@@ -28725,7 +29959,7 @@ function getPassword(password) {
     if (typeof (password) === 'string') {
         return toUtf8Bytes(password, UnicodeNormalizationForm.NFKC);
     }
-    return arrayify$f(password);
+    return arrayify$g(password);
 }
 function searchPath(object, path) {
     let currentChild = object;
@@ -28750,7 +29984,7 @@ function searchPath(object, path) {
 }
 // See: https://www.ietf.org/rfc/rfc4122.txt (Section 4.4)
 function uuidV4(randomBytes) {
-    const bytes = arrayify$f(randomBytes);
+    const bytes = arrayify$g(randomBytes);
     // Section: 4.1.3:
     // - time_hi_and_version[12:16] = 0b0100
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
@@ -28758,7 +29992,7 @@ function uuidV4(randomBytes) {
     // - clock_seq_hi_and_reserved[6] = 0b0
     // - clock_seq_hi_and_reserved[7] = 0b1
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    const value = hexlify$f(bytes);
+    const value = hexlify$g(bytes);
     return [
         value.substring(2, 10),
         value.substring(10, 14),
@@ -28769,7 +30003,7 @@ function uuidV4(randomBytes) {
 }
 
 "use strict";
-const logger$E = new Logger$i(version$L);
+const logger$J = new Logger$i(version$O);
 class CrowdsaleAccount extends Description {
     isCrowdsaleAccount(value) {
         return !!(value && value._isCrowdsaleAccount);
@@ -28784,14 +30018,14 @@ function decrypt(json, password) {
     // Encrypted Seed
     const encseed = looseArrayify(searchPath(data, "encseed"));
     if (!encseed || (encseed.length % 16) !== 0) {
-        logger$E.throwArgumentError("invalid encseed", "json", json);
+        logger$J.throwArgumentError("invalid encseed", "json", json);
     }
-    const key = arrayify$f(browser_1$3(password, password, 2000, 32, "sha256")).slice(0, 16);
+    const key = arrayify$g(pbkdf2(password, password, 2000, 32, "sha256")).slice(0, 16);
     const iv = encseed.slice(0, 16);
     const encryptedSeed = encseed.slice(16);
     // Decrypt the seed
     const aesCbc = new aesJs.ModeOfOperation.cbc(key, iv);
-    const seed = aesJs.padding.pkcs7.strip(arrayify$f(aesCbc.decrypt(encryptedSeed)));
+    const seed = aesJs.padding.pkcs7.strip(arrayify$g(aesCbc.decrypt(encryptedSeed)));
     // This wallet format is weird... Convert the binary encoded hex to a string.
     let seedHex = "";
     for (let i = 0; i < seed.length; i++) {
@@ -29348,7 +30582,7 @@ var scrypt_1 = scrypt.scrypt;
 var scrypt_2 = scrypt.syncScrypt;
 
 "use strict";
-var __awaiter$6 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
+var __awaiter$7 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -29357,7 +30591,7 @@ var __awaiter$6 = (window && window.__awaiter) || function (thisArg, _arguments,
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const logger$F = new Logger$i(version$L);
+const logger$K = new Logger$i(version$O);
 // Exported Types
 function hasMnemonic(value) {
     return (value != null && value.mnemonic && value.mnemonic.phrase);
@@ -29373,19 +30607,19 @@ function _decrypt(data, key, ciphertext) {
         const iv = looseArrayify(searchPath(data, "crypto/cipherparams/iv"));
         const counter = new aesJs.Counter(iv);
         const aesCtr = new aesJs.ModeOfOperation.ctr(key, counter);
-        return arrayify$f(aesCtr.decrypt(ciphertext));
+        return arrayify$g(aesCtr.decrypt(ciphertext));
     }
     return null;
 }
 function _getAccount(data, key) {
     const ciphertext = looseArrayify(searchPath(data, "crypto/ciphertext"));
-    const computedMAC = hexlify$f(keccak256$5(concat$f([key.slice(16, 32), ciphertext]))).substring(2);
+    const computedMAC = hexlify$g(keccak256$5(concat$g([key.slice(16, 32), ciphertext]))).substring(2);
     if (computedMAC !== searchPath(data, "crypto/mac").toLowerCase()) {
         throw new Error("invalid password");
     }
     const privateKey = _decrypt(data, key.slice(0, 16), ciphertext);
     if (!privateKey) {
-        logger$F.throwError("unsupported cipher", Logger$i.errors.UNSUPPORTED_OPERATION, {
+        logger$K.throwError("unsupported cipher", Logger$i.errors.UNSUPPORTED_OPERATION, {
             operation: "decrypt"
         });
     }
@@ -29403,7 +30637,7 @@ function _getAccount(data, key) {
     const account = {
         _isKeystoreAccount: true,
         address: address,
-        privateKey: hexlify$f(privateKey)
+        privateKey: hexlify$g(privateKey)
     };
     // Version 0.1 x-ethers metadata must contain an encrypted mnemonic phrase
     if (searchPath(data, "x-ethers/version") === "0.1") {
@@ -29413,7 +30647,7 @@ function _getAccount(data, key) {
         const mnemonicAesCtr = new aesJs.ModeOfOperation.ctr(mnemonicKey, mnemonicCounter);
         const path = searchPath(data, "x-ethers/path") || defaultPath;
         const locale = searchPath(data, "x-ethers/locale") || "en";
-        const entropy = arrayify$f(mnemonicAesCtr.decrypt(mnemonicCiphertext));
+        const entropy = arrayify$g(mnemonicAesCtr.decrypt(mnemonicCiphertext));
         try {
             const mnemonic = entropyToMnemonic(entropy, locale);
             const node = HDNode.fromMnemonic(mnemonic, null, locale).derivePath(path);
@@ -29434,9 +30668,9 @@ function _getAccount(data, key) {
     return new KeystoreAccount(account);
 }
 function pbkdf2Sync(passwordBytes, salt, count, dkLen, prfFunc) {
-    return arrayify$f(browser_1$3(passwordBytes, salt, count, dkLen, prfFunc));
+    return arrayify$g(pbkdf2(passwordBytes, salt, count, dkLen, prfFunc));
 }
-function pbkdf2(passwordBytes, salt, count, dkLen, prfFunc) {
+function pbkdf2$1(passwordBytes, salt, count, dkLen, prfFunc) {
     return Promise.resolve(pbkdf2Sync(passwordBytes, salt, count, dkLen, prfFunc));
 }
 function _computeKdfKey(data, password, pbkdf2Func, scryptFunc, progressCallback) {
@@ -29444,7 +30678,7 @@ function _computeKdfKey(data, password, pbkdf2Func, scryptFunc, progressCallback
     const kdf = searchPath(data, "crypto/kdf");
     if (kdf && typeof (kdf) === "string") {
         const throwError = function (name, value) {
-            return logger$F.throwArgumentError("invalid key-derivation function parameters", name, value);
+            return logger$K.throwArgumentError("invalid key-derivation function parameters", name, value);
         };
         if (kdf.toLowerCase() === "scrypt") {
             const salt = looseArrayify(searchPath(data, "crypto/kdfparams/salt"));
@@ -29486,17 +30720,17 @@ function _computeKdfKey(data, password, pbkdf2Func, scryptFunc, progressCallback
             return pbkdf2Func(passwordBytes, salt, count, dkLen, prfFunc);
         }
     }
-    return logger$F.throwArgumentError("unsupported key-derivation function", "kdf", kdf);
+    return logger$K.throwArgumentError("unsupported key-derivation function", "kdf", kdf);
 }
 function decryptSync(json, password) {
     const data = JSON.parse(json);
-    const key = _computeKdfKey(data, password, pbkdf2Sync, scrypt_2);
+    const key = _computeKdfKey(data, password, pbkdf2Sync, scrypt.syncScrypt);
     return _getAccount(data, key);
 }
 function decrypt$1(json, password, progressCallback) {
-    return __awaiter$6(this, void 0, void 0, function* () {
+    return __awaiter$7(this, void 0, void 0, function* () {
         const data = JSON.parse(json);
-        const key = yield _computeKdfKey(data, password, pbkdf2, scrypt_1, progressCallback);
+        const key = yield _computeKdfKey(data, password, pbkdf2$1, scrypt.scrypt, progressCallback);
         return _getAccount(data, key);
     });
 }
@@ -29526,14 +30760,14 @@ function encrypt(account, password, options, progressCallback) {
     if (!options) {
         options = {};
     }
-    const privateKey = arrayify$f(account.privateKey);
+    const privateKey = arrayify$g(account.privateKey);
     const passwordBytes = getPassword(password);
     let entropy = null;
     let path = null;
     let locale = null;
     if (hasMnemonic(account)) {
         const srcMnemonic = account.mnemonic;
-        entropy = arrayify$f(mnemonicToEntropy(srcMnemonic.phrase, srcMnemonic.locale || "en"));
+        entropy = arrayify$g(mnemonicToEntropy(srcMnemonic.phrase, srcMnemonic.locale || "en"));
         path = srcMnemonic.path || defaultPath;
         locale = srcMnemonic.locale || "en";
     }
@@ -29544,33 +30778,33 @@ function encrypt(account, password, options, progressCallback) {
     // Check/generate the salt
     let salt = null;
     if (options.salt) {
-        salt = arrayify$f(options.salt);
+        salt = arrayify$g(options.salt);
     }
     else {
-        salt = browser_2$1(32);
+        salt = randomBytes(32);
         ;
     }
     // Override initialization vector
     let iv = null;
     if (options.iv) {
-        iv = arrayify$f(options.iv);
+        iv = arrayify$g(options.iv);
         if (iv.length !== 16) {
             throw new Error("invalid iv");
         }
     }
     else {
-        iv = browser_2$1(16);
+        iv = randomBytes(16);
     }
     // Override the uuid
     let uuidRandom = null;
     if (options.uuid) {
-        uuidRandom = arrayify$f(options.uuid);
+        uuidRandom = arrayify$g(options.uuid);
         if (uuidRandom.length !== 16) {
             throw new Error("invalid uuid");
         }
     }
     else {
-        uuidRandom = browser_2$1(16);
+        uuidRandom = randomBytes(16);
     }
     // Override the scrypt password-based key derivation function parameters
     let N = (1 << 17), r = 8, p = 1;
@@ -29588,8 +30822,8 @@ function encrypt(account, password, options, progressCallback) {
     // We take 64 bytes:
     //   - 32 bytes   As normal for the Web3 secret storage (derivedKey, macPrefix)
     //   - 32 bytes   AES key to encrypt mnemonic with (required here to be Ethers Wallet)
-    return scrypt_1(passwordBytes, salt, N, r, p, 64, progressCallback).then((key) => {
-        key = arrayify$f(key);
+    return scrypt.scrypt(passwordBytes, salt, N, r, p, 64, progressCallback).then((key) => {
+        key = arrayify$g(key);
         // This will be used to encrypt the wallet (as per Web3 secret storage)
         const derivedKey = key.slice(0, 16);
         const macPrefix = key.slice(16, 32);
@@ -29598,9 +30832,9 @@ function encrypt(account, password, options, progressCallback) {
         // Encrypt the private key
         const counter = new aesJs.Counter(iv);
         const aesCtr = new aesJs.ModeOfOperation.ctr(derivedKey, counter);
-        const ciphertext = arrayify$f(aesCtr.encrypt(privateKey));
+        const ciphertext = arrayify$g(aesCtr.encrypt(privateKey));
         // Compute the message authentication code, used to check the password
-        const mac = keccak256$5(concat$f([macPrefix, ciphertext]));
+        const mac = keccak256$5(concat$g([macPrefix, ciphertext]));
         // See: https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition
         const data = {
             address: account.address.substring(2).toLowerCase(),
@@ -29609,12 +30843,12 @@ function encrypt(account, password, options, progressCallback) {
             Crypto: {
                 cipher: "aes-128-ctr",
                 cipherparams: {
-                    iv: hexlify$f(iv).substring(2),
+                    iv: hexlify$g(iv).substring(2),
                 },
-                ciphertext: hexlify$f(ciphertext).substring(2),
+                ciphertext: hexlify$g(ciphertext).substring(2),
                 kdf: "scrypt",
                 kdfparams: {
-                    salt: hexlify$f(salt).substring(2),
+                    salt: hexlify$g(salt).substring(2),
                     n: N,
                     dklen: 32,
                     p: p,
@@ -29625,10 +30859,10 @@ function encrypt(account, password, options, progressCallback) {
         };
         // If we have a mnemonic, encrypt it into the JSON wallet
         if (entropy) {
-            const mnemonicIv = browser_2$1(16);
+            const mnemonicIv = randomBytes(16);
             const mnemonicCounter = new aesJs.Counter(mnemonicIv);
             const mnemonicAesCtr = new aesJs.ModeOfOperation.ctr(mnemonicKey, mnemonicCounter);
-            const mnemonicCiphertext = arrayify$f(mnemonicAesCtr.encrypt(entropy));
+            const mnemonicCiphertext = arrayify$g(mnemonicAesCtr.encrypt(entropy));
             const now = new Date();
             const timestamp = (now.getUTCFullYear() + "-" +
                 zpad(now.getUTCMonth() + 1, 2) + "-" +
@@ -29639,8 +30873,8 @@ function encrypt(account, password, options, progressCallback) {
             data["x-ethers"] = {
                 client: client,
                 gethFilename: ("UTC--" + timestamp + "--" + data.address),
-                mnemonicCounter: hexlify$f(mnemonicIv).substring(2),
-                mnemonicCiphertext: hexlify$f(mnemonicCiphertext).substring(2),
+                mnemonicCounter: hexlify$g(mnemonicIv).substring(2),
+                mnemonicCiphertext: hexlify$g(mnemonicCiphertext).substring(2),
                 path: path,
                 locale: locale,
                 version: "0.1"
@@ -29699,7 +30933,7 @@ function decryptJsonWalletSync(json, password) {
  * @date 2020
  */
 'use strict';
-var __awaiter$7 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
+var __awaiter$8 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -29708,7 +30942,7 @@ var __awaiter$7 = (window && window.__awaiter) || function (thisArg, _arguments,
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const logger$G = new Logger$1('abstract-signer');
+const logger$L = new Logger$1('abstract-signer');
 const allowedTransactionKeys$1 = [
     'nonce',
     'gasPrice',
@@ -29732,20 +30966,20 @@ class Signer {
     ///////////////////
     // Sub-classes MUST call super
     constructor() {
-        logger$G.checkAbstract(new.target, Signer);
+        logger$L.checkAbstract(new.target, Signer);
         defineReadOnly(this, '_isSigner', true);
     }
     ///////////////////
     // Sub-classes MAY override these
     getTransactionCount(blockTag) {
-        return __awaiter$7(this, void 0, void 0, function* () {
+        return __awaiter$8(this, void 0, void 0, function* () {
             this._checkProvider('getTransactionCount');
             return yield this.provider.getTransactionCount(this.getAddress(), blockTag);
         });
     }
     // Populates 'from' if unspecified, and calls with the transation
     call(transaction, blockTag) {
-        return __awaiter$7(this, void 0, void 0, function* () {
+        return __awaiter$8(this, void 0, void 0, function* () {
             this._checkProvider('call');
             const tx = yield resolveProperties(this.checkTransaction(transaction));
             return yield this.provider.call(tx, blockTag);
@@ -29753,47 +30987,47 @@ class Signer {
     }
     // Populates all fields in a transaction, signs it and sends it to the network
     sendTransaction(transaction, hook) {
-        return __awaiter$7(this, void 0, void 0, function* () {
+        return __awaiter$8(this, void 0, void 0, function* () {
             this._checkProvider('sendTransaction');
-            return this.provider.populateTransaction(this.checkTransaction(transaction)).then((tx) => __awaiter$7(this, void 0, void 0, function* () {
+            return this.provider.populateTransaction(this.checkTransaction(transaction)).then((tx) => __awaiter$8(this, void 0, void 0, function* () {
                 const signedTx = yield this.signTransaction(tx);
                 return this.provider.sendTransaction(signedTx, hook);
             }));
         });
     }
     getChainId() {
-        return __awaiter$7(this, void 0, void 0, function* () {
+        return __awaiter$8(this, void 0, void 0, function* () {
             this._checkProvider('getChainId');
             return this.provider.getChainId();
         });
     }
     getGroupId() {
-        return __awaiter$7(this, void 0, void 0, function* () {
+        return __awaiter$8(this, void 0, void 0, function* () {
             this._checkProvider('getGroupId');
             return this.provider.getGroupId();
         });
     }
     getBlockNumber() {
-        return __awaiter$7(this, void 0, void 0, function* () {
+        return __awaiter$8(this, void 0, void 0, function* () {
             this._checkProvider('getBlockNumber');
             return this.provider.getBlockNumber();
         });
     }
     getGasPrice() {
-        return __awaiter$7(this, void 0, void 0, function* () {
+        return __awaiter$8(this, void 0, void 0, function* () {
             this._checkProvider('getGasPrice');
             return this.provider.getGasPrice();
         });
     }
     // Populates 'from' if unspecified, and estimates the gas for the transation
     estimateGas(tx) {
-        return __awaiter$7(this, void 0, void 0, function* () {
+        return __awaiter$8(this, void 0, void 0, function* () {
             this._checkProvider('estimateGas');
             return this.provider.estimateGas(tx);
         });
     }
     resolveName(name) {
-        return __awaiter$7(this, void 0, void 0, function* () {
+        return __awaiter$8(this, void 0, void 0, function* () {
             this._checkProvider('resolveName');
             return this.provider.resolveName(name);
         });
@@ -29810,7 +31044,7 @@ class Signer {
     checkTransaction(transaction) {
         for (const key in transaction) {
             if (allowedTransactionKeys$1.indexOf(key) === -1) {
-                logger$G.throwArgumentError('invalid transaction key: ' + key, 'transaction', transaction);
+                logger$L.throwArgumentError('invalid transaction key: ' + key, 'transaction', transaction);
             }
         }
         const tx = shallowCopy(transaction);
@@ -29824,7 +31058,7 @@ class Signer {
                 this.getAddress()
             ]).then((result) => {
                 if (result[0] !== result[1]) {
-                    logger$G.throwArgumentError('from address mismatch', 'transaction', transaction);
+                    logger$L.throwArgumentError('from address mismatch', 'transaction', transaction);
                 }
                 return result[0];
             });
@@ -29835,7 +31069,7 @@ class Signer {
     // Sub-classes SHOULD leave these alone
     _checkProvider(operation) {
         if (!this.provider) {
-            logger$G.throwError('missing provider', Logger$1.errors.UNSUPPORTED_OPERATION, {
+            logger$L.throwError('missing provider', Logger$1.errors.UNSUPPORTED_OPERATION, {
                 operation: (operation || '_checkProvider')
             });
         }
@@ -29846,7 +31080,7 @@ class Signer {
 }
 class VoidSigner extends Signer {
     constructor(address, provider) {
-        logger$G.checkNew(new.target, VoidSigner);
+        logger$L.checkNew(new.target, VoidSigner);
         super();
         defineReadOnly(this, 'address', address);
         defineReadOnly(this, 'provider', provider || null);
@@ -29855,9 +31089,9 @@ class VoidSigner extends Signer {
         return Promise.resolve(this.address);
     }
     _fail(message, operation) {
-        return __awaiter$7(this, void 0, void 0, function* () {
+        return __awaiter$8(this, void 0, void 0, function* () {
             yield Promise.resolve();
-            logger$G.throwError(message, Logger$1.errors.UNSUPPORTED_OPERATION, { operation: operation });
+            logger$L.throwError(message, Logger$1.errors.UNSUPPORTED_OPERATION, { operation: operation });
         });
     }
     signMessage(_) {
@@ -29893,7 +31127,7 @@ class VoidSigner extends Signer {
  * @date 2020
  */
 'use strict';
-var __awaiter$8 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
+var __awaiter$9 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -29902,7 +31136,7 @@ var __awaiter$8 = (window && window.__awaiter) || function (thisArg, _arguments,
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const logger$H = new Logger$1('wallet');
+const logger$M = new Logger$1('wallet');
 function isAccount(value) {
     return (value != null && isHexString$6(value.privateKey, 32) && value.address != null);
 }
@@ -29913,7 +31147,7 @@ function hasMnemonic$1(value) {
 ;
 class Wallet extends Signer {
     constructor(privateKey, provider) {
-        logger$H.checkNew(new.target, Wallet);
+        logger$M.checkNew(new.target, Wallet);
         super();
         if (isBytesLike$6(privateKey)) {
             const signingKey = new SigningKey(privateKey);
@@ -29923,7 +31157,7 @@ class Wallet extends Signer {
             const signingKey = new SigningKey(privateKey.privateKey);
             defineReadOnly(this, '_signing', () => signingKey);
             if (computeAddress(this.publicKey) !== getAddress(privateKey.address)) {
-                logger$H.throwArgumentError('privateKey/address mismatch', 'privateKey', '[REDACTED]');
+                logger$M.throwArgumentError('privateKey/address mismatch', 'privateKey', '[REDACTED]');
             }
         }
         else if (SigningEscrow.isSigningEscrow(privateKey)) {
@@ -29931,7 +31165,7 @@ class Wallet extends Signer {
         }
         else if (SigningKey.isSigningKey(privateKey)) {
             if (privateKey.curve !== 'secp256k1') {
-                logger$H.throwArgumentError('unsupported curve; must be secp256k1', 'privateKey', '[REDACTED]');
+                logger$M.throwArgumentError('unsupported curve; must be secp256k1', 'privateKey', '[REDACTED]');
             }
             defineReadOnly(this, '_signing', () => privateKey);
         }
@@ -29948,14 +31182,14 @@ class Wallet extends Signer {
             const mnemonic = this.mnemonic;
             const node = HDNode.fromMnemonic(mnemonic.phrase, null, mnemonic.locale).derivePath(mnemonic.path);
             if (computeAddress(node.privateKey) !== this.address) {
-                logger$H.throwArgumentError('mnemonic/address mismatch', 'privateKey', '[REDACTED]');
+                logger$M.throwArgumentError('mnemonic/address mismatch', 'privateKey', '[REDACTED]');
             }
         }
         else {
             defineReadOnly(this, '_mnemonic', () => null);
         }
         if (provider && !Provider.isProvider(provider)) {
-            logger$H.throwArgumentError('invalid provider', 'provider', provider);
+            logger$M.throwArgumentError('invalid provider', 'provider', provider);
         }
         defineReadOnly(this, 'provider', provider || null);
     }
@@ -29963,12 +31197,12 @@ class Wallet extends Signer {
     get privateKey() { return this._signing().privateKey; }
     get publicKey() { return this._signing().publicKey; }
     getAddress() {
-        return __awaiter$8(this, void 0, void 0, function* () {
+        return __awaiter$9(this, void 0, void 0, function* () {
             return Promise.resolve(this.address);
         });
     }
     signDigest(digest) {
-        return __awaiter$8(this, void 0, void 0, function* () {
+        return __awaiter$9(this, void 0, void 0, function* () {
             if (SigningKey.isSigningKey(this._signing())) {
                 return Promise.resolve(this._signing().signDigest(digest));
             }
@@ -29981,8 +31215,8 @@ class Wallet extends Signer {
         return new Wallet(this, provider);
     }
     signTransaction(transaction) {
-        return __awaiter$8(this, void 0, void 0, function* () {
-            return resolveProperties(transaction).then((tx) => __awaiter$8(this, void 0, void 0, function* () {
+        return __awaiter$9(this, void 0, void 0, function* () {
+            return resolveProperties(transaction).then((tx) => __awaiter$9(this, void 0, void 0, function* () {
                 if (tx.from != null) {
                     if (getAddress(tx.from) !== this.address) {
                         throw new Error('transaction from address mismatch');
@@ -29995,12 +31229,12 @@ class Wallet extends Signer {
         });
     }
     signMessage(message) {
-        return __awaiter$8(this, void 0, void 0, function* () {
+        return __awaiter$9(this, void 0, void 0, function* () {
             return Promise.resolve(joinSignature$6(yield this.signDigest(hashMessage(message))));
         });
     }
     encrypt(password, options, progressCallback) {
-        return __awaiter$8(this, void 0, void 0, function* () {
+        return __awaiter$9(this, void 0, void 0, function* () {
             if (typeof (options) === 'function' && !progressCallback) {
                 progressCallback = options;
                 options = {};
@@ -30018,7 +31252,7 @@ class Wallet extends Signer {
      *  Static methods to create Wallet instances.
      */
     static createRandom(options) {
-        let entropy = browser_2$1(16);
+        let entropy = randomBytes(16);
         if (!options) {
             options = {};
         }
@@ -30029,7 +31263,7 @@ class Wallet extends Signer {
         return Wallet.fromMnemonic(mnemonic, options.path, options.locale);
     }
     static fromEncryptedJson(json, password, progressCallback) {
-        return __awaiter$8(this, void 0, void 0, function* () {
+        return __awaiter$9(this, void 0, void 0, function* () {
             return decryptJsonWallet(json, password, progressCallback).then((account) => {
                 return new Wallet(account);
             });
@@ -30071,7 +31305,7 @@ function verifyMessage(message, signature) {
  * @date 2020
  */
 'use strict';
-var __awaiter$9 = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
+var __awaiter$a = (window && window.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -30081,12 +31315,12 @@ var __awaiter$9 = (window && window.__awaiter) || function (thisArg, _arguments,
     });
 };
 ;
-const logger$I = new Logger$1('contracts');
+const logger$N = new Logger$1('contracts');
 function buildCall(contract, fragment) {
-    return (...args) => __awaiter$9(this, void 0, void 0, function* () {
+    return (...args) => __awaiter$a(this, void 0, void 0, function* () {
         const signerOrProvider = (contract.signer || contract.provider);
         if (!signerOrProvider) {
-            logger$I.throwError('sending a transaction requires a signer or provider', Logger$1.errors.UNSUPPORTED_OPERATION, {
+            logger$N.throwError('sending a transaction requires a signer or provider', Logger$1.errors.UNSUPPORTED_OPERATION, {
                 operation: 'call'
             });
         }
@@ -30110,7 +31344,7 @@ function buildCall(contract, fragment) {
         if (!!overrides.value) {
             const value = BigNumber.from(overrides.value);
             if (!value.isZero() && !fragment.payable) {
-                logger$I.throwError('non-payable method cannot override value', Logger$1.errors.UNSUPPORTED_OPERATION, {
+                logger$N.throwError('non-payable method cannot override value', Logger$1.errors.UNSUPPORTED_OPERATION, {
                     operation: 'overrides.value',
                     value: overrides.value,
                 });
@@ -30132,10 +31366,10 @@ function buildCall(contract, fragment) {
     });
 }
 function buildSend(contract, fragment) {
-    return (...args) => __awaiter$9(this, void 0, void 0, function* () {
+    return (...args) => __awaiter$a(this, void 0, void 0, function* () {
         const signer = contract.signer;
         if (!signer) {
-            logger$I.throwError('sending a transaction requires a signer', Logger$1.errors.UNSUPPORTED_OPERATION, {
+            logger$N.throwError('sending a transaction requires a signer', Logger$1.errors.UNSUPPORTED_OPERATION, {
                 operation: 'sendTransaction'
             });
         }
@@ -30159,7 +31393,7 @@ function buildSend(contract, fragment) {
         if (!!overrides.value) {
             const value = BigNumber.from(overrides.value);
             if (!value.isZero() && !fragment.payable) {
-                logger$I.throwError('non-payable method cannot override value', Logger$1.errors.UNSUPPORTED_OPERATION, {
+                logger$N.throwError('non-payable method cannot override value', Logger$1.errors.UNSUPPORTED_OPERATION, {
                     operation: 'overrides.value',
                     value: overrides.value,
                 });
